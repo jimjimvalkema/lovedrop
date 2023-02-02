@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+
+<body>
+    <button onclick="test()">test</button>
+    <input class="claim_field" id="claim_ids_field" text=""><button onclick="claim()">claim</button>
+</body>
+<!--
+    <script src="./scripts/ethers-5.2.esm.min.js" type="application/javascript"></script>
+
+-->
+<script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"
+        type="application/javascript"></script>
+<script type="application/javascript">
+    // Your code here...
+
+    // A Web3Provider wraps a standard Web3 provider, which is
+    // what MetaMask injects as window.ethereum into each page
+    const provider = new ethers.providers.Web3Provider(window.ethereum)
+
+    // MetaMask requires requesting permission to connect users accounts
+    provider.send("eth_requestAccounts", []);
+
+    // The MetaMask plugin also allows signing transactions to
+    // send ether and pay to change state within the blockchain.
+    // For this, you need the account signer...
+    const signer = provider.getSigner()
+
+    ///////////////////////////////////////////////////////////
+    // You can also use an ENS name for the contract address
+    const airDropTokenAddress = "0x4A42CD4CFfB2d963b1815f58F636c01205Fc123c";
+
+    // The ERC-20 Contract ABI, which is a common contract interface
+    // for tokens (this is the Human-Readable ABI format)
+    const airDropTokenAbi = [
+    // Some details about the token
+    "function name() view returns (string)",
+    "function symbol() view returns (string)",
+
+    // Get the account balance
+    "function balanceOf(address) view returns (uint)",
+
+    // Send some of your tokens to someone else
+    "function transfer(address to, uint amount)",
+
+    // An event triggered whenever anyone transfers to someone else
+    "event Transfer(address indexed from, address indexed to, uint amount)"
+    ];
+
+    // The Contract object
+    const daiContract = new ethers.Contract(airDropTokenAddress, airDropTokenAbi, provider);
+    let userAddress = signer.getAddress();
+    let userTokenBalance = daiContract.balanceOf(userAddress);
+    const mildayDropAbi = [
+	{
+		"inputs": [
+			{
+				"internalType": "uint256[]",
+				"name": "_ids",
+				"type": "uint256[]"
+			}
+		],
+		"name": "claim",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+    ];
+
+    const mildayDropAddress = "0xED6FC103008736951689bC06075c9E86035D233b";
+    // The Contract object
+    const mildayDropContract = new ethers.Contract(mildayDropAddress, mildayDropAbi, provider);
+    const mildayDropWithSigner = mildayDropContract.connect(signer);
+
+    async function test() {
+        console.log(await userAddress);
+        console.log(await parseInt(await userTokenBalance, 16))
+    }
+
+    function claim() {
+        var claim_ids = String(document.getElementById("claim_ids_field").value);
+        claim_ids =  JSON.parse("[" + claim_ids + "]");
+        console.log(claim_ids);
+        mildayDropWithSigner.claim(claim_ids);
+    };
+
+
+</script>
