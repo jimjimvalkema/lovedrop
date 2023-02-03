@@ -47,38 +47,107 @@
     ];
 
     // The Contract object
-    const daiContract = new ethers.Contract(airDropTokenAddress, airDropTokenAbi, provider);
+    const airdropTokenContract = new ethers.Contract(airDropTokenAddress, airDropTokenAbi, provider);
     let userAddress = signer.getAddress();
-    let userTokenBalance = daiContract.balanceOf(userAddress);
+    
     const mildayDropAbi = [
-	{
-		"inputs": [
-			{
-				"internalType": "uint256[]",
-				"name": "_ids",
-				"type": "uint256[]"
-			}
-		],
-		"name": "claim",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	}
+        {
+            "inputs": [
+                {
+                    "internalType": "uint256[]",
+                    "name": "_ids",
+                    "type": "uint256[]"
+                }
+            ],
+            "name": "claim",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        }
     ];
 
-    const mildayDropAddress = "0xED6FC103008736951689bC06075c9E86035D233b";
+    const mildayDropAddress = "0x558928DDA10Fd445D47790347382BBB73813647c";
     // The Contract object
     const mildayDropContract = new ethers.Contract(mildayDropAddress, mildayDropAbi, provider);
     const mildayDropWithSigner = mildayDropContract.connect(signer);
 
-    async function test() {
-        console.log(await userAddress);
-        console.log(await parseInt(await userTokenBalance, 16))
+    const erc721Abi = [
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "owner",
+                    "type": "address"
+                }
+            ],
+            "name": "balanceOf",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+	    },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "owner",
+                    "type": "address"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "index",
+                    "type": "uint256"
+                }
+            ],
+            "name": "tokenOfOwnerByIndex",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+	    }
+    ]
+
+    const nftContractAddress = "0x418b97A7feD8e96B99e2b0D3700B4eD4E0de1e9F";
+    // The Contract object
+    const nftContract = new ethers.Contract(nftContractAddress, erc721Abi, provider);
+    const nftWithSigner = nftContract.connect(signer);
+
+    async function getUserNftIds() {
+        var ids = [];
+        let userAddress = signer.getAddress();
+        let userBalance = parseInt(await nftWithSigner.balanceOf(signer.getAddress()), 16);
+        console.log("here is the balance ser")
+        console.log(await userBalance);
+        for (let i = 0; i < userBalance; i++) {
+            ids.push(parseInt(await nftWithSigner.tokenOfOwnerByIndex(userAddress, i), 16));
+
+        }
+        return ids;
     }
 
-    function claim() {
-        var claim_ids = String(document.getElementById("claim_ids_field").value);
-        claim_ids =  JSON.parse("[" + claim_ids + "]");
+    async function test() {
+        console.log(await userAddress);
+        console.log(await getUserNftIds())
+        let userTokenBalance = airdropTokenContract.balanceOf(userAddress);
+        console.log(parseInt(await userTokenBalance, 16));
+        //claim();
+
+    }
+
+    async function claim() {
+        var claim_ids = await getUserNftIds();
+        //remove caimed ids
+        //claim_ids =  JSON.parse("[" + claim_ids + "]");
         console.log(claim_ids);
         mildayDropWithSigner.claim(claim_ids);
     };
