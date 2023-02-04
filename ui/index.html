@@ -11,140 +11,143 @@
 <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"
         type="application/javascript"></script>
 <script type="application/javascript">
-    // Your code here...
+    async function connectWeb3() {
+        // A Web3Provider wraps a standard Web3 provider, which is
+        // what MetaMask injects as window.ethereum into each page
+        const provider = new ethers.providers.Web3Provider(window.ethereum)
 
-    // A Web3Provider wraps a standard Web3 provider, which is
-    // what MetaMask injects as window.ethereum into each page
-    const provider = new ethers.providers.Web3Provider(window.ethereum)
+        // MetaMask requires requesting permission to connect users accounts
+        provider.send("eth_requestAccounts", []);
+        return provider;
+    }
 
-    // MetaMask requires requesting permission to connect users accounts
-    provider.send("eth_requestAccounts", []);
+    async function getAirdropTokenContract(provider) {
+        ///////////////////////////////////////////////////////////
+        // You can also use an ENS name for the contract address
+        const airDropTokenAddress = "0x4A42CD4CFfB2d963b1815f58F636c01205Fc123c";
 
-    // The MetaMask plugin also allows signing transactions to
-    // send ether and pay to change state within the blockchain.
-    // For this, you need the account signer...
-    const signer = provider.getSigner()
+        // The ERC-20 Contract ABI, which is a common contract interface
+        // for tokens (this is the Human-Readable ABI format)
+        const airDropTokenAbi = [
+        // Some details about the token
+        "function name() view returns (string)",
+        "function symbol() view returns (string)",
 
-    ///////////////////////////////////////////////////////////
-    // You can also use an ENS name for the contract address
-    const airDropTokenAddress = "0x4A42CD4CFfB2d963b1815f58F636c01205Fc123c";
+        // Get the account balance
+        "function balanceOf(address) view returns (uint)",
 
-    // The ERC-20 Contract ABI, which is a common contract interface
-    // for tokens (this is the Human-Readable ABI format)
-    const airDropTokenAbi = [
-    // Some details about the token
-    "function name() view returns (string)",
-    "function symbol() view returns (string)",
+        // Send some of your tokens to someone else
+        "function transfer(address to, uint amount)",
 
-    // Get the account balance
-    "function balanceOf(address) view returns (uint)",
+        // An event triggered whenever anyone transfers to someone else
+        "event Transfer(address indexed from, address indexed to, uint amount)"
+        ];
 
-    // Send some of your tokens to someone else
-    "function transfer(address to, uint amount)",
-
-    // An event triggered whenever anyone transfers to someone else
-    "event Transfer(address indexed from, address indexed to, uint amount)"
-    ];
-
-    // The Contract object
-    const airdropTokenContract = new ethers.Contract(airDropTokenAddress, airDropTokenAbi, provider);
-    let userAddress = signer.getAddress();
+        // The Contract object
+        const airdropTokenContract = new ethers.Contract(airDropTokenAddress, airDropTokenAbi, provider);
+        return airdropTokenContract;
+    }
     
-    const mildayDropAbi = [
-        {
+    async function getMiladyDropContract(provider) {
+        const mildayDropAbi = [
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256[]",
+                        "name": "_ids",
+                        "type": "uint256[]"
+                    }
+                ],
+                "name": "claim",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
             "inputs": [
-                {
-                    "internalType": "uint256[]",
-                    "name": "_ids",
-                    "type": "uint256[]"
-                }
-            ],
-            "name": "claim",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        },
-        {
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"name": "claimedIds",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	}
-    ];
-
-    const mildayDropAddress = "0x558928DDA10Fd445D47790347382BBB73813647c";
-    // The Contract object
-    const mildayDropContract = new ethers.Contract(mildayDropAddress, mildayDropAbi, provider);
-    const mildayDropWithSigner = mildayDropContract.connect(signer);
-
-    const erc721Abi = [
-        {
-            "inputs": [
-                {
-                    "internalType": "address",
-                    "name": "owner",
-                    "type": "address"
-                }
-            ],
-            "name": "balanceOf",
-            "outputs": [
                 {
                     "internalType": "uint256",
                     "name": "",
                     "type": "uint256"
                 }
             ],
-            "stateMutability": "view",
-            "type": "function"
-	    },
-        {
-            "inputs": [
-                {
-                    "internalType": "address",
-                    "name": "owner",
-                    "type": "address"
-                },
-                {
-                    "internalType": "uint256",
-                    "name": "index",
-                    "type": "uint256"
-                }
-            ],
-            "name": "tokenOfOwnerByIndex",
+            "name": "claimedIds",
             "outputs": [
                 {
-                    "internalType": "uint256",
+                    "internalType": "bool",
                     "name": "",
-                    "type": "uint256"
+                    "type": "bool"
                 }
             ],
             "stateMutability": "view",
             "type": "function"
-	    }
-    ]
+        }
+        ];
 
-    const nftContractAddress = "0x418b97A7feD8e96B99e2b0D3700B4eD4E0de1e9F";
-    // The Contract object
-    const nftContract = new ethers.Contract(nftContractAddress, erc721Abi, provider);
-    const nftWithSigner = nftContract.connect(signer);
+        const mildayDropAddress = "0x558928DDA10Fd445D47790347382BBB73813647c";
+        // The Contract object
+        const mildayDropContract = new ethers.Contract(mildayDropAddress, mildayDropAbi, provider);
+        return mildayDropContract;
 
-    async function getUserNftIds() {
+    }
+
+    async function getNftContract(provider) {
+        const erc721Abi = [
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "owner",
+                        "type": "address"
+                    }
+                ],
+                "name": "balanceOf",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "owner",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "index",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "tokenOfOwnerByIndex",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ]
+
+        const nftContractAddress = "0x418b97A7feD8e96B99e2b0D3700B4eD4E0de1e9F";
+        // The Contract object
+        const nftContract = new ethers.Contract(nftContractAddress, erc721Abi, provider);
+        return nftContract;
+
+    }
+
+    async function getUserNftIds(signer, userAddress) {
         var ids = [];
-        let userAddress = signer.getAddress();
-        let userBalance = parseInt(await nftWithSigner.balanceOf(signer.getAddress()), 16);
+        let userBalance = parseInt(await nftWithSigner.balanceOf(userAddress), 16);
         console.log("here is the balance ser")
         console.log(await userBalance);
         for (let i = 0; i < userBalance; i++) {
@@ -154,16 +157,7 @@
         return ids;
     }
 
-    async function test() {
-        console.log(await userAddress);
-        console.log(await getUserNftIds())
-        let userTokenBalance = airdropTokenContract.balanceOf(userAddress);
-        console.log(parseInt(await userTokenBalance, 16));
-        //claim();
-
-    }
-
-    async function claim() {
+    async function claim(signer) {
         var user_nfts = await getUserNftIds();
         var unclaimed_nfts = [];
         //remove caimed ids
@@ -186,6 +180,39 @@
 
     async function isClaimed(id) {
         return mildayDropWithSigner.claimedIds(id);
+    }
+
+    let signer = null;
+    let airdropTokenContract = null;
+
+    let mildayDropContract = null;
+    let mildayDropWithSigner = null;
+
+    let nftContract = null;
+    let nftWithSigner = null;
+
+    async function test() {
+        const provider = await connectWeb3();
+        // The MetaMask plugin also allows signing transactions to
+        // send ether and pay to change state within the blockchain.
+        // For this, you need the account signer...
+        signer = provider.getSigner();
+        airdropTokenContract = await getAirdropTokenContract(provider);
+
+        mildayDropContract = await getMiladyDropContract(provider);
+        mildayDropWithSigner = mildayDropContract.connect(signer);
+
+        nftContract = await getNftContract(provider);
+        nftWithSigner = nftContract.connect(signer);
+
+        let userAddress = signer.getAddress();
+
+        console.log(userAddress);
+        console.log(await isClaimed(1));
+        console.log(await airdropTokenContract.balanceOf(userAddress));
+        console.log(await getUserNftIds(signer, userAddress));
+
+
     }
 
 
