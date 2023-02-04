@@ -63,7 +63,26 @@
             "outputs": [],
             "stateMutability": "nonpayable",
             "type": "function"
-        }
+        },
+        {
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "claimedIds",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
     ];
 
     const mildayDropAddress = "0x558928DDA10Fd445D47790347382BBB73813647c";
@@ -145,12 +164,29 @@
     }
 
     async function claim() {
-        var claim_ids = await getUserNftIds();
+        var user_nfts = await getUserNftIds();
+        var unclaimed_nfts = [];
         //remove caimed ids
         //claim_ids =  JSON.parse("[" + claim_ids + "]");
-        console.log(claim_ids);
-        mildayDropWithSigner.claim(claim_ids);
+        console.log("testing isclaimed");
+        console.log(await isClaimed(7));
+        console.log(user_nfts);
+        for (let i = 0; i < user_nfts.length; i++) {
+            let id = user_nfts[i]
+            if (! await isClaimed(id)) {
+                unclaimed_nfts.push(id);
+                console.log(id);
+
+            }
+        }
+        console.log("unclaimed ids:");
+        console.log(unclaimed_nfts);
+        mildayDropWithSigner.claim(unclaimed_nfts);
     };
+
+    async function isClaimed(id) {
+        return mildayDropWithSigner.claimedIds(id);
+    }
 
 
 </script>
