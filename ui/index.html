@@ -21,11 +21,7 @@
         return provider;
     }
 
-    async function getAirdropTokenContract(provider) {
-        ///////////////////////////////////////////////////////////
-        // You can also use an ENS name for the contract address
-        const airDropTokenAddress = "0x4A42CD4CFfB2d963b1815f58F636c01205Fc123c";
-
+    async function getAirdropTokenContract(provider, airDropTokenAddress) {
         // The ERC-20 Contract ABI, which is a common contract interface
         // for tokens (this is the Human-Readable ABI format)
         const airDropTokenAbi = [
@@ -48,7 +44,7 @@
         return airdropTokenContract;
     }
     
-    async function getMiladyDropContract(provider) {
+    async function getMiladyDropContract(provider, mildayDropAddress) {
         const mildayDropAbi = [
             {
                 "inputs": [
@@ -81,17 +77,41 @@
             ],
             "stateMutability": "view",
             "type": "function"
-        }
+            },
+            {
+                "inputs": [],
+                "name": "airdropTokenAddress",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "requiredNFTAddress",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+	        }
         ];
-
-        const mildayDropAddress = "0x558928DDA10Fd445D47790347382BBB73813647c";
         // The Contract object
         const mildayDropContract = new ethers.Contract(mildayDropAddress, mildayDropAbi, provider);
         return mildayDropContract;
 
     }
 
-    async function getNftContract(provider) {
+    async function getNftContract(provider, nftContractAddress) {
         const erc721Abi = [
             {
                 "inputs": [
@@ -137,8 +157,6 @@
                 "type": "function"
             }
         ]
-
-        const nftContractAddress = "0x418b97A7feD8e96B99e2b0D3700B4eD4E0de1e9F";
         // The Contract object
         const nftContract = new ethers.Contract(nftContractAddress, erc721Abi, provider);
         return nftContract;
@@ -182,7 +200,17 @@
         return mildayDropWithSigner.claimedIds(id);
     }
 
+    async function getUrlVars() {
+        var vars = {};
+        var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+            vars[key] = value;
+        });
+        return vars;
+    }
+
     let signer = null;
+
+    let mildayDropAddress = null;
     let airdropTokenContract = null;
 
     let mildayDropContract = null;
@@ -197,12 +225,18 @@
         // send ether and pay to change state within the blockchain.
         // For this, you need the account signer...
         signer = provider.getSigner();
-        airdropTokenContract = await getAirdropTokenContract(provider);
-
-        mildayDropContract = await getMiladyDropContract(provider);
+        urlVars = await getUrlVars();
+        
+        mildayDropAddress = urlVars["mildayDropAddress"]
+        mildayDropContract = await getMiladyDropContract(provider, mildayDropAddress);
         mildayDropWithSigner = mildayDropContract.connect(signer);
 
-        nftContract = await getNftContract(provider);
+        const nftContractAddress = await mildayDropContract.requiredNFTAddress();
+        const airDropTokenAddress = await mildayDropContract.airdropTokenAddress();
+
+        airdropTokenContract = await getAirdropTokenContract(provider, airDropTokenAddress);
+
+        nftContract = await getNftContract(provider, nftContractAddress);
         nftWithSigner = nftContract.connect(signer);
 
         let userAddress = signer.getAddress();
