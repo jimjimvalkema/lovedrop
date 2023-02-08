@@ -10,6 +10,8 @@ let nftContract = null;
 
 let signer = null;
 
+let currentFileString = "";
+
 // A Web3Provider wraps a standard Web3 provider, which is
 // what MetaMask injects as window.ethereum into each page
 // TODO get 3rd party provider incase user doesnt connect 
@@ -232,6 +234,57 @@ async function claim() {
     }
     return 0
 };
+
+function readFile(input) {
+    let file = input.files[0];
+    let result = ""
+  
+    let reader = new FileReader();
+  
+    reader.readAsText(file);
+    reader.onload = function() {
+        result += reader.result;
+        //console.log(reader.result);
+    }
+
+    reader.onloadend = function() {
+        currentFileString = result; //TODO do i have to store this in a global lol?
+    }
+  
+  }
+
+function isValidInterger(string) {
+    try {
+        parseInt(string);
+    } catch (error) {
+        return(false);
+    }
+    return(true);
+}
+
+function formatBalanceMap(balanceMap) {
+    let formatedBalanceMap = {}
+    for (var i = 0; i < balanceMap.length; i++){
+        line = balanceMap[i];
+        address = line[0];
+        amount = line[1];
+        if(ethers.utils.isAddress(address) && isValidInterger(amount)){
+            formatedBalanceMap[balanceMap[i][0]] = balanceMap[i][1]
+
+        } else {
+            console.log("skipped this line");
+            console.log(line);
+        }
+    }
+
+    return(formatedBalanceMap);
+}
+
+function csvToBalanceMapJSON() {
+    var balanceMap = Papa.parse(currentFileString);
+    console.log(uniswapMerkle.parseBalanceMap(formatBalanceMap(balanceMap["data"]) ) );
+
+}
 
 async function test() {
     if (!isWalletConnected()) {
