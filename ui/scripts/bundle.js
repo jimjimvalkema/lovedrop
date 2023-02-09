@@ -42497,15 +42497,15 @@ function config (name) {
 exports.__esModule = true;
 var merkle_tree_1 = require("./merkle-tree");
 var ethers_1 = require("ethers");
-var BalanceTree = /** @class */ (function () {
-    function BalanceTree(balances) {
+var BalanceTreeOnIds = /** @class */ (function () {
+    function BalanceTreeOnIds(balances) {
         this.tree = new merkle_tree_1["default"](balances.map(function (_a, index) {
             var account = _a.account, amount = _a.amount;
-            return BalanceTree.toNode(index, account, amount);
+            return BalanceTreeOnIds.toNode(index, account, amount);
         }));
     }
-    BalanceTree.verifyProof = function (index, account, amount, proof, root) {
-        var pair = BalanceTree.toNode(index, account, amount);
+    BalanceTreeOnIds.verifyProof = function (index, account, amount, proof, root) {
+        var pair = BalanceTreeOnIds.toNode(index, account, amount);
         for (var _i = 0, proof_1 = proof; _i < proof_1.length; _i++) {
             var item = proof_1[_i];
             pair = merkle_tree_1["default"].combinedHash(pair, item);
@@ -42513,19 +42513,19 @@ var BalanceTree = /** @class */ (function () {
         return pair.equals(root);
     };
     // keccak256(abi.encode(index, account, amount))
-    BalanceTree.toNode = function (index, account, amount) {
-        return Buffer.from(ethers_1.utils.solidityKeccak256(['uint256', 'address', 'uint256'], [index, account, amount]).substr(2), 'hex');
+    BalanceTreeOnIds.toNode = function (index, account, amount) {
+        return Buffer.from(ethers_1.utils.solidityKeccak256(['uint256', 'uint256', 'uint256'], [index, account, amount]).substr(2), 'hex');
     };
-    BalanceTree.prototype.getHexRoot = function () {
+    BalanceTreeOnIds.prototype.getHexRoot = function () {
         return this.tree.getHexRoot();
     };
     // returns the hex bytes32 values of the proof
-    BalanceTree.prototype.getProof = function (index, account, amount) {
-        return this.tree.getHexProof(BalanceTree.toNode(index, account, amount));
+    BalanceTreeOnIds.prototype.getProof = function (index, account, amount) {
+        return this.tree.getHexProof(BalanceTreeOnIds.toNode(index, account, amount));
     };
-    return BalanceTree;
+    return BalanceTreeOnIds;
 }());
-exports["default"] = BalanceTree;
+exports["default"] = BalanceTreeOnIds;
 
 }).call(this)}).call(this,require("buffer").Buffer)
 },{"./merkle-tree":287,"buffer":295,"ethers":163}],287:[function(require,module,exports){
@@ -42656,11 +42656,11 @@ var __assign = (this && this.__assign) || function () {
     return __assign.apply(this, arguments);
 };
 exports.__esModule = true;
-exports.parseBalanceMap = void 0;
+exports.parseBalanceMapOnIds = void 0;
 var ethers_1 = require("ethers");
-var balance_tree_1 = require("./balance-tree");
+var balance_tree_on_ids_1 = require("./balance-tree-on-ids");
 var isAddress = ethers_1.utils.isAddress, getAddress = ethers_1.utils.getAddress;
-function parseBalanceMap(balances) {
+function parseBalanceMapOnIds(balances) {
     // if balances are in an old format, process them
     var balancesInNewFormat = Array.isArray(balances)
         ? balances
@@ -42671,10 +42671,11 @@ function parseBalanceMap(balances) {
         }); });
     var dataByAddress = balancesInNewFormat.reduce(function (memo, _a) {
         var account = _a.address, earnings = _a.earnings, reasons = _a.reasons;
-        if (!isAddress(account)) {
-            throw new Error("Found invalid address: ".concat(account));
-        }
-        var parsed = getAddress(account);
+        // if (!isAddress(account)) {
+        //   throw new Error(`Found invalid address: ${account}`)
+        // }
+        // const parsed = getAddress(account)
+        var parsed = account;
         if (memo[parsed])
             throw new Error("Duplicate address: ".concat(parsed));
         var parsedNum = ethers_1.BigNumber.from(earnings);
@@ -42690,7 +42691,7 @@ function parseBalanceMap(balances) {
     }, {});
     var sortedAddresses = Object.keys(dataByAddress).sort();
     // construct a tree
-    var tree = new balance_tree_1["default"](sortedAddresses.map(function (address) { return ({ account: address, amount: dataByAddress[address].amount }); }));
+    var tree = new balance_tree_on_ids_1["default"](sortedAddresses.map(function (address) { return ({ account: address, amount: dataByAddress[address].amount }); }));
     // generate claims
     var claims = sortedAddresses.reduce(function (memo, address, index) {
         var _a = dataByAddress[address], amount = _a.amount, flags = _a.flags;
@@ -42704,9 +42705,9 @@ function parseBalanceMap(balances) {
         claims: claims
     };
 }
-exports.parseBalanceMap = parseBalanceMap;
+exports.parseBalanceMapOnIds = parseBalanceMapOnIds;
 
-},{"./balance-tree":286,"ethers":163}],289:[function(require,module,exports){
+},{"./balance-tree-on-ids":286,"ethers":163}],289:[function(require,module,exports){
 (function (global){(function (){
 'use strict';
 

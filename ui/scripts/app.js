@@ -257,13 +257,13 @@ function readFile(input) {
   
   }
 
-function isValidInterger(string) {
-    try {
-        parseInt(string);
-    } catch (error) {
-        return(false);
+function isInterger(string) {
+    
+    if(isNaN(parseInt(string))){
+        return(false)
+    } else {
+        return(true);
     }
-    return(true);
 }
 
 function formatBalanceMap(balanceMap) {
@@ -272,7 +272,25 @@ function formatBalanceMap(balanceMap) {
         line = balanceMap[i];
         address = line[0];
         amount = line[1];
-        if(ethers.utils.isAddress(address) && isValidInterger(amount)){
+        if(ethers.utils.isAddress(address) && isInterger(amount)){
+            formatedBalanceMap[balanceMap[i][0]] = balanceMap[i][1]
+
+        } else {
+            console.log("skipped this line");
+            console.log(line);
+        }
+    }
+
+    return(formatedBalanceMap);
+}
+
+function formatBalanceMapIds(balanceMap) {
+    let formatedBalanceMap = {}
+    for (var i = 0; i < balanceMap.length; i++){
+        line = balanceMap[i];
+        id = line[0];
+        amount = line[1];
+        if(isInterger(id) && isInterger(amount)){
             formatedBalanceMap[balanceMap[i][0]] = balanceMap[i][1]
 
         } else {
@@ -299,12 +317,11 @@ function downloadString(text, fileType, fileName) {
   }
 
 function csvToBalanceMapJSON() {
-    var balanceMap = Papa.parse(currentFileString);
-    let merkle = uniswapMerkle.parseBalanceMap(formatBalanceMap(balanceMap["data"]) );
+    var balanceMap = Papa.parse(currentFileString)["data"];
+    var formatedBalanceMap = formatBalanceMapIds(balanceMap);
+    let merkle = uniswapMerkle.parseBalanceMapOnIds(formatedBalanceMap);
     let newFilename = currenFileName.split(".")[0] + ".json";
     downloadString(JSON.stringify(merkle, null, 2), "json", newFilename)
-
-
 }
 
 async function test() {
@@ -314,7 +331,7 @@ async function test() {
 
     // The MetaMask plugin also allows signing transactions to
     // send ether and pay to change state within the blockchain.
-    // For this, you need the account signer...
+    // For this, you need the account signer...formatBalanceMapIds(balanceMap["data"]) 
     //await getAllContracts();
 
     let userAddress = await signer.getAddress();
