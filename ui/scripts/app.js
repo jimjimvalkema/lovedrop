@@ -13,6 +13,8 @@ let signer = null;
 let currentFileString = null;
 let currenFileName = null;
 
+let tempMerkle = null;
+
 // A Web3Provider wraps a standard Web3 provider, which is
 // what MetaMask injects as window.ethereum into each page
 // TODO get 3rd party provider incase user doesnt connect 
@@ -35,9 +37,59 @@ async function getMiladyDropContract(provider, urlVars) {
         {
             "inputs": [
                 {
-                    "internalType": "uint256[]",
-                    "name": "_ids",
-                    "type": "uint256[]"
+                    "components": [
+                        {
+                            "internalType": "uint256",
+                            "name": "index",
+                            "type": "uint256"
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "id",
+                            "type": "uint256"
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "amount",
+                            "type": "uint256"
+                        },
+                        {
+                            "internalType": "bytes32[]",
+                            "name": "merkleProof",
+                            "type": "bytes32[]"
+                        }
+                    ],
+                    "internalType": "struct IMiladyDrop.claimData[]",
+                    "name": "claims",
+                    "type": "tuple[]"
+                }
+            ],
+            "name": "multiClaim",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "index",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "id",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "amount",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "bytes32[]",
+                    "name": "merkleProof",
+                    "type": "bytes32[]"
                 }
             ],
             "name": "claim",
@@ -46,23 +98,23 @@ async function getMiladyDropContract(provider, urlVars) {
             "type": "function"
         },
         {
-        "inputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "name": "claimedIds",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "",
-                "type": "bool"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "index",
+                    "type": "uint256"
+                }
+            ],
+            "name": "isClaimed",
+            "outputs": [
+                {
+                    "internalType": "bool",
+                    "name": "",
+                    "type": "bool"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
         },
         {
             "inputs": [],
@@ -177,15 +229,21 @@ async function getNftContract() {
 async function getUserNftIds(userAddress) {
     var ids = [];
     let userBalance = parseInt(await nftContract.balanceOf(userAddress), 16);
-    for (let i = 0; i < userBalance; i++) {
+    for (let i = 1; i < userBalance; i++) {
         ids.push(parseInt(await nftContract.tokenOfOwnerByIndex(userAddress, i), 16));
 
     }
     return ids;
 }
 
-async function isClaimed(id) {
-    return mildayDropWithSigner.claimedIds(id);
+function getIndex(id) {
+    //TODO get merkle hash from contract then ipfs etc
+    return tempMerkle["claims"][id]["index"];
+}
+
+function isClaimed(id) {
+    index = getIndex(id)
+    return mildayDropWithSigner.isClaimed(index);
 }
 
 async function getUrlVars() {
@@ -219,22 +277,44 @@ async function loadAllContracts() {
     return [mildayDropContract, mildayDropWithSigner, nftContract, airdropTokenContract];
 }
 
-async function claim() {
+function getProof(id) {
+    const index = tempMerkle["claims"][id]["index"];
+    const amount = parseInt(tempMerkle["claims"][id]["amount"], 16)
+    const proof = tempMerkle["claims"][id]["proof"];
+    return [index, id, amount, proof]
+
+}
+
+
+//TODO update with merkle stuff :D
+async function claimAll() {
     if (isWalletConnected()) {
         //await getAllContracts();
         let userAddress = signer.getAddress();
         var user_nfts = await getUserNftIds(userAddress, nftContract);
-        var unclaimed_nfts = [];
+        var unclaimed_proofs = [];
         for (let i = 0; i < user_nfts.length; i++) {
             let id = user_nfts[i]
             if (! await isClaimed(id)) {
-                unclaimed_nfts.push(id);
+                unclaimed_proofs.push(getProof(id));
             }
         }
-        mildayDropWithSigner.claim(unclaimed_nfts);
+        mildayDropWithSigner.multiClaim(unclaimed_proofs);
     }
     return 0
 };
+
+async function claim(id) {
+    if (isWalletConnected()) {
+        if (! await isClaimed(id)) {
+            let proof = await getProof(id);
+            console.log(proof);
+            mildayDropWithSigner.claim(...proof);
+        }
+    }
+    return 0;
+
+}
 
 function readFile(input) {
     let file = input.files[0];
@@ -322,24 +402,28 @@ function csvToBalanceMapJSON() {
     let merkle = uniswapMerkle.parseBalanceMapOnIds(formatedBalanceMap);
     let newFilename = currenFileName.split(".")[0] + ".json";
     downloadString(JSON.stringify(merkle, null, 2), "json", newFilename)
+    tempMerkle = merkle; //TODO get merkle hash from contract then ipfs etc
 }
 
 async function test() {
+    //let response = await fetch('./merkle_proofs/index.json')
     if (!isWalletConnected()) {
         return 0
     }
 
+    proofsFile = await fetch('./timeTwo.json');
+    tempMerkle = await proofsFile.json();
+
     // The MetaMask plugin also allows signing transactions to
     // send ether and pay to change state within the blockchain.
     // For this, you need the account signer...formatBalanceMapIds(balanceMap["data"]) 
-    //await getAllContracts();
+    //await getAllContracts();p
 
     let userAddress = await signer.getAddress();
 
     console.log(userAddress);
     console.log(await isClaimed(1));
-    console.log(await airdropTokenContract.balanceOf("0x418b97A7feD8e96B99e2b0D3700B4eD4E0de1e9F"));
     console.log(await getUserNftIds(userAddress));
-
-
+    console.log(await parseInt(await airdropTokenContract.balanceOf(userAddress), 16))
+    console.log(getProof(1));
 }
