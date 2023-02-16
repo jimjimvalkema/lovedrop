@@ -1,3 +1,4 @@
+// maybe switch to window :p
 let mildayDropAddress = null;
 let mildayDropContract = null;
 let mildayDropWithSigner = null;
@@ -14,6 +15,11 @@ let currentFileString = null;
 let currenFileName = null;
 
 let tempMerkle = null;
+
+//abis global variable
+let mildayDropAbi = null;
+let ERC20ABI = null;
+let ERC721ABI = null;
 
 // A Web3Provider wraps a standard Web3 provider, which is
 // what MetaMask injects as window.ethereum into each page
@@ -33,116 +39,7 @@ async function connectSigner() {
 
 async function getMiladyDropContract(provider, urlVars) {
     mildayDropAddress = urlVars["mildayDropAddress"]
-    const mildayDropAbi = [
-        {
-            "inputs": [
-                {
-                    "components": [
-                        {
-                            "internalType": "uint256",
-                            "name": "index",
-                            "type": "uint256"
-                        },
-                        {
-                            "internalType": "uint256",
-                            "name": "id",
-                            "type": "uint256"
-                        },
-                        {
-                            "internalType": "uint256",
-                            "name": "amount",
-                            "type": "uint256"
-                        },
-                        {
-                            "internalType": "bytes32[]",
-                            "name": "merkleProof",
-                            "type": "bytes32[]"
-                        }
-                    ],
-                    "internalType": "struct IMiladyDrop.claimData[]",
-                    "name": "claims",
-                    "type": "tuple[]"
-                }
-            ],
-            "name": "multiClaim",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "uint256",
-                    "name": "index",
-                    "type": "uint256"
-                },
-                {
-                    "internalType": "uint256",
-                    "name": "id",
-                    "type": "uint256"
-                },
-                {
-                    "internalType": "uint256",
-                    "name": "amount",
-                    "type": "uint256"
-                },
-                {
-                    "internalType": "bytes32[]",
-                    "name": "merkleProof",
-                    "type": "bytes32[]"
-                }
-            ],
-            "name": "claim",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "uint256",
-                    "name": "index",
-                    "type": "uint256"
-                }
-            ],
-            "name": "isClaimed",
-            "outputs": [
-                {
-                    "internalType": "bool",
-                    "name": "",
-                    "type": "bool"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-        },
-        {
-            "inputs": [],
-            "name": "airdropTokenAddress",
-            "outputs": [
-                {
-                    "internalType": "address",
-                    "name": "",
-                    "type": "address"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-        },
-        {
-            "inputs": [],
-            "name": "requiredNFTAddress",
-            "outputs": [
-                {
-                    "internalType": "address",
-                    "name": "",
-                    "type": "address"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-        }
-    ];
+    //const mildayDropAbi = 
     // The Contract object
     mildayDropContract = new ethers.Contract(mildayDropAddress, mildayDropAbi, provider);
     return mildayDropContract;
@@ -152,76 +49,15 @@ async function getAirdropTokenContract() {
     const airDropTokenAddress = await mildayDropContract.airdropTokenAddress();
     // The ERC-20 Contract ABI, which is a common contract interface
     // for tokens (this is the Human-Readable ABI format)
-    const airDropTokenAbi = [
-    // Some details about the token
-    "function name() view returns (string)",
-    "function symbol() view returns (string)",
-
-    // Get the account balance
-    "function balanceOf(address) view returns (uint)",
-
-    // Send some of your tokens to someone else
-    "function transfer(address to, uint amount)",
-
-    // An event triggered whenever anyone transfers to someone else
-    "event Transfer(address indexed from, address indexed to, uint amount)"
-    ];
-
     // The Contract object
-    const airdropTokenContract = new ethers.Contract(airDropTokenAddress, airDropTokenAbi, provider);
+    const airdropTokenContract = new ethers.Contract(airDropTokenAddress, ERC20ABI, provider);
     return airdropTokenContract;
 }
 
 async function getNftContract() {
     nftContractAddress = await mildayDropContract.requiredNFTAddress();
-
-    const erc721Abi = [
-        {
-            "inputs": [
-                {
-                    "internalType": "address",
-                    "name": "owner",
-                    "type": "address"
-                }
-            ],
-            "name": "balanceOf",
-            "outputs": [
-                {
-                    "internalType": "uint256",
-                    "name": "",
-                    "type": "uint256"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "address",
-                    "name": "owner",
-                    "type": "address"
-                },
-                {
-                    "internalType": "uint256",
-                    "name": "index",
-                    "type": "uint256"
-                }
-            ],
-            "name": "tokenOfOwnerByIndex",
-            "outputs": [
-                {
-                    "internalType": "uint256",
-                    "name": "",
-                    "type": "uint256"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-        }
-    ]
     // The Contract object
-    nftContract = new ethers.Contract(nftContractAddress, erc721Abi, provider);
+    nftContract = new ethers.Contract(nftContractAddress, ERC721ABI, provider);
     return nftContract;
 
 }
@@ -313,8 +149,7 @@ async function claim(id) {
         }
     }
     return 0;
-
-}
+};
 
 function readFile(input) {
     let file = input.files[0];
@@ -334,8 +169,7 @@ function readFile(input) {
     reader.onloadend = function() {
         currentFileString = result; //TODO do i have to store this in a global lol?
     }
-  
-  }
+  };
 
 function isInterger(string) {
     
@@ -344,7 +178,7 @@ function isInterger(string) {
     } else {
         return(true);
     }
-}
+};
 
 function formatBalanceMap(balanceMap) {
     let formatedBalanceMap = {}
@@ -358,11 +192,10 @@ function formatBalanceMap(balanceMap) {
         } else {
             console.log("skipped this line");
             console.log(line);
-        }
-    }
-
+        };
+    };
     return(formatedBalanceMap);
-}
+};
 
 function formatBalanceMapIds(balanceMap) {
     let formatedBalanceMap = {}
@@ -378,7 +211,6 @@ function formatBalanceMapIds(balanceMap) {
             console.log(line);
         }
     }
-
     return(formatedBalanceMap);
 }
 
@@ -405,13 +237,37 @@ function csvToBalanceMapJSON() {
     tempMerkle = merkle; //TODO get merkle hash from contract then ipfs etc
 }
 
+function getValues(obj, keys) {
+    let result = {}
+    for (let i = 0; i < keys.length; i++) {
+        result[keys[i]] = obj[keys[i]]
+    }
+    return result
+}
+
+function splitObject(obj, amountItems) {
+    let result = [];
+    let keys = Object.keys(obj);
+    let start = 0;
+    let stop = amountItems;
+    let amountOfSplits = keys.length/amountItems;
+    for (let i = 1; i < (amountOfSplits+2); i++) {
+        result.push(getValues(obj, keys.slice(start,stop)));
+        start=stop;
+        stop=amountItems*i 
+    }
+    return result
+}
+
+
+
 async function test() {
     //let response = await fetch('./merkle_proofs/index.json')
     if (!isWalletConnected()) {
         return 0
     }
 
-    proofsFile = await fetch('./timeTwo.json');
+    proofsFile = await fetch('./modulo4.json');
     tempMerkle = await proofsFile.json();
 
     // The MetaMask plugin also allows signing transactions to
@@ -424,6 +280,34 @@ async function test() {
     console.log(userAddress);
     console.log(await isClaimed(1));
     console.log(await getUserNftIds(userAddress));
-    console.log(await parseInt(await airdropTokenContract.balanceOf(userAddress), 16))
+    console.log(parseInt(await airdropTokenContract.balanceOf(userAddress), 16))
     console.log(getProof(1));
+    a = splitObject(tempMerkle["claims"], 780);
+    console.log("we got files :D:  " + a.length)
+    //downloadString(JSON.stringify(a["0"], null, 2), "json", "hi")
+
+    var zip = new JSZip();
+    for(let i=0; i<a.length; i++) {
+        let filename = "0-"+ (i*780).toString()+".json"
+        zip.file(filename+".json", JSON.stringify(a[i], null, 2));
+    }
+    //var img = zip.folder("images");
+    //img.file("smile.gif", imgData, {base64: true});
+    zip.generateAsync({type:"blob"})
+    .then(function(content) {
+        // see FileSaver.js
+        saveAs(content, "example.zip");
+    });
+
+}
+
+window.onload = runOnLoad;
+
+async function runOnLoad() {
+    let mildayDropAbiFile = await fetch('./abi/mildayDropAbi.json');
+    let ERC721ABIFile = await fetch('./abi/ERC721ABI.json');
+    let ERC20ABIFile = await fetch('./abi/ERC20ABI.json');
+    mildayDropAbi = await mildayDropAbiFile.json();
+    ERC721ABI = await ERC721ABIFile.json();
+    ERC20ABI = await ERC20ABIFile.json();
 }
