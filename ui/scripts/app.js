@@ -237,28 +237,6 @@ function csvToBalanceMapJSON() {
     tempMerkle = merkle; //TODO get merkle hash from contract then ipfs etc
 }
 
-function getValues(obj, keys) {
-    let result = {}
-    for (let i = 0; i < keys.length; i++) {
-        result[keys[i]] = obj[keys[i]]
-    }
-    return result
-}
-
-function splitObject(obj, amountItems) {
-    let result = [];
-    let keys = Object.keys(obj);
-    let start = 0;
-    let stop = amountItems;
-    let amountOfSplits = keys.length/amountItems;
-    for (let i = 1; i < (amountOfSplits+2); i++) {
-        result.push(getValues(obj, keys.slice(start,stop)));
-        start=stop;
-        stop=amountItems*i 
-    }
-    return result
-}
-
 
 
 async function test() {
@@ -267,7 +245,7 @@ async function test() {
         return 0
     }
 
-    proofsFile = await fetch('./modulo4.json');
+    proofsFile = await fetch('./timesTwo.json');
     tempMerkle = await proofsFile.json();
 
     // The MetaMask plugin also allows signing transactions to
@@ -282,23 +260,49 @@ async function test() {
     console.log(await getUserNftIds(userAddress));
     console.log(parseInt(await airdropTokenContract.balanceOf(userAddress), 16))
     console.log(getProof(1));
-    a = splitObject(tempMerkle["claims"], 780);
-    console.log("we got files :D:  " + a.length)
-    //downloadString(JSON.stringify(a["0"], null, 2), "json", "hi")
+    // a = splitObject(tempMerkle["claims"], 780);
+    // console.log("we got files :D:  " + a.length)
+    // //downloadString(JSON.stringify(a["0"], null, 2), "json", "hi")
 
-    var zip = new JSZip();
-    for(let i=0; i<a.length; i++) {
-        let filename = "0-"+ (i*780).toString()+".json"
-        zip.file(filename+".json", JSON.stringify(a[i], null, 2));
-    }
-    //var img = zip.folder("images");
-    //img.file("smile.gif", imgData, {base64: true});
-    zip.generateAsync({type:"blob"})
-    .then(function(content) {
-        // see FileSaver.js
-        saveAs(content, "example.zip");
-    });
+    // var zip = new JSZip();
+    // for(let i=0; i<a.length; i++) {
+    //     let filename = "0-"+ (i*780).toString()+".json"
+    //     zip.file(filename+".json", JSON.stringify(a[i], null, 2));
+    // }
+    // //var img = zip.folder("images");
+    // //img.file("smile.gif", imgData, {base64: true});
+    // zip.generateAsync({type:"blob"})
+    // .then(function(content) {
+    //     // see FileSaver.js
+    //     saveAs(content, "example.zip");
+    // });
 
+    //const ipfsClient = require('ipfs-http-client');
+    
+    const projectId = urlVars["projectId"]
+    const projectSecret = urlVars["projectSecret"]
+    const auth = "Basic " + btoa(projectId+ ":" + projectSecret);
+    const ipfsApi = urlVars["ipfsApi"]
+
+    window.ipfsIndex = new ipfsIndexer(ipfsApi, auth);
+    let res = ipfsIndex.ipfsClient.dag.get(IpfsHttpClient.CID.parse("QmeGAVddnBSnKc1DLE7DLV9uuTqo5F7QbaveTjr45JUdQn"));
+    console.log(await res);
+
+    console.log("splitting :D")
+    split = await window.ipfsIndex.splitObject(tempMerkle["claims"], 20); //780);
+    console.log(split);
+    console.log("done")
+    window.cids = await window.ipfsIndex.addObjectsToIpfs(split);
+    console.log(cids)
+    window.dag = window.ipfsIndex.dagFromCids(cids);
+    console.log(dag)
+    window.hash = await window.ipfsIndex.putDag(dag)
+    console.log(hash)
+    window.index = ipfsIndex.indexFromCids(cids);
+    window.newDag = await ipfsIndex.addObjectToDag(dag, index, "index.json");
+    //console.log(`new dag: ${JSON.stringify(newDag, null, 2)} \n old dag: ${JSON.stringify(dag, null, 2)}`)
+    window.newHashWithIndex = await window.ipfsIndex.putDag(window.newDag)
+    console.log(window.newHashWithIndex);
 }
 
 window.onload = runOnLoad;
