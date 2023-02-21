@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 
 <body>
+    <a href="./?mildayDropAddress=0x74B911ce21997865E41C2b45a0619bF8a1D741BE&ipfsApi=http://ipfs.dappnode:5001">
+        connect ipfs dappnode </a></br>
+    <a>connect custom ipfs endpoint </a>
+    <form id="infuraIpfsForm"> <!--action="/action_page.php"-->
+        ipfs api endpoint: <input type="url" name="ipfsApi" required><br>
+        projectId (optional): <input type="text" name="projectId"><br>
+        Key Secret (optional): <input type="text" name="keySecret"><br><br>
+        <input type="button" onclick="goToclaim()" value="Submit">
+    </form>
     <button onclick="test()">test</button>
     <button onclick="connectSigner()">connect</button>
     <button onclick="claimAll()">claim</button>

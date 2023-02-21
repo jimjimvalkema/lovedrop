@@ -237,7 +237,12 @@ function csvToBalanceMapJSON() {
     tempMerkle = merkle; //TODO get merkle hash from contract then ipfs etc
 }
 
-
+function goToclaim() {
+    window.x = document.getElementById("infuraIpfsForm").elements;
+    const currentUrl = new URL(window.location.href)
+    //TODO set address
+    location.replace(`/?mildayDropAddress=0x74B911ce21997865E41C2b45a0619bF8a1D741BE&ipfsApi=${x.ipfsApi.value}&projectId=${x.projectId.value}&projectSecret=${x.keySecret.value}`)
+  }
 
 async function test() {
     //let response = await fetch('./merkle_proofs/index.json')
@@ -245,7 +250,7 @@ async function test() {
         return 0
     }
 
-    proofsFile = await fetch('./timesTwo.json');
+    proofsFile = await fetch('./timeTwo.json');
     tempMerkle = await proofsFile.json();
 
     // The MetaMask plugin also allows signing transactions to
@@ -278,18 +283,23 @@ async function test() {
     // });
 
     //const ipfsClient = require('ipfs-http-client');
-    
-    const projectId = urlVars["projectId"]
-    const projectSecret = urlVars["projectSecret"]
-    const auth = "Basic " + btoa(projectId+ ":" + projectSecret);
-    const ipfsApi = urlVars["ipfsApi"]
+    const ipfsApi = urlVars["ipfsApi"]   
+    let auth = null; 
+    if(urlVars["projectId"]!=null) {
+        const projectId = urlVars["projectId"]
+        const projectSecret = urlVars["projectSecret"]
+        auth = "Basic " + btoa(projectId+ ":" + projectSecret);
+
+    } else {
+        auth = null
+    }
 
     window.ipfsIndex = new ipfsIndexer(ipfsApi, auth);
     let res = ipfsIndex.ipfsClient.dag.get(IpfsHttpClient.CID.parse("QmeGAVddnBSnKc1DLE7DLV9uuTqo5F7QbaveTjr45JUdQn"));
     console.log(await res);
 
     console.log("splitting :D")
-    split = await window.ipfsIndex.splitObject(tempMerkle["claims"], 20); //780);
+    split = await window.ipfsIndex.splitObject(tempMerkle["claims"], 780); //780);
     console.log(split);
     console.log("done")
     window.cids = await window.ipfsIndex.addObjectsToIpfs(split);
