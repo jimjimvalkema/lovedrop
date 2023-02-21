@@ -2,21 +2,23 @@ class ipfsIndexer{
     indexedObj = null;
     dropsRootHash = null;
 
-
-
-    constructor(url, auth) {
+    constructor(url, auth=null) {
         this.auth = auth;
         this.ApiUrl = url;
         let urlobj = new URL(url);
-
-        this.ipfsClient = IpfsHttpClient.create({
+        let options = {
             host: urlobj.hostname,
             port: urlobj.port,
             protocol: urlobj.protocol,
             headers: {
                 authorization: auth,
-            },
-        });
+            }
+        }
+        if (this.auth==null) {
+            delete options.headers;
+        }
+
+        this.ipfsClient = IpfsHttpClient.create(options);
     }
 
     getValues(obj, keys) {
@@ -27,6 +29,11 @@ class ipfsIndexer{
         return result
     };
     
+    message(message) {
+        console.log(message);
+        document.getElementById("message").innerHTML = message;
+    }
+
     splitObject(obj, amountItems) {
         let result = [];
         let keys = Object.keys(obj);
@@ -34,11 +41,13 @@ class ipfsIndexer{
         let stop = amountItems;
         let amountOfSplits = keys.length/amountItems;
         for (let i = 1; i < (amountOfSplits+2); i++) {
+            this.message(`Splitting up claims ${i}/${amountOfSplits}`);
             let name = `${start+1}-${stop}`;
             result[name] = this.getValues(obj, keys.slice(start,stop));
             start=stop;
             stop+=amountItems 
         }
+        this.message("");
         this.indexedObj = result;
         return result
     };
@@ -48,10 +57,12 @@ class ipfsIndexer{
         let cids = []; //name:hash
         const keys = Object.keys(objects)
         for(let i=0; i<keys.length; i ++) {
+            this.message(`adding objects to ipfs ${i}/${keys.length}`);
             let fileName = `${keys[i]}.json`
             cids[fileName] = await this.ipfsClient.add(
                 JSON.stringify(objects[keys[i]], null, jsonPrettyLevel))
         }
+        this.message("");
         return cids
     }
 
@@ -77,29 +88,35 @@ class ipfsIndexer{
         // its easier to do this with fetch because ipfshttpclient is broken on the dag-cbor codec or something
         const form = new FormData();
         form.append('content', JSON.stringify(dag));
-        //console.log(`${this.ApiUrl}/api/v0/dag/put?store-codec=dag-pb`)
-        //console.log(dag)
-        
-        let r = await fetch(`${this.ApiUrl}/api/v0/dag/put?store-codec=dag-pb`, {
+        let reqObj = {
             method: 'POST',
             headers: {
                 'Authorization': this.auth
             },
             body: form
-        });
+        }
+        if (this.auth==null) {
+            delete reqObj.headers
+        }
 
+        let r = await fetch(`${this.ApiUrl}/api/v0/dag/put?store-codec=dag-pb`, reqObj);
         let rjson = await r.json()
         return rjson['Cid']['/']
     }
 
     async getDag(hash) {
-        //yes i have given up on ipfshttpclient at this point lmao
-        r = await fetch(`${this.ApiUrl}/api/v0/dag/get?arg=${hash}`, {
+        let reqObj = {
             method: 'POST',
             headers: {
                 'Authorization': this.auth
             }
-        });
+        }
+        if (this.auth==null) {
+            delete reqObj.headers
+        }
+
+        //yes i have given up on ipfshttpclient at this point lmao
+        r = await fetch(`${this.ApiUrl}/api/v0/dag/get?arg=${hash}`, reqObj);
         return r.json();
     }
 
