@@ -60,7 +60,8 @@ class ipfsIndexer{
             this.message(`adding objects to ipfs ${i}/${keys.length}`);
             let fileName = `${keys[i]}.json`
             cids[fileName] = await this.ipfsClient.add(
-                JSON.stringify(objects[keys[i]], null, jsonPrettyLevel))
+                JSON.stringify(objects[keys[i]], null, jsonPrettyLevel)
+                , {"cidVersion":1})
         }
         this.message("");
         return cids
@@ -99,7 +100,8 @@ class ipfsIndexer{
             delete reqObj.headers
         }
 
-        let r = await fetch(`${this.ApiUrl}/api/v0/dag/put?store-codec=dag-pb`, reqObj);
+        //still returns a &cid-version=1 hash because kubo ipfs sucks
+        let r = await fetch(`${this.ApiUrl}/api/v0/dag/put?store-codec=dag-pb&cid-version=1`, reqObj);
         let rjson = await r.json()
         return rjson['Cid']['/']
     }
@@ -116,8 +118,16 @@ class ipfsIndexer{
         }
 
         //yes i have given up on ipfshttpclient at this point lmao
-        r = await fetch(`${this.ApiUrl}/api/v0/dag/get?arg=${hash}`, reqObj);
-        return r.json();
+        let r = await fetch(`${this.ApiUrl}/api/v0/dag/get?arg=${hash}`, reqObj);
+        let rjson = await r.json();
+        //shit breaks when tsize=null :(
+        for (let i=0; i<rjson.Links.length; i++) {
+            if (rjson.Links[i].Tsize == null) {
+                delete rjson.Links[i].Tsize
+            }
+
+        }
+        return rjson
     }
 
     indexFromCids(cids) {
@@ -132,7 +142,7 @@ class ipfsIndexer{
     }
 
     async addObjectToDag(dag, obj, fileNameObj) {
-        let r = await ipfsIndex.ipfsClient.add(JSON.stringify(obj, null, 2))
+        let r = await ipfsIndex.ipfsClient.add(JSON.stringify(obj, null, 2), {"cidVersion":1})
         let hash = r['path']
         dag.Links.push(
             {
@@ -146,10 +156,54 @@ class ipfsIndexer{
     }
 
     makeDropsRootHash() {
-        // ipfs root hash that contains all files needed to claim (ui, balance tree, indexed claims)
+        // TODO ipfs root hash that contains all files needed to claim (ui, balance tree, indexed claims)
         // build it
         this.dropsRootHash = null
         return this.dropsRootHash
+    }
+
+    async wrapInDirectory(hash, dirName) {
+        let dirDag = {"Data": {"/":{"bytes": "CAE"}},"Links":[{"Hash":{"/":hash},"Name":dirName}]}
+        return await this.putDag(dirDag)
+
+    }
+
+    async getJsonIpfs(hash) {
+        let reqObj = {
+            method: 'POST',
+            headers: {
+                'Authorization': this.auth
+            }
+        }
+        if (this.auth==null) {
+            delete reqObj.headers
+        }
+        let r = await fetch(`${this.ApiUrl}/api/v0/cat?arg=${hash}&archive=true`, reqObj);
+        return r.json();
+    }
+
+    async getIpfsFromPath(path) {
+        let pathL = path.split("/");
+        let hash = pathL[0];
+        let currentDag = await this.getDag(hash);
+        for (let i=1; i<pathL.length; i++) {
+            for (let j=0; j<currentDag['Links'].length; j++) {
+                if (currentDag['Links'][j]["Name"] == pathL[i]) {
+                    if (i == pathL.length-1) {
+                        return await this.getJsonIpfs(currentDag['Links'][j]["Hash"]["/"]);
+
+                    } else {
+                        currentDag = await this.getDag(currentDag['Links'][j]["Hash"]["/"]);
+                        break;
+                    };
+                };
+            };
+        };
+    }
+
+    async getIndexJson(rootHash) {
+        window.indexHash = await this.getDag(rootHash)
+        return await this.getJsonIpfs(indexHash);
     }
 
 
