@@ -250,7 +250,7 @@ async function test() {
         return 0
     }
 
-    proofsFile = await fetch('./timeTwo.json');
+    proofsFile = await fetch('./timesTwo.json');
     tempMerkle = await proofsFile.json();
 
     // The MetaMask plugin also allows signing transactions to
@@ -308,9 +308,13 @@ async function test() {
     console.log(dag)
     window.hash = await window.ipfsIndex.putDag(dag)
     console.log(hash)
+    window.hash = await window.ipfsIndex.wrapInDirectory(hash, "data");
+    window.dag = await ipfsIndex.getDag(window.hash);
     window.index = ipfsIndex.indexFromCids(cids);
-    window.newDag = await ipfsIndex.addObjectToDag(dag, index, "index.json");
+    console.log(window.dag);
+    window.newDag = await ipfsIndex.addObjectToDag(window.dag, window.index, "index.json");
     //console.log(`new dag: ${JSON.stringify(newDag, null, 2)} \n old dag: ${JSON.stringify(dag, null, 2)}`)
+    console.log(newDag);
     window.newHashWithIndex = await window.ipfsIndex.putDag(window.newDag)
     console.log(window.newHashWithIndex);
 }
