@@ -14,7 +14,7 @@ let signer = null;
 let currentFileString = null;
 let currenFileName = null;
 
-let tempMerkle = null;
+let balanceMapJson = null;
 
 //abis global variable
 let mildayDropAbi = null;
@@ -74,7 +74,7 @@ async function getUserNftIds(userAddress) {
 
 function getIndex(id) {
     //TODO get merkle hash from contract then ipfs etc
-    return tempMerkle["claims"][id]["index"];
+    return balanceMapJson["claims"][id]["index"];
 }
 
 function isClaimed(id) {
@@ -114,9 +114,9 @@ async function loadAllContracts() {
 }
 
 function getProof(id) {
-    const index = tempMerkle["claims"][id]["index"];
-    const amount = parseInt(tempMerkle["claims"][id]["amount"], 16)
-    const proof = tempMerkle["claims"][id]["proof"];
+    const index = balanceMapJson["claims"][id]["index"];
+    const amount = parseInt(balanceMapJson["claims"][id]["amount"], 16)
+    const proof = balanceMapJson["claims"][id]["proof"];
     return [index, id, amount, proof]
 
 }
@@ -234,7 +234,7 @@ function csvToBalanceMapJSON() {
     let merkle = uniswapMerkle.parseBalanceMapOnIds(formatedBalanceMap);
     let newFilename = currenFileName.split(".")[0] + ".json";
     downloadString(JSON.stringify(merkle, null, 2), "json", newFilename)
-    tempMerkle = merkle; //TODO get merkle hash from contract then ipfs etc
+    balanceMapJson = merkle; //TODO get merkle hash from contract then ipfs etc
 }
 
 function goToclaim() {
@@ -251,7 +251,7 @@ async function test() {
     }
 
     proofsFile = await fetch('./timesTwo.json');
-    tempMerkle = await proofsFile.json();
+    balanceMapJson = await proofsFile.json();
 
     // The MetaMask plugin also allows signing transactions to
     // send ether and pay to change state within the blockchain.
@@ -298,26 +298,12 @@ async function test() {
     let res = ipfsIndex.ipfsClient.dag.get(IpfsHttpClient.CID.parse("QmeGAVddnBSnKc1DLE7DLV9uuTqo5F7QbaveTjr45JUdQn"));
     console.log(await res);
 
-    console.log("splitting :D")
-    split = await window.ipfsIndex.splitObject(tempMerkle["claims"], 780); //780);
-    console.log(split);
-    console.log("done")
-    window.cids = await window.ipfsIndex.addObjectsToIpfs(split);
-    console.log(cids)
-    window.dag = window.ipfsIndex.dagFromCids(cids);
-    console.log(dag)
-    window.hash = await window.ipfsIndex.putDag(dag)
-    console.log(hash)
-    window.hash = await window.ipfsIndex.wrapInDirectory(hash, "data");
-    window.dag = await ipfsIndex.getDag(window.hash);
-    window.index = ipfsIndex.indexFromCids(cids);
-    console.log(window.dag);
-    window.newDag = await ipfsIndex.addObjectToDag(window.dag, window.index, "index.json");
-    //console.log(`new dag: ${JSON.stringify(newDag, null, 2)} \n old dag: ${JSON.stringify(dag, null, 2)}`)
-    console.log(newDag);
-    window.newHashWithIndex = await window.ipfsIndex.putDag(window.newDag)
-    console.log(window.newHashWithIndex);
-}
+    window.newHashWithIndex = "bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"//await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);
+
+    await window.ipfsIndex.loadIndex(window.newHashWithIndex);
+    console.log(window.ipfsIndex.index);
+    console.log(window.ipfsIndex.dropsRootHash);
+};
 
 window.onload = runOnLoad;
 
