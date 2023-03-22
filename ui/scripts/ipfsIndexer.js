@@ -1,6 +1,6 @@
 class ipfsIndexer{
-    indexedObj = null;
     dropsRootHash = null;
+    index = null;
 
     constructor(url, auth=null) {
         this.auth = auth;
@@ -48,7 +48,6 @@ class ipfsIndexer{
             stop+=amountItems 
         }
         this.message("");
-        this.indexedObj = result;
         return result
     };
 
@@ -68,6 +67,7 @@ class ipfsIndexer{
     }
 
     dagFromCids(cids) {
+        // dag format tempelate
         let dag = {"Data": {"/":{"bytes": "CAE"}},"Links":[]}
         const keys = Object.keys(cids);
         for(let i=0; i<keys.length; i++) {
@@ -155,10 +155,36 @@ class ipfsIndexer{
         return dag
     }
 
-    makeDropsRootHash() {
-        // TODO ipfs root hash that contains all files needed to claim (ui, balance tree, indexed claims)
+    async createIpfsIndex(balanceMapJson, splitSize=780) {
+        // TODO ipfs root hash that contains all files needed to claim (ui, balance tree, contracts addres, chainid, etc)
         // build it
-        this.dropsRootHash = null
+
+        //split object
+        this.message(`splitting: ${balanceMapJson["claims"].length} proofs into chunks of size: ${splitSize}`);
+        const split = this.splitObject(balanceMapJson["claims"], splitSize); //780);
+        console.log("done")
+
+        //add to ipfs
+        const cids = await this.addObjectsToIpfs(split);
+        console.log(cids)
+        let dag = this.dagFromCids(cids);
+        console.log(dag)
+        let hash = await this.putDag(dag)
+        console.log(hash)
+        hash = await this.wrapInDirectory(hash, "data");
+        dag = await this.getDag(hash);
+
+        //create index
+        const index = this.indexFromCids(cids);
+        console.log(dag);
+
+        //add to ipfs
+        const newDag = await this.addObjectToDag(dag, index, "index.json");
+        console.log(newDag);
+        const newHashWithIndex = await this.putDag(newDag)
+
+        this.dropsRootHash = newHashWithIndex;
+        this.message(`claims index ipfs hash: ${newHashWithIndex}`)
         return this.dropsRootHash
     }
 
@@ -168,7 +194,7 @@ class ipfsIndexer{
 
     }
 
-    async getJsonIpfs(hash) {
+    async getWithCatIpfs(hash) {
         let reqObj = {
             method: 'POST',
             headers: {
@@ -182,7 +208,8 @@ class ipfsIndexer{
         return r.json();
     }
 
-    async getIpfsFromPath(path) {
+    async getHashFromIpfsPath(path) {
+        console.log(path);
         let pathL = path.split("/");
         let hash = pathL[0];
         let currentDag = await this.getDag(hash);
@@ -190,7 +217,7 @@ class ipfsIndexer{
             for (let j=0; j<currentDag['Links'].length; j++) {
                 if (currentDag['Links'][j]["Name"] == pathL[i]) {
                     if (i == pathL.length-1) {
-                        return await this.getJsonIpfs(currentDag['Links'][j]["Hash"]["/"]);
+                        return await currentDag['Links'][j]["Hash"]["/"];
 
                     } else {
                         currentDag = await this.getDag(currentDag['Links'][j]["Hash"]["/"]);
@@ -202,8 +229,13 @@ class ipfsIndexer{
     }
 
     async getIndexJson(rootHash) {
-        window.indexHash = await this.getDag(rootHash)
-        return await this.getJsonIpfs(indexHash);
+        indexHash = await this.getDag(rootHash)
+        return await this.getWithCatIpfs(indexHash);
+    }
+
+    async loadIndex(dropsRootHash) {
+        this.dropsRootHash = dropsRootHash;
+        this.index = await this.getWithCatIpfs(await this.getHashFromIpfsPath(dropsRootHash+"/index.json"));
     }
 
 
