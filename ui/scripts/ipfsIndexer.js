@@ -1,10 +1,12 @@
 class ipfsIndexer{
     dropsRootHash = null;
     index = null;
+    isGateway = null;
 
-    constructor(url, auth=null) {
+    constructor(url, auth=null, isGateway=true) {
         this.auth = auth;
         this.ApiUrl = url;
+        this.isGateway=isGateway
         let urlobj = new URL(url);
         let options = {
             host: urlobj.hostname,
@@ -17,8 +19,7 @@ class ipfsIndexer{
         if (this.auth==null) {
             delete options.headers;
         }
-
-        this.ipfsClient = IpfsHttpClient.create(options);
+        //this.ipfsClient = IpfsHttpClient.create(options);
     }
 
     getValues(obj, keys) {
@@ -32,6 +33,23 @@ class ipfsIndexer{
     message(message) {
         console.log(message);
         document.getElementById("message").innerHTML = message;
+    }
+
+    async addToIpfs(data, filename, pin=true, cidVersion=1) {
+        const form = new FormData();
+        form.append('file', new File([data], `/${filename}`));
+        let reqObj = {
+            method: 'POST',
+            headers: {
+                'Authorization': this.auth
+            },
+            body: form
+        }
+        if (this.auth==null) {
+            delete reqObj.headers
+        }
+        let r = await fetch(`${this.ApiUrl}/api/v0/add?pin=${pin}&cid-version=${cidVersion}`, reqObj);
+        return r.json();
     }
 
     splitObject(obj, amountItems) {
@@ -57,10 +75,14 @@ class ipfsIndexer{
         const keys = Object.keys(objects)
         for(let i=0; i<keys.length; i ++) {
             this.message(`adding objects to ipfs ${i}/${keys.length}`);
-            let fileName = `${keys[i]}.json`
-            cids[fileName] = await this.ipfsClient.add(
-                JSON.stringify(objects[keys[i]], null, jsonPrettyLevel)
-                , {"cidVersion":1})
+            let filename = `${keys[i]}.json`
+            // cids[filename] = await this.ipfsClient.add(
+            //     JSON.stringify(objects[keys[i]], null, jsonPrettyLevel)
+            //     , {"cidVersion":1})
+            cids[filename] = await this.addToIpfs(
+                JSON.stringify(objects[keys[i]], null, jsonPrettyLevel),
+                filename,1
+                )
         }
         this.message("");
         return cids
@@ -70,9 +92,10 @@ class ipfsIndexer{
         // dag format tempelate
         let dag = {"Data": {"/":{"bytes": "CAE"}},"Links":[]}
         const keys = Object.keys(cids);
+        console.log(keys);
         for(let i=0; i<keys.length; i++) {
             let name = keys[i];
-            let hash = cids[name]["path"];
+            let hash = cids[name]["Hash"];
             dag.Links.push(
                 {
                     "Hash": {
@@ -142,8 +165,9 @@ class ipfsIndexer{
     }
 
     async addObjectToDag(dag, obj, fileNameObj) {
-        let r = await ipfsIndex.ipfsClient.add(JSON.stringify(obj, null, 2), {"cidVersion":1})
-        let hash = r['path']
+        //let r = await ipfsIndex.ipfsClient.add(JSON.stringify(obj, null, 2), {"cidVersion":1})
+        let r = await this.addToIpfs(JSON.stringify(obj, null, 2), fileNameObj,1)
+        let hash = r['Hash']
         dag.Links.push(
             {
                 "Hash": {
@@ -209,7 +233,6 @@ class ipfsIndexer{
     }
 
     async getHashFromIpfsPath(path) {
-        console.log(path);
         let pathL = path.split("/");
         let hash = pathL[0];
         let currentDag = await this.getDag(hash);
@@ -228,6 +251,11 @@ class ipfsIndexer{
         };
     }
 
+    async getWithGateWayIpfs(path) {
+        let r = await fetch(`${this.ApiUrl}/ipfs/${path}`);
+        return r.json()
+    }
+
     async getIndexJson(rootHash) {
         indexHash = await this.getDag(rootHash)
         return await this.getWithCatIpfs(indexHash);
@@ -235,7 +263,27 @@ class ipfsIndexer{
 
     async loadIndex(dropsRootHash) {
         this.dropsRootHash = dropsRootHash;
-        this.index = await this.getWithCatIpfs(await this.getHashFromIpfsPath(dropsRootHash+"/index.json"));
+        if (this.isGateway==true) {
+            this.index = await this.getWithGateWayIpfs(dropsRootHash+"/index.json");
+        } else {
+            this.index = await this.getWithCatIpfs(await this.getHashFromIpfsPath(dropsRootHash+"/index.json"));
+        }
+    }
+
+    async getIdFromIndex(id) {
+        let obj = {};
+        console.log(this.index[0])
+        for (let i=0; i<this.index.length; i++) {
+            console.log(this.index[i])
+            if (parseInt(this.index[i].start) <= id ||  parseInt(this.index[i].end) >= id ) {
+                if (this.isGateway==true) {
+                    obj = await this.getWithGateWayIpfs(this.index[i].hash);
+                } else {
+                    obj = await this.getWithCatIpfs(this.index[i].hash);
+                } 
+                return obj[id.toString()];
+            }
+        }
     }
 
 
