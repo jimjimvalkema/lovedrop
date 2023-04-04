@@ -14,9 +14,7 @@ contract MiladyDrop is IMiladyDrop {
 
     address public requiredNFTAddress;
     address public airdropTokenAddress;
-
-    uint256 airdropAmount;
-    mapping(uint256 => bool) public claimedIds; //TODO tight packing and getter
+    string public claimDataIpfs; //TODO do with 
 
     //bytes32 public immutable override merkleRoot;
     bytes32 public immutable merkleRoot;
@@ -32,13 +30,13 @@ contract MiladyDrop is IMiladyDrop {
     }    
 
 
-    constructor(address _requiredNFTAddress, address _airdropTokenAddress, uint256 _amount, bytes32 _merkleRoot) {
-        airdropAmount = _amount;
+    constructor(address _requiredNFTAddress, address _airdropTokenAddress, bytes32 _merkleRoot, string memory _claimDataIpfs) {
         merkleRoot = _merkleRoot;
 
         //store addresses for easier acces
         requiredNFTAddress = _requiredNFTAddress;
         airdropTokenAddress = _airdropTokenAddress;
+        claimDataIpfs = _claimDataIpfs;
         }
 
     function isClaimed(uint256 index) public view override returns (bool) {
@@ -53,18 +51,6 @@ contract MiladyDrop is IMiladyDrop {
         uint256 claimedWordIndex = index / 256;
         uint256 claimedBitIndex = index % 256;
         claimedBitMap[claimedWordIndex] = claimedBitMap[claimedWordIndex] | (1 << claimedBitIndex);
-    }
-
-    //TODO remove and make claim function that claim multiple merkle proofs
-    function claim(uint256[] memory _ids) public {
-        uint256 currentId;
-        for (uint i=0; i < _ids.length; i++) {
-            currentId = _ids[i];
-            require(IERC721(requiredNFTAddress).ownerOf(currentId) == msg.sender, "you dont own one or more of these nfts"); //msg.esender bad?
-            require(claimedIds[currentId] == false, "one or more of these ids is already claimed");
-            claimedIds[currentId] = true;
-            IERC20(airdropTokenAddress).transfer(address(msg.sender), airdropAmount);
-        }
     }
 
     function verifyClaim(uint256 index, uint256 id, uint256 amount, bytes32[] calldata merkleProof) private view {
