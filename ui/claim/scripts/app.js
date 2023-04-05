@@ -124,6 +124,8 @@ async function claimAll(ipfsIndex=window.ipfsIndex) {
         for (let i = 0; i < user_nfts.length; i++) {
             let id = user_nfts[i]
             let claimData = await ipfsIndex.getIdFromIndex(id) //TODO handle error if doesn't exist and message to user
+            console.log("THIS IS CLAIM DATA")
+            console.log(claimData)
             if (! await isClaimed(claimData)) {
                 unclaimed_proofs.push(getProof(id, claimData));
             }
@@ -254,8 +256,29 @@ async function test() {
     console.log(`index obj: ${JSON.stringify(window.ipfsIndex.index, null, 2)}`);
     console.log(window.ipfsIndex.dropsRootHash);
     console.log(await window.ipfsIndex.getIdFromIndex(20));
-    claim(8, window.ipfsIndex);
+    //claim(8, window.ipfsIndex);
+    uri = new uriHandler(nftContract, "./scripts/URITypes.json");
+    console.log(await uri.getImage(1));
+    //document.getElementById("nftImages").innerHTML = `<img src="${await uri.getImage(1)}">`;
+    console.log("aaaaaaaaaaa");
+    console.log(await provider.getSigner().address);
+    let userNft = await getUserNftIds(await signer.getAddress());
+    let imagesUrls = [];
+    for (let i = 0; i < userNft.length; i++ ) {
+        imagesUrls.push(await uri.getImage(userNft[i]))
+    }
+    displayImages(imagesUrls);
+
 };
+
+function displayImages(imagesUrls) {
+    let imagesHTML = ""
+    imagesUrls.forEach(url => {
+        imagesHTML += `<img src="${url}">\n`;
+        
+    });
+    document.getElementById("nftImages").innerHTML = imagesHTML;
+} 
 
 window.onload = runOnLoad;
 
@@ -265,7 +288,9 @@ async function runOnLoad() {
     let ERC721ABIFile = await fetch('./../abi/ERC721ABI.json');
     let ERC20ABIFile = await fetch('./../abi/ERC20ABI.json');
     mildayDropAbi = await mildayDropAbiFile.json();
+    console.log(ERC721ABIFile)
     ERC721ABI = await ERC721ABIFile.json();
+    console.log(ERC721ABI)
     ERC20ABI = await ERC20ABIFile.json();
 
     //TODO make function to connect ipfs indexer and option for is gateway in ui
@@ -283,7 +308,7 @@ async function runOnLoad() {
     }
 
     //load indexer
-    window.newHashWithIndex = "bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"//await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
-    window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth , isGateway=false);
+    window.newHashWithIndex = "bafybeibarxa3ev24vtj2nq3atdpfjmq3ckbmvwc2fqtuaahl7bbf6fcx54"//await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
+    window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth , isGateway=true);
     await window.ipfsIndex.loadIndex(window.newHashWithIndex);
 }
