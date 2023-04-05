@@ -159,7 +159,7 @@ class ipfsIndexer{
         for(let i=0; i<keys.length; i++) {
             let key = keys[i];
             let startStop = key.split(".")[0].split("-");
-            index.push({"start":startStop[0], "stop":startStop[1], "hash":cids[key]["path"]})
+            index.push({"start":startStop[0], "stop":startStop[1], "hash":cids[key]["Hash"]})
         } 
         return index;
     }
@@ -190,6 +190,7 @@ class ipfsIndexer{
 
         //add to ipfs
         const cids = await this.addObjectsToIpfs(split);
+        console.log("THIS IS THE CIDS OBJECT HEHE")
         console.log(cids)
         let dag = this.dagFromCids(cids);
         console.log(dag)
@@ -252,6 +253,7 @@ class ipfsIndexer{
     }
 
     async getWithGateWayIpfs(path) {
+        console.log(`${this.ApiUrl}/ipfs/${path}`);
         let r = await fetch(`${this.ApiUrl}/ipfs/${path}`);
         return r.json()
     }
@@ -270,12 +272,15 @@ class ipfsIndexer{
         }
     }
 
-    async getIdFromIndex(id) {
+    async getIdFromIndex(_id) {
+        const id = parseInt(_id);
+        console.log(`getting id: ${id}`)
         let obj = {};
-        console.log(this.index[0])
         for (let i=0; i<this.index.length; i++) {
-            console.log(this.index[i])
-            if (parseInt(this.index[i].start) <= id ||  parseInt(this.index[i].end) >= id ) {
+            console.log(`${JSON.stringify(this.index[i], null, 2)}`)
+            console.log(`start: ${parseInt(this.index[i].start)}, stop: ${parseInt(this.index[i].stop) }`)
+            console.log((parseInt(this.index[i].start) <= id &&  parseInt(this.index[i].stop) >= id ))
+            if (parseInt(this.index[i].start) <= id &&  parseInt(this.index[i].stop) >= id ) {
                 if (this.isGateway==true) {
                     obj = await this.getWithGateWayIpfs(this.index[i].hash);
                 } else {

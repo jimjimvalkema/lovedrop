@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 
 <body>
-    <a href="./?mildayDropAddress=0x74B911ce21997865E41C2b45a0619bF8a1D741BE&ipfsApi=http://ipfs.dappnode:5001">
+    <a href="./?mildayDropAddress=0xe9A18F9749C04BbBB1292cC5b5902da7aEa92697&ipfsApi=http://ipfs.dappnode:5001">
         connect ipfs dappnode </a></br>
     <a>connect custom ipfs endpoint </a>
     <form id="infuraIpfsForm"> <!--action="/action_page.php"-->
@@ -13,6 +13,7 @@
     <button onclick="test()">test</button>
     <button onclick="connectSigner()">connect</button>
     <button onclick="claimAll()">claim</button>
+    <div id="nftImages"></div>
     <p id="message"></p> 
     <input onchange="readFile(this)" type="file">
     
@@ -27,6 +28,9 @@
         type="application/javascript"></script>
     <script src="./../scripts/papaparse.min.js"
         type="application/javascript"></script>
+
+    <script src="./../scripts/uriHandler.js"  
+        type="application/javascript"></script>    
     <script src="./../scripts/ipfsIndexer.js"  
         type="application/javascript"></script>
     <script src="./scripts/app.js"  

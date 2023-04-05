@@ -80,7 +80,7 @@ function getIndex(id) {
 
 function isClaimed(id) {
     index = getIndex(id)
-    return window.mildayDropWithSigner.isClaimed(index);
+    return mildayDropWithSigner.isClaimed(index);
 }
 
 async function getUrlVars() {
@@ -109,10 +109,10 @@ async function loadAllContracts() {
     urlVars = await getUrlVars();
     console.log(ethers.utils.getAddress(urlVars['mildayDropAddress']));
     mildayDropContract = await getMiladyDropContract(provider, urlVars);
-    window.mildayDropWithSigner = mildayDropContract.connect(signer);
+    mildayDropWithSigner = mildayDropContract.connect(signer);
     nftContract = await getNftContract();
     airdropTokenContract = await getAirdropTokenContract();
-    return [mildayDropContract, window.mildayDropWithSigner, nftContract, airdropTokenContract];
+    return [mildayDropContract, mildayDropWithSigner, nftContract, airdropTokenContract];
 }
 
 function getProof(id) {
@@ -136,7 +136,7 @@ async function claimAll() {
                 unclaimed_proofs.push(getProof(id));
             }
         }
-        window.mildayDropWithSigner.multiClaim(unclaimed_proofs);
+        mildayDropWithSigner.multiClaim(unclaimed_proofs);
     }
     return 0
 };
@@ -146,7 +146,7 @@ async function claim(id) {
         if (! await isClaimed(id)) {
             let proof = await getProof(id);
             console.log(proof);
-            window.mildayDropWithSigner.claim(...proof);
+            mildayDropWithSigner.claim(...proof);
         }
     }
     return 0;
@@ -251,7 +251,7 @@ async function test() {
         return 0
     }
 
-    proofsFile = await fetch('./timesTwo.json');
+    proofsFile = await fetch('./modulo4.json');
     balanceMapJson = await proofsFile.json();
 
     // The MetaMask plugin also allows signing transactions to
@@ -262,10 +262,10 @@ async function test() {
     let userAddress = await signer.getAddress();
 
     console.log(userAddress);
-    console.log(await isClaimed(1));
-    console.log(await getUserNftIds(userAddress));
-    console.log(parseInt(await airdropTokenContract.balanceOf(userAddress), 16))
-    console.log(getProof(1));
+    //console.log(await isClaimed(1));
+    //console.log(await getUserNftIds(userAddress));
+    //console.log(parseInt(await airdropTokenContract.balanceOf(userAddress), 16))
+    //console.log(getProof(1));
     // a = splitObject(tempMerkle["claims"], 780);
     // console.log("we got files :D:  " + a.length)
     // //downloadString(JSON.stringify(a["0"], null, 2), "json", "hi")
@@ -297,7 +297,7 @@ async function test() {
 
     window.ipfsIndex = new ipfsIndexer(ipfsApi, auth, isGateway=false);
 
-    window.newHashWithIndex =  await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=50);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
+    window.newHashWithIndex =  await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
     console.log(window.newHashWithIndex)
 
     await window.ipfsIndex.loadIndex(window.newHashWithIndex);
