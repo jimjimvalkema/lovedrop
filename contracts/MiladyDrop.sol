@@ -14,7 +14,7 @@ contract MiladyDrop is IMiladyDrop {
 
     address public requiredNFTAddress;
     address public airdropTokenAddress;
-    string public claimDataIpfs; //TODO do with 
+    string public claimDataIpfs; //TODO do with bytes32: https://docs.ipfs.tech/concepts/content-addressing/#cid-conversion
 
     //bytes32 public immutable override merkleRoot;
     bytes32 public immutable merkleRoot;
@@ -55,7 +55,7 @@ contract MiladyDrop is IMiladyDrop {
 
     function verifyClaim(uint256 index, uint256 id, uint256 amount, bytes32[] calldata merkleProof) private view {
         if (isClaimed(index)) revert AlreadyClaimed();
-        require(IERC721(requiredNFTAddress).ownerOf(id) == msg.sender, "you dont own one or more of these nfts"); //msg.esender bad?
+        require(IERC721(requiredNFTAddress).ownerOf(id) == msg.sender, "you dont own one or more of these nfts"); //msg.sender bad?
 
         // Verify the merkle proof.
         bytes32 node = keccak256(abi.encodePacked(index, id, amount));

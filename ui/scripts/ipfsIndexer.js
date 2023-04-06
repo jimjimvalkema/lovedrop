@@ -272,15 +272,12 @@ class ipfsIndexer{
         }
     }
 
-    async getIdFromIndex(_id) {
-        const id = parseInt(_id);
+    async getIdFromIndex(id) {
         console.log(`getting id: ${id}`)
         let obj = {};
         for (let i=0; i<this.index.length; i++) {
-            console.log(`${JSON.stringify(this.index[i], null, 2)}`)
-            console.log(`start: ${parseInt(this.index[i].start)}, stop: ${parseInt(this.index[i].stop) }`)
-            console.log((parseInt(this.index[i].start) <= id &&  parseInt(this.index[i].stop) >= id ))
             if (parseInt(this.index[i].start) <= id &&  parseInt(this.index[i].stop) >= id ) {
+                console.log(`fetching id: ${id} from index at ${this.index[i].hash}`)
                 if (this.isGateway==true) {
                     obj = await this.getWithGateWayIpfs(this.index[i].hash);
                 } else {
@@ -289,6 +286,8 @@ class ipfsIndexer{
                 return obj[id.toString()];
             }
         }
+        //if nothing is found (TODO throw error instead and error handeling at isClaimed, claimAll etc)
+        return null;
     }
 
 
