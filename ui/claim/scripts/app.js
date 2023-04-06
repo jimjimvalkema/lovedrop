@@ -63,7 +63,7 @@ async function getNftContract() {
 async function getUserNftIds(userAddress) {
     var ids = [];
     let userBalance = (await nftContract.balanceOf(userAddress)).toNumber();
-    for (let i = 1; i < userBalance; i++) {
+    for (let i = 0; i < userBalance; i++) {
         ids.push((await nftContract.tokenOfOwnerByIndex(userAddress, i)).toNumber());
 
     }
@@ -101,6 +101,12 @@ async function loadAllContracts() {
     mildayDropWithSigner = mildayDropContract.connect(signer);
     nftContract = await getNftContract();
     airdropTokenContract = await getAirdropTokenContract();
+    //load indexer
+    claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
+    window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth , isGateway=false);
+    console.log(claimDataIpfsHash);
+    await window.ipfsIndex.loadIndex(claimDataIpfsHash);
+
     return [mildayDropContract, mildayDropWithSigner, nftContract, airdropTokenContract];
 }
 
@@ -113,8 +119,6 @@ function getProof(id, claimData) {
 }
 
 
-
-//TODO update with merkle stuff :D
 async function claimAll(ipfsIndex=window.ipfsIndex) {
     if (isWalletConnected()) {
         //await getAllContracts();
@@ -124,10 +128,18 @@ async function claimAll(ipfsIndex=window.ipfsIndex) {
         for (let i = 0; i < user_nfts.length; i++) {
             let id = user_nfts[i]
             let claimData = await ipfsIndex.getIdFromIndex(id) //TODO handle error if doesn't exist and message to user
-            console.log("THIS IS CLAIM DATA")
-            console.log(claimData)
-            if (! await isClaimed(claimData)) {
-                unclaimed_proofs.push(getProof(id, claimData));
+            if (claimData != null) {
+                console.log("THIS IS CLAIM DATA")
+                console.log(claimData)
+                if (! await isClaimed(claimData)) {
+                    unclaimed_proofs.push(getProof(id, claimData));
+                    console.log(`id: ${id} is added to claim all!`)
+                } else {
+                    //TODO give users this info
+                    console.log(`id: ${id} is in wallet but already claimed`)
+                }
+            } else {
+                console.log(`ID: ${id} is in wallet but not in the claims index`)
             }
         }
         if (unclaimed_proofs.length == 0) {
@@ -252,21 +264,24 @@ async function test() {
         return 0
     }
 
-    window.newHashWithIndex = "bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"//await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
-    console.log(`index obj: ${JSON.stringify(window.ipfsIndex.index, null, 2)}`);
-    console.log(window.ipfsIndex.dropsRootHash);
-    console.log(await window.ipfsIndex.getIdFromIndex(20));
-    //claim(8, window.ipfsIndex);
+    // window.newHashWithIndex = "bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"//await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
+    // console.log(`index obj: ${JSON.stringify(window.ipfsIndex.index, null, 2)}`);
+    // console.log(window.ipfsIndex.dropsRootHash);
+    // console.log(await window.ipfsIndex.getIdFromIndex(20));
+    // //claim(8, window.ipfsIndex);
+    console.log("gettting imagessssssssssssssss")
+    console.log(nftContract);
     uri = new uriHandler(nftContract, "./scripts/URITypes.json");
     console.log(await uri.getImage(1));
     //document.getElementById("nftImages").innerHTML = `<img src="${await uri.getImage(1)}">`;
     console.log("aaaaaaaaaaa");
-    console.log(await provider.getSigner().address);
-    let userNft = await getUserNftIds(await signer.getAddress());
+    let userNfts = await getUserNftIds(await signer.getAddress());
     let imagesUrls = [];
-    for (let i = 0; i < userNft.length; i++ ) {
-        imagesUrls.push(await uri.getImage(userNft[i]))
+    for (let i = 0; i < userNfts.length; i++ ) {
+        imagesUrls.push(await uri.getImage(userNfts[i]))
     }
+    console.log(userNfts);
+    console.log(imagesUrls)
     displayImages(imagesUrls);
 
 };
@@ -307,8 +322,8 @@ async function runOnLoad() {
         window.auth  = null
     }
 
-    //load indexer
-    window.newHashWithIndex = "bafybeibarxa3ev24vtj2nq3atdpfjmq3ckbmvwc2fqtuaahl7bbf6fcx54"//await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
-    window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth , isGateway=true);
-    await window.ipfsIndex.loadIndex(window.newHashWithIndex);
+    // //load indexer
+    // window.newHashWithIndex = "bafybeibarxa3ev24vtj2nq3atdpfjmq3ckbmvwc2fqtuaahl7bbf6fcx54"//await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
+    // window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth , isGateway=true);
+    // await window.ipfsIndex.loadIndex(window.newHashWithIndex);
 }
