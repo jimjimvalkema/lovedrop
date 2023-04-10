@@ -14,8 +14,6 @@ let signer = null;
 let currentFileString = null;
 let currenFileName = null;
 
-let balanceMapJson = null;
-
 //abis global variable
 let mildayDropAbi = null;
 let ERC20ABI = null;
@@ -24,7 +22,12 @@ let ERC721ABI = null;
 // A Web3Provider wraps a standard Web3 provider, which is
 // what MetaMask injects as window.ethereum into each page
 // TODO get 3rd party provider incase user doesnt connect 
-const provider = new ethers.providers.Web3Provider(window.ethereum)
+const provider = new ethers.providers.Web3Provider(window.ethereum);
+
+function message(message) {
+    console.log(message);
+    document.getElementById("message").innerHTML = message;
+}
 
 
 async function connectSigner() {
@@ -34,12 +37,11 @@ async function connectSigner() {
     if (isWalletConnected()) {
         await loadAllContracts();
         return [provider, signer];
-    }
-}
+    };
+};
 
 async function getMiladyDropContract(provider, urlVars) {
-    console.log(urlVars["mildayDropAddress"])
-    mildayDropAddress = ethers.utils.getAddress(urlVars["mildayDropAddress"])
+    mildayDropAddress = urlVars["mildayDropAddress"]
     //const mildayDropAbi = 
     // The Contract object
     mildayDropContract = new ethers.Contract(mildayDropAddress, mildayDropAbi, provider);
@@ -65,27 +67,17 @@ async function getNftContract() {
 
 async function getUserNftIds(userAddress) {
     var ids = [];
-    let userBalance = parseInt(await nftContract.balanceOf(userAddress), 16);
-    for (let i = 1; i < userBalance; i++) {
-        ids.push(parseInt(await nftContract.tokenOfOwnerByIndex(userAddress, i), 16));
+    let userBalance = (await nftContract.balanceOf(userAddress)).toNumber();
+    for (let i = 0; i < userBalance; i++) {
+        ids.push((await nftContract.tokenOfOwnerByIndex(userAddress, i)).toNumber());
 
     }
     return ids;
 }
 
-function getIndex(id) {
-    //TODO get merkle hash from contract then ipfs etc
-    return balanceMapJson["claims"][id]["index"];
-}
-
-function isClaimed(id) {
-    index = getIndex(id)
-    return mildayDropWithSigner.isClaimed(index);
-}
-
 async function getUrlVars() {
     var vars = {};
-    var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+    var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
         vars[key] = value;
     });
     return vars;
@@ -104,120 +96,53 @@ function isWalletConnected() {
     }
 }
 
-
-async function loadAllContracts() {
-    urlVars = await getUrlVars();
-    console.log(ethers.utils.getAddress(urlVars['mildayDropAddress']));
-    mildayDropContract = await getMiladyDropContract(provider, urlVars);
-    mildayDropWithSigner = mildayDropContract.connect(signer);
-    nftContract = await getNftContract();
-    airdropTokenContract = await getAirdropTokenContract();
-    return [mildayDropContract, mildayDropWithSigner, nftContract, airdropTokenContract];
-}
-
-function getProof(id) {
-    const index = balanceMapJson["claims"][id]["index"];
-    const amount = parseInt(balanceMapJson["claims"][id]["amount"], 16)
-    const proof = balanceMapJson["claims"][id]["proof"];
-    return [index, id, amount, proof]
-}
-
-
-//TODO update with merkle stuff :D
-async function claimAll() {
-    if (isWalletConnected()) {
-        //await getAllContracts();
-        let userAddress = signer.getAddress();
-        var user_nfts = await getUserNftIds(userAddress, nftContract);
-        var unclaimed_proofs = [];
-        for (let i = 0; i < user_nfts.length; i++) {
-            let id = user_nfts[i]
-            if (! await isClaimed(id)) {
-                unclaimed_proofs.push(getProof(id));
-            }
-        }
-        mildayDropWithSigner.multiClaim(unclaimed_proofs);
-    }
-    return 0
-};
-
-async function claim(id) {
-    if (isWalletConnected()) {
-        if (! await isClaimed(id)) {
-            let proof = await getProof(id);
-            console.log(proof);
-            mildayDropWithSigner.claim(...proof);
-        }
-    }
-    return 0;
-};
-
 function readFile(input) {
     let file = input.files[0];
     let result = ""
-  
+
     let reader = new FileReader();
     currenFileName = file["name"];
-    console.log(currenFileName);
 
 
     reader.readAsText(file);
-    reader.onload = function() {
+    reader.onload = function () {
         result += reader.result;
-        //console.log(reader.result);
     }
 
-    reader.onloadend = function() {
-        currentFileString = result; //TODO do i have to store this in a global lol?
+    reader.onloadend = function () {
+        window.currentFileString = result;
     }
-  };
+};
 
 function isInterger(string) {
-    
-    if(isNaN(parseInt(string))){
-        return(false)
+
+    if (isNaN(parseInt(string))) {
+        return (false)
     } else {
-        return(true);
+        return (true);
     }
 };
 
 function formatBalanceMap(balanceMap) {
     let formatedBalanceMap = {}
-    for (var i = 0; i < balanceMap.length; i++){
+    for (var i = 0; i < balanceMap.length; i++) {
         line = balanceMap[i];
         address = line[0];
         amount = line[1];
-        if(ethers.utils.isAddress(address) && isInterger(amount)){
-            formatedBalanceMap[balanceMap[i][0]] = balanceMap[i][1]
+        if (ethers.utils.isAddress(address) && isInterger(amount)) {
+            formatedBalanceMap[balanceMap[i][0]] = balanceMap[i][1];
 
         } else {
             console.log("skipped this line");
             console.log(line);
         };
     };
-    return(formatedBalanceMap);
+    return (formatedBalanceMap);
 };
-
-function formatBalanceMapIds(balanceMap) {
-    let formatedBalanceMap = {}
-    for (var i = 0; i < balanceMap.length; i++){
-        line = balanceMap[i];
-        id = line[0];
-        amount = line[1];
-        if(isInterger(id) && isInterger(amount)){
-            formatedBalanceMap[balanceMap[i][0]] = balanceMap[i][1]
-
-        } else {
-            console.log("skipped this line");
-            console.log(line);
-        }
-    }
-    return(formatedBalanceMap);
-}
 
 function downloadString(text, fileType, fileName) {
     var blob = new Blob([text], { type: fileType });
-  
+
     var a = document.createElement('a');
     a.download = fileName;
     a.href = URL.createObjectURL(blob);
@@ -226,16 +151,34 @@ function downloadString(text, fileType, fileName) {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(function() { URL.revokeObjectURL(a.href); }, 1500);
-  }
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
+}
 
-function csvToBalanceMapJSON() {
-    var balanceMap = Papa.parse(currentFileString)["data"];
+function formatBalanceMapIds(balanceMap) {
+    let formatedBalanceMap = {}
+    for (var i = 0; i < balanceMap.length; i++) {
+        line = balanceMap[i];
+        id = line[0];
+        amount = line[1];
+        if (isInterger(id) && isInterger(amount)) {
+            formatedBalanceMap[balanceMap[i][0]] = balanceMap[i][1]
+
+        } else {
+            message(`cant read this line: ${line} \n skipped it.`)
+        }
+    }
+    return (formatedBalanceMap);
+}
+
+function csvToBalanceMapJSON(file) {
+    message(`parsing csv`)
+    var balanceMap = Papa.parse(file)["data"];
     var formatedBalanceMap = formatBalanceMapIds(balanceMap);
+    message(`building merkle tree on: ${Object.keys(formatedBalanceMap).length} claims.`)
     let merkle = uniswapMerkle.parseBalanceMapOnIds(formatedBalanceMap);
     let newFilename = currenFileName.split(".")[0] + ".json";
-    downloadString(JSON.stringify(merkle, null, 2), "json", newFilename)
-    balanceMapJson = merkle; //TODO get merkle hash from contract then ipfs etc
+    //downloadString(JSON.stringify(merkle, null, 2), "json", newFilename)
+    return merkle;
 }
 
 function goToclaim() {
@@ -243,7 +186,14 @@ function goToclaim() {
     const currentUrl = new URL(window.location.href)
     //TODO set address
     location.replace(`/?mildayDropAddress=0x326a3c40DfD5D46bbFbcaa3530C1E71120fc603a&ipfsApi=${x.ipfsApi.value}&projectId=${x.projectId.value}&projectSecret=${x.keySecret.value}`)
-  }
+}
+
+async function claimIndexIpfsFromCsv(csvString = window.currentFileString) {
+    merkle = await csvToBalanceMapJSON(csvString);
+    message(`created merkle tree with merkle root: ${merkle['merkleRoot']}`)
+    window.dropsRootHash = await window.ipfsIndex.createIpfsIndex(merkle, splitSize = 780, metaData ={"merkleRoot":merkle['merkleRoot']});
+
+}
 
 async function test() {
     //let response = await fetch('./merkle_proofs/index.json')
@@ -251,56 +201,11 @@ async function test() {
         return 0
     }
 
-    proofsFile = await fetch('./modulo4.json');
-    balanceMapJson = await proofsFile.json();
-
-    // The MetaMask plugin also allows signing transactions to
-    // send ether and pay to change state within the blockchain.
-    // For this, you need the account signer...formatBalanceMapIds(balanceMap["data"]) 
-    //await getAllContracts();p
-
     let userAddress = await signer.getAddress();
 
     console.log(userAddress);
-    //console.log(await isClaimed(1));
-    //console.log(await getUserNftIds(userAddress));
-    //console.log(parseInt(await airdropTokenContract.balanceOf(userAddress), 16))
-    //console.log(getProof(1));
-    // a = splitObject(tempMerkle["claims"], 780);
-    // console.log("we got files :D:  " + a.length)
-    // //downloadString(JSON.stringify(a["0"], null, 2), "json", "hi")
 
-    // var zip = new JSZip();
-    // for(let i=0; i<a.length; i++) {
-    //     let filename = "0-"+ (i*780).toString()+".json"
-    //     zip.file(filename+".json", JSON.stringify(a[i], null, 2));
-    // }
-    // //var img = zip.folder("images");
-    // //img.file("smile.gif", imgData, {base64: true});
-    // zip.generateAsync({type:"blob"})
-    // .then(function(content) {
-    //     // see FileSaver.js
-    //     saveAs(content, "example.zip");
-    // });
 
-    //const ipfsClient = require('ipfs-http-client');
-    const ipfsApi = urlVars["ipfsApi"]   
-    let auth = null; 
-    if(urlVars["projectId"]!=null) {
-        const projectId = urlVars["projectId"]
-        const projectSecret = urlVars["projectSecret"]
-        auth = "Basic " + btoa(projectId+ ":" + projectSecret);
-
-    } else {
-        auth = null
-    }
-
-    window.ipfsIndex = new ipfsIndexer(ipfsApi, auth, isGateway=false);
-
-    window.newHashWithIndex =  await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
-    console.log(window.newHashWithIndex)
-
-    await window.ipfsIndex.loadIndex(window.newHashWithIndex);
     console.log(window.ipfsIndex.index);
     console.log(window.ipfsIndex.dropsRootHash);
 };
@@ -308,10 +213,41 @@ async function test() {
 window.onload = runOnLoad;
 
 async function runOnLoad() {
-    let mildayDropAbiFile = await fetch('./abi/mildayDropAbi.json');
-    let ERC721ABIFile = await fetch('./abi/ERC721ABI.json');
-    let ERC20ABIFile = await fetch('./abi/ERC20ABI.json');
+    window.urlVars = await getUrlVars();
+    let mildayDropAbiFile = await fetch('./../abi/mildayDropAbi.json');
+    let ERC721ABIFile = await fetch('./../abi/ERC721ABI.json');
+    let ERC20ABIFile = await fetch('./../abi/ERC20ABI.json');
     mildayDropAbi = await mildayDropAbiFile.json();
     ERC721ABI = await ERC721ABIFile.json();
     ERC20ABI = await ERC20ABIFile.json();
+
+    //TODO make function to connect ipfs indexer and option for is gateway in ui
+    //TODO test if can connect 
+    //connect api
+    window.ipfsApi = window.urlVars["ipfsApi"]
+    window.auth = null;
+    if (window.urlVars["projectId"] != null) {
+        const projectId = window.urlVars["projectId"]
+        const projectSecret = window.urlVars["projectSecret"]
+        window.auth = "Basic " + btoa(projectId + ":" + projectSecret);
+
+    } else {
+        window.auth = null
+    }
+    window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth , isGateway=false);
+}
+
+
+async function loadAllContracts() {
+    urlVars = await getUrlVars();
+    mildayDropContract = await getMiladyDropContract(provider, urlVars);
+    mildayDropWithSigner = mildayDropContract.connect(signer);
+    nftContract = await getNftContract();
+    airdropTokenContract = await getAirdropTokenContract();
+    //load indexer
+    //claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
+    //window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth , isGateway=false);
+    //await window.ipfsIndex.loadIndex(claimDataIpfsHash);
+
+    return [mildayDropContract, mildayDropWithSigner, nftContract, airdropTokenContract];
 }

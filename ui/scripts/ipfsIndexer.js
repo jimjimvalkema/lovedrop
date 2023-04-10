@@ -2,6 +2,7 @@ class ipfsIndexer{
     dropsRootHash = null;
     index = null;
     isGateway = null;
+    metaData = null;
 
     constructor(url, auth=null, isGateway=true) {
         this.auth = auth;
@@ -92,7 +93,6 @@ class ipfsIndexer{
         // dag format tempelate
         let dag = {"Data": {"/":{"bytes": "CAE"}},"Links":[]}
         const keys = Object.keys(cids);
-        console.log(keys);
         for(let i=0; i<keys.length; i++) {
             let name = keys[i];
             let hash = cids[name]["Hash"];
@@ -179,7 +179,8 @@ class ipfsIndexer{
         return dag
     }
 
-    async createIpfsIndex(balanceMapJson, splitSize=780) {
+    async createIpfsIndex(balanceMapJson, splitSize=780, metaData=null) {
+        // TODO make more generic and not assume it has ["claims"]
         // TODO ipfs root hash that contains all files needed to claim (ui, balance tree, contracts addres, chainid, etc)
         // build it
 
@@ -190,23 +191,19 @@ class ipfsIndexer{
 
         //add to ipfs
         const cids = await this.addObjectsToIpfs(split);
-        console.log("THIS IS THE CIDS OBJECT HEHE")
-        console.log(cids)
         let dag = this.dagFromCids(cids);
-        console.log(dag)
         let hash = await this.putDag(dag)
-        console.log(hash)
         hash = await this.wrapInDirectory(hash, "data");
         dag = await this.getDag(hash);
 
         //create index
         const index = this.indexFromCids(cids);
-        console.log(dag);
+        this.index = index
 
         //add to ipfs
-        const newDag = await this.addObjectToDag(dag, index, "index.json");
-        console.log(newDag);
-        const newHashWithIndex = await this.putDag(newDag)
+        dag = await this.addObjectToDag(dag, index, "index.json");
+        dag = await this.addObjectToDag(dag, metaData, "metadata.json");
+        const newHashWithIndex = await this.putDag(dag)
 
         this.dropsRootHash = newHashWithIndex;
         this.message(`claims index ipfs hash: ${newHashWithIndex}`)
