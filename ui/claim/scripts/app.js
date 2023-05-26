@@ -71,6 +71,9 @@ async function getUserNftIds(userAddress) {
 }
 
 function isClaimed(claimData) {
+    if (claimData===null) {
+        return true
+    }
     return mildayDropWithSigner.isClaimed(claimData["index"]);
 }
 
@@ -144,6 +147,7 @@ async function claim(id, ipfsIndex=window.ipfsIndex) {
             mildayDropWithSigner.claim(...proof);
         }
     }
+    document.getElementById(`NFT${id}`).style.border = "5px solid blue";
     return 0;
 };
 
@@ -156,12 +160,24 @@ function isInterger(string) {
     }
 };
 
-function displayImages(imagesUrls) {
+async function displayNFTS(URI, ids) {
     let imagesHTML = ""
-    imagesUrls.forEach(url => {
-        imagesHTML += `<img src="${url}">\n`;
-        
-    });
+    for (let i = 0; i < ids.length; i++ ) {
+        console.log(ids[i])
+        url = await URI.getImage(ids[i])
+        let claimData = await ipfsIndex.getIdFromIndex(ids[i])
+        if ( await isClaimed(claimData)) {
+            imagesHTML += `<div id="NFT${ids[i]}" style=" border:5px black; width: 20%; display: inline-block;" >
+                <h3>Nothing to claim :(</h1>
+                <img src="${url}" style="max-width: 100%; max-height: 100%;">\n 
+                </div>`;
+        } else {
+            imagesHTML += `<div id="NFT${ids[i]}" onclick="claim(${ids[i]})" style="cursor:pointer; border:5px solid green; width: 20%; display: inline-block;" >
+                <h3>Claim me!!!</h3>
+                <img src="${url}" style="max-width: 100%; max-height: 100%;">\n 
+                </div>`;
+        }
+    };
     document.getElementById("nftImages").innerHTML = imagesHTML;
 } 
 
@@ -178,14 +194,11 @@ async function test() {
     }
 
     console.log(nftContract);
-    uri = new uriHandler(nftContract, "./scripts/URITypes.json");
-    console.log(await uri.getImage(1));
+    URI = new uriHandler(nftContract, "./scripts/URITypes.json");
+    console.log(await URI.getImage(1));
     let userNfts = await getUserNftIds(await signer.getAddress());
-    let imagesUrls = [];
-    for (let i = 0; i < userNfts.length; i++ ) {
-        imagesUrls.push(await uri.getImage(userNfts[i]))
-    }
-    displayImages(imagesUrls);
+    console.log(userNfts);
+    displayNFTS(URI ,userNfts);
 
 };
 
@@ -213,7 +226,7 @@ async function runOnLoad() {
     } else {
         window.auth  = null
     }
-    window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth , isGateway=false);
+    window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth , isGateway=true);
 }
 
 async function loadAllContracts() {
@@ -223,7 +236,7 @@ async function loadAllContracts() {
     nftContract = await getNftContract();
     airdropTokenContract = await getAirdropTokenContract();
     //load indexer
-    claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
+    claimDataIpfsHash = "bafybeih34n353h3qvgq5rtpgawnmqaqg3nlxnowtt3hdqizlaffhj4efeq"//await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
     await window.ipfsIndex.loadIndex(claimDataIpfsHash);
 
     return [mildayDropContract, mildayDropWithSigner, nftContract, airdropTokenContract];
