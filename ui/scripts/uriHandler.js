@@ -33,6 +33,11 @@ class uriHandler {
   
     }
 
+    async getBaseURI() {
+        //TODO test
+        return (await this.contractObj.baseURI)
+    }
+
     async getURIType(contractObj, typesJsonFile) {
         let typesJson = await (await fetch(typesJsonFile)).json();
         const contractAddr = (await contractObj.address).toLowerCase()
