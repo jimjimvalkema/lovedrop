@@ -19,6 +19,8 @@ let mildayDropAbi = null;
 let ERC20ABI = null;
 let ERC721ABI = null;
 
+window.usersChosenIdsToClaim =[];
+
 // A Web3Provider wraps a standard Web3 provider, which is
 // what MetaMask injects as window.ethereum into each page
 // TODO get 3rd party provider incase user doesnt connect 
@@ -139,6 +141,37 @@ async function claimAll(ipfsIndex=window.ipfsIndex) {
     return 0
 };
 
+async function claimList(ids=window.usersChosenIdsToClaim) {
+    if (isWalletConnected()) {
+        let userAddress = await signer.getAddress();
+        var unclaimed_proofs = [];
+        for (let i = 0; i < ids.length; i++) {
+            let id = ids[i]
+            let claimData = await ipfsIndex.getIdFromIndex(id) //TODO handle error if doesn't exist and message to user
+            if (claimData != null) {
+                if (! await isClaimed(claimData)) {
+                    unclaimed_proofs.push(getProof(id, claimData));
+                    console.log(`id: ${id} is added to claim all!`)
+                } else {
+                    //TODO give users this info
+                    console.log(`id: ${id} is in wallet but already claimed`)
+                }
+            } else {
+                console.log(`ID: ${id} is in wallet but not in the claims index`)
+            }
+        }
+        if (unclaimed_proofs.length == 0) {
+            let nftBalance =  (await nftContract.balanceOf(userAddress)).toNumber();
+            let message = `found ${nftBalance} nfts but none have tokens to be claimed`;
+            document.getElementById("message").innerHTML = message;
+            return 0
+        }
+        mildayDropWithSigner.claimMultiple(unclaimed_proofs); //TODO unclaimed_proofs to the struct
+        return 0
+    }
+}
+
+
 async function claim(id, ipfsIndex=window.ipfsIndex) {
     const claimData = await ipfsIndex.getIdFromIndex(id)
     if (isWalletConnected()) {
@@ -147,7 +180,6 @@ async function claim(id, ipfsIndex=window.ipfsIndex) {
             mildayDropWithSigner.claim(...proof);
         }
     }
-    document.getElementById(`NFT${id}`).style.border = "5px solid blue";
     return 0;
 };
 
@@ -166,13 +198,20 @@ async function displayNFTS(URI, ids) {
         console.log(ids[i])
         url = await URI.getImage(ids[i])
         let claimData = await ipfsIndex.getIdFromIndex(ids[i])
+        if (claimData===null) {
+            imagesHTML += `<div id="NFT${ids[i]}" style="border:5px solid black; width: 20%; display: inline-block;" >
+            <h3>Nothing to claim :( </h3>
+            <img src="${url}" style="max-width: 100%; max-height: 100%;">\n 
+            </div>`;
+            continue
+        }
         if ( await isClaimed(claimData)) {
-            imagesHTML += `<div id="NFT${ids[i]}" style=" border:5px black; width: 20%; display: inline-block;" >
-                <h3>Nothing to claim :(</h1>
+            imagesHTML += `<div id="NFT${ids[i]}" style="border:5px solid black; width: 20%; display: inline-block;" >
+                <h3>Already claimed :( </h3>
                 <img src="${url}" style="max-width: 100%; max-height: 100%;">\n 
                 </div>`;
         } else {
-            imagesHTML += `<div id="NFT${ids[i]}" onclick="claim(${ids[i]})" style="cursor:pointer; border:5px solid green; width: 20%; display: inline-block;" >
+            imagesHTML += `<div id="NFT${ids[i]}" onclick="toggleUsersChosenIdsToClaim(${ids[i]})" style="cursor:pointer; border:5px solid green; width: 20%; display: inline-block;" >
                 <h3>Claim me!!!</h3>
                 <img src="${url}" style="max-width: 100%; max-height: 100%;">\n 
                 </div>`;
@@ -180,6 +219,23 @@ async function displayNFTS(URI, ids) {
     };
     document.getElementById("nftImages").innerHTML = imagesHTML;
 } 
+
+function toggleUsersChosenIdsToClaim(id) {
+    //TODO add remove as function
+
+    if (window.usersChosenIdsToClaim.includes(id)){
+        for (let i = 0; i < window.usersChosenIdsToClaim.length; i++ )
+            if (window.usersChosenIdsToClaim[i] === id) {
+                window.usersChosenIdsToClaim.splice(i, 1)
+                break
+            }
+        document.getElementById(`NFT${id}`).style.border = "5px solid green";
+    } else {
+        window.usersChosenIdsToClaim.push(id);
+        document.getElementById(`NFT${id}`).style.border = "5px solid blue";
+    }
+}
+    
 
 function goToclaim() {
     window.x = document.getElementById("infuraIpfsForm").elements;
