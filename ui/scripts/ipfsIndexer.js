@@ -180,6 +180,7 @@ class ipfsIndexer{
     }
 
     async createIpfsIndex(balanceMapJson, splitSize=780, metaData=null) {
+        this.metaData = metaData;
         // TODO make more generic and not assume it has ["claims"]
         // TODO ipfs root hash that contains all files needed to claim (ui, balance tree, contracts addres, chainid, etc)
         // build it

@@ -48,6 +48,11 @@ async function getMiladyDropContract(provider, urlVars) {
     return mildayDropContract;
 }
 
+async function getMiladyDropFactoryContract(provider, mildayDropFactoryAddress="0xd58C56c1Fe24BFef93aad3FE1aBADBed27272980",mildayDropFactoryAbi=window.mildayDropFactoryAbi) {
+    mildayDropFactoryContract = new ethers.Contract(mildayDropFactoryAddress, mildayDropFactoryAbi, provider);
+    return mildayDropFactoryContract;
+}
+
 async function getAirdropTokenContract() {
     const airDropTokenAddress = await mildayDropContract.airdropTokenAddress();
     // The ERC-20 Contract ABI, which is a common contract interface
@@ -195,6 +200,22 @@ async function claimIndexIpfsFromCsv(csvString = window.currentFileString) {
 
 }
 
+//TODO remove default value
+async function deployDropContract(requiredNFTAddress="0xf895907d85807e208553C9371eFF881DFf161fAC", airDropTokenAddress="0x4A42CD4CFfB2d963b1815f58F636c01205Fc123c", ipfsIndex=window.ipfsIndex) {
+    const merkleRoot = ipfsIndex.metaData.merkleRoot;
+    const claimDataIpfs = ipfsIndex.dropsRootHash;
+
+    mildayDropFactoryContract = new ethers.Contract("0xd58C56c1Fe24BFef93aad3FE1aBADBed27272980", mildayDropAbi, provider);
+    
+
+    if (isWalletConnected()) {
+        message(`creating deploy tx with ${requiredNFTAddress}, ${airDropTokenAddress}, ${merkleRoot}, ${claimDataIpfs}`)
+        window.miladyDropFactoryContractWithSigner.createNewDrop(requiredNFTAddress,airDropTokenAddress,merkleRoot,claimDataIpfs);
+    }
+    return 0;
+
+} 
+
 async function test() {
     //let response = await fetch('./merkle_proofs/index.json')
     if (!isWalletConnected()) {
@@ -214,10 +235,12 @@ window.onload = runOnLoad;
 
 async function runOnLoad() {
     window.urlVars = await getUrlVars();
-    let mildayDropAbiFile = await fetch('./../abi/mildayDropAbi.json');
+    window.mildayDropFactoryAbiFile = await fetch('./../abi/mildayDropFactoryAbi.json');
+    window.mildayDropAbiFile = await fetch('./../abi/mildayDropAbi.json');
     let ERC721ABIFile = await fetch('./../abi/ERC721ABI.json');
     let ERC20ABIFile = await fetch('./../abi/ERC20ABI.json');
-    mildayDropAbi = await mildayDropAbiFile.json();
+    mildayDropAbi = await window.mildayDropAbiFile.json();
+    mildayDropFactoryAbi = await window.mildayDropFactoryAbiFile .json();
     ERC721ABI = await ERC721ABIFile.json();
     ERC20ABI = await ERC20ABIFile.json();
 
@@ -240,8 +263,10 @@ async function runOnLoad() {
 
 async function loadAllContracts() {
     urlVars = await getUrlVars();
-    mildayDropContract = await getMiladyDropContract(provider, urlVars);
-    mildayDropWithSigner = mildayDropContract.connect(signer);
+    window.miladyDropContract = await getMiladyDropContract(provider, urlVars);
+    window.miladyDropContractWithSigner = window.miladyDropContract.connect(signer);
+    window.miladyDropFactoryContract = await getMiladyDropFactoryContract(provider);
+    window.miladyDropFactoryContractWithSigner = window.miladyDropFactoryContract.connect(signer);
     nftContract = await getNftContract();
     airdropTokenContract = await getAirdropTokenContract();
     //load indexer
