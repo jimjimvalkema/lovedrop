@@ -28,6 +28,19 @@
 		"type": "function"
 	},
 	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "dropAddress",
+				"type": "address"
+			}
+		],
+		"name": "CreateNewDrop",
+		"type": "event"
+	},
+	{
 		"inputs": [
 			{
 				"internalType": "uint256",

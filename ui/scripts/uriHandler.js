@@ -8,6 +8,7 @@ class uriHandler {
         }
 
     }
+
     async getImage(id) {
         let reqObj = {
             method: 'GET',
@@ -16,16 +17,20 @@ class uriHandler {
             }
         }
         console.log(this.contractObj);
-        console.log(await this.uriType);
+        console.log(this.uriType);
         let imgURL = ""; 
-        switch (await this.uriType) {
+        switch (this.uriType) {
             case "standard":
                 imgURL = (await fetch(await this.contractObj.tokenURI(id), reqObj))["image"];
-                break
+                break;
             case "milady":
                 // miladymaker.net cors wont allow me to get metadata :(
                 imgURL = `https://www.miladymaker.net/milady/${id}.png`;
-                break
+                break;
+            default:
+                imgURL = `https://www.miladymaker.net/milady/${id}.png`;
+                //imgURL = (await fetch(await this.contractObj.tokenURI(id), reqObj))["image"];
+                break;
         }
         console.log(imgURL)
         return imgURL;
@@ -51,4 +56,13 @@ class uriHandler {
         }
         
     } 
+
+    async getIdsByAttribute(attribute, endId=null,  startId=0) {
+        if (endId===null) {
+            endId=(await this.contractObj.totalSupply).toNumber()
+        }
+        for (let i=startId; i<endId; i++) {
+            (await fetch(await this.contractObj.tokenURI(id), reqObj))
+        }
+    }
 }
