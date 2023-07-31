@@ -1,24 +1,3 @@
-// maybe switch to window :p
-let mildayDropAddress = null;
-let mildayDropContract = null;
-let mildayDropWithSigner = null;
-
-let airdropTokenAddress = null;
-let airdropTokenContract = null;
-
-let nftContractAddress = null;
-let nftContract = null;
-
-let signer = null;
-
-let currentFileString = null;
-let currenFileName = null;
-
-//abis global variable
-let mildayDropAbi = null;
-let ERC20ABI = null;
-let ERC721ABI = null;
-
 // A Web3Provider wraps a standard Web3 provider, which is
 // what MetaMask injects as window.ethereum into each page
 // TODO get 3rd party provider incase user doesnt connect 
@@ -37,8 +16,8 @@ async function connectSigner() {
     if (isWalletConnected()) {
         await loadAllContracts();
         return [provider, signer];
-    };
-};
+    }
+}
 
 async function getMiladyDropContract(provider, urlVars) {
     mildayDropAddress = urlVars["mildayDropAddress"]
@@ -48,12 +27,12 @@ async function getMiladyDropContract(provider, urlVars) {
     return mildayDropContract;
 }
 
-async function getMiladyDropFactoryContract(provider, mildayDropFactoryAddress="0xd58C56c1Fe24BFef93aad3FE1aBADBed27272980",mildayDropFactoryAbi=window.mildayDropFactoryAbi) {
+async function getMiladyDropFactoryContract(provider, mildayDropFactoryAddress,mildayDropFactoryAbi=window.mildayDropFactoryAbi) {
     mildayDropFactoryContract = new ethers.Contract(mildayDropFactoryAddress, mildayDropFactoryAbi, provider);
     return mildayDropFactoryContract;
 }
 
-async function getAirdropTokenContract() {
+async function getAirdropTokenContract(provider, nftAddress) {
     const airDropTokenAddress = await mildayDropContract.airdropTokenAddress();
     // The ERC-20 Contract ABI, which is a common contract interface
     // for tokens (this is the Human-Readable ABI format)
@@ -62,8 +41,7 @@ async function getAirdropTokenContract() {
     return airdropTokenContract;
 }
 
-async function getNftContract() {
-    nftContractAddress = await mildayDropContract.requiredNFTAddress();
+async function getNftContract(provider, nftContractAddress) {
     // The Contract object
     nftContract = new ethers.Contract(nftContractAddress, ERC721ABI, provider);
     return nftContract;
@@ -190,7 +168,7 @@ function goToclaim() {
     window.x = document.getElementById("infuraIpfsForm").elements;
     const currentUrl = new URL(window.location.href)
     //TODO set address
-    location.replace(`/?mildayDropAddress=0x326a3c40DfD5D46bbFbcaa3530C1E71120fc603a&ipfsApi=${x.ipfsApi.value}&projectId=${x.projectId.value}&projectSecret=${x.keySecret.value}`)
+    location.replace(`/?mildayDropAddress=${window.deployedDropAddress}&ipfsApi=${x.ipfsApi.value}&projectId=${x.projectId.value}&projectSecret=${x.keySecret.value}`)
 }
 
 async function claimIndexIpfsFromCsv(csvString = window.currentFileString) {
@@ -201,17 +179,22 @@ async function claimIndexIpfsFromCsv(csvString = window.currentFileString) {
 }
 
 //TODO remove default value
-async function deployDropContract(requiredNFTAddress="0xf895907d85807e208553C9371eFF881DFf161fAC", airDropTokenAddress="0x4A42CD4CFfB2d963b1815f58F636c01205Fc123c", ipfsIndex=window.ipfsIndex) {
+async function deployDropContract(requiredNFTAddress="0xbAa9CBDAc7A1E3f376192dFAC0d41FcE4FC4a564", airDropTokenAddress="0xaf98D8B8C7611F68cf630A43b117A0e1f666d2EA", ipfsIndex=window.ipfsIndex) {
     const merkleRoot = ipfsIndex.metaData.merkleRoot;
     const claimDataIpfs = ipfsIndex.dropsRootHash;
-
-    mildayDropFactoryContract = new ethers.Contract("0xd58C56c1Fe24BFef93aad3FE1aBADBed27272980", mildayDropAbi, provider);
     
 
     if (isWalletConnected()) {
         message(`creating deploy tx with ${requiredNFTAddress}, ${airDropTokenAddress}, ${merkleRoot}, ${claimDataIpfs}`)
-        window.miladyDropFactoryContractWithSigner.createNewDrop(requiredNFTAddress,airDropTokenAddress,merkleRoot,claimDataIpfs);
+        window.tx = window.miladyDropFactoryContractWithSigner.createNewDrop(requiredNFTAddress,airDropTokenAddress,merkleRoot,claimDataIpfs);
     }
+    message(`submitted transaction at: ${(await tx).hash}`)
+    confirmedTX = (await (await (await tx).wait(1)).transactionHash)
+    window.reciept = (await provider.getTransactionReceipt(confirmedTX))
+    window.deployedDropAddress = await ethers.utils.defaultAbiCoder.decode([ "address" ], reciept.logs[0].data)[0]
+    message(`confirmed transaction at: ${(await tx).hash}, deployed at: ${window.deployedDropAddress}`)
+
+
     return 0;
 
 } 
@@ -257,22 +240,19 @@ async function runOnLoad() {
     } else {
         window.auth = null
     }
+    console.log(window.auth)
     window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth , isGateway=false);
 }
 
 
 async function loadAllContracts() {
     urlVars = await getUrlVars();
-    window.miladyDropContract = await getMiladyDropContract(provider, urlVars);
-    window.miladyDropContractWithSigner = window.miladyDropContract.connect(signer);
-    window.miladyDropFactoryContract = await getMiladyDropFactoryContract(provider);
+    //window.miladyDropContract = await getMiladyDropContract(provider, urlVars);
+    //window.miladyDropContractWithSigner = window.miladyDropContract.connect(signer);
+    window.miladyDropFactoryContract = await getMiladyDropFactoryContract(provider, urlVars["mildayDropFactoryAddress"]);
     window.miladyDropFactoryContractWithSigner = window.miladyDropFactoryContract.connect(signer);
-    nftContract = await getNftContract();
-    airdropTokenContract = await getAirdropTokenContract();
     //load indexer
     //claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
     //window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth , isGateway=false);
     //await window.ipfsIndex.loadIndex(claimDataIpfsHash);
-
-    return [mildayDropContract, mildayDropWithSigner, nftContract, airdropTokenContract];
 }
