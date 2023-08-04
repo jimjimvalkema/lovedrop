@@ -6,11 +6,11 @@ import {MiladyDrop} from "./MiladyDrop.sol";
 
 contract MiladyDropFactory {
    MiladyDrop[] public MiladyDrops;
-   event CreateNewDrop(address dropAddress);
+   event CreateNewDrop(address indexed deployer, address dropAddress);
 
    function createNewDrop(address _requiredNFTAddress, address _airdropTokenAddress, bytes32 _merkleRoot, string memory _claimDataIpfs) public {
       MiladyDrop miladyDrop = new MiladyDrop(_requiredNFTAddress,_airdropTokenAddress, _merkleRoot, _claimDataIpfs);
       MiladyDrops.push(miladyDrop);
-      emit CreateNewDrop(address(miladyDrop));
+      emit CreateNewDrop(msg.sender, address(miladyDrop));
    }
 }

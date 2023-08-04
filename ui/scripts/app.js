@@ -188,16 +188,17 @@ async function deployDropContract(requiredNFTAddress="0xbAa9CBDAc7A1E3f376192dFA
         message(`creating deploy tx with ${requiredNFTAddress}, ${airDropTokenAddress}, ${merkleRoot}, ${claimDataIpfs}`)
         window.tx = window.miladyDropFactoryContractWithSigner.createNewDrop(requiredNFTAddress,airDropTokenAddress,merkleRoot,claimDataIpfs);
     }
-    message(`submitted transaction at: ${(await tx).hash}`)
-    confirmedTX = (await (await (await tx).wait(1)).transactionHash)
-    window.reciept = (await provider.getTransactionReceipt(confirmedTX))
-    window.deployedDropAddress = await ethers.utils.defaultAbiCoder.decode([ "address" ], reciept.logs[0].data)[0]
-    message(`confirmed transaction at: ${(await tx).hash}, deployed at: ${window.deployedDropAddress}`)
+    message(`submitted transaction at: ${(await tx).hash}`);
+    confirmedTX = (await (await (await tx).wait(1)).transactionHash);
+    window.reciept = (await provider.getTransactionReceipt(confirmedTX));
+    window.deployedDropAddress = await ethers.utils.defaultAbiCoder.decode([ "address" ], reciept.logs[0].data)[0];
+    message(`confirmed transaction at: ${(await tx).hash}, deployed at: ${window.deployedDropAddress}`);
 
 
     return 0;
 
 } 
+
 
 async function test() {
     //let response = await fetch('./merkle_proofs/index.json')
@@ -242,6 +243,7 @@ async function runOnLoad() {
     }
     console.log(window.auth)
     window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth , isGateway=false);
+
 }
 
 
@@ -255,4 +257,10 @@ async function loadAllContracts() {
     //claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
     //window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth , isGateway=false);
     //await window.ipfsIndex.loadIndex(claimDataIpfsHash);
+
+    provider.on(miladyDropFactoryContract.filters.CreateNewDrop(await signer.getAddress()), (log, event) => {
+        deployedDropAddress = ethers.utils.defaultAbiCoder.decode([ "address" ],log.data)[0]
+        message(`confirmed at: ${log.transactionHash} ,deployed at: ${deployedDropAddress} `);
+        // Emitted whenever a DAI token transfer occurs
+    })
 }
