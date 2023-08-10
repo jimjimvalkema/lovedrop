@@ -5,12 +5,22 @@ import {MiladyDrop} from "./MiladyDrop.sol";
 
 
 contract MiladyDropFactory {
-   MiladyDrop[] public MiladyDrops;
+   //Its possible to use etherscan/archive node to get this data without the list
+   struct DeployedDrop {
+      address dropAddress;
+      address deployer;
+   }
+   DeployedDrop[] public DeployedDrops;
+
    event CreateNewDrop(address indexed deployer, address dropAddress);
 
    function createNewDrop(address _requiredNFTAddress, address _airdropTokenAddress, bytes32 _merkleRoot, string memory _claimDataIpfs) public {
       MiladyDrop miladyDrop = new MiladyDrop(_requiredNFTAddress,_airdropTokenAddress, _merkleRoot, _claimDataIpfs);
-      MiladyDrops.push(miladyDrop);
-      emit CreateNewDrop(msg.sender, address(miladyDrop));
+      
+      address dropAddress = address(miladyDrop); //TODO check if this cheaper
+      address deployerAddress = msg.sender;
+      
+      DeployedDrops.push(DeployedDrop(dropAddress, deployerAddress));
+      emit CreateNewDrop(deployerAddress, dropAddress);
    }
 }

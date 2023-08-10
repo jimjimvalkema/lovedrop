@@ -1,9 +1,33 @@
 <!DOCTYPE html>
-
+<style>
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      border-bottom: 1px dotted black;
+    }
+    
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 120px;
+      background-color: black;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 5px 0;
+    
+      /* Position the tooltip */
+      position: absolute;
+      z-index: 1;
+    }
+    
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+    }
+    </style>
 <body>
-    <a href="./?mildayDropFactoryAddress=0x131b8C9f416c6AE8A06A8905858145121A82E490&ipfsApi=http://ipfs.dappnode:5001">
+    <a href="./?mildayDropFactoryAddress=0xb214Bff26c1bb335Ae273A954405C907A365B357&ipfsApi=http://ipfs.dappnode:5001">
         connect ipfs dappnode </a></br>
-    <a href="./?mildayDropFactoryAddress=0x131b8C9f416c6AE8A06A8905858145121A82E490&ipfsApi=http://127.0.0.1:45005">
+    <a href="./?mildayDropFactoryAddress=0xb214Bff26c1bb335Ae273A954405C907A365B357&ipfsApi=http://127.0.0.1:45005">
         connect ipfs companion </a></br>
     <a>connect custom ipfs endpoint </a>
     <form id="infuraIpfsForm"> <!--action="/action_page.php"-->
@@ -18,6 +42,7 @@
     <input onchange="readFile(this)" type="file">
     <button onclick="claimIndexIpfsFromCsv()">generate</button>
     <button onclick="deployDropContract()">deploy</button>
+    <div id="deployedDropsList"></div>
     
 </body>
     <script src="./scripts/ipfs-http-client.js"

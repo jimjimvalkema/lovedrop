@@ -1,5 +1,3 @@
-// A Web3Provider wraps a standard Web3 provider, which is
-// what MetaMask injects as window.ethereum into each page
 // TODO get 3rd party provider incase user doesnt connect 
 const provider = new ethers.providers.Web3Provider(window.ethereum);
 
@@ -11,8 +9,8 @@ function message(message) {
 
 async function connectSigner() {
     // MetaMask requires requesting permission to connect users accounts
-    provider.send("eth_requestAccounts", []);
-    signer = provider.getSigner();
+    await provider.send("eth_requestAccounts", []);
+    window.signer = await provider.getSigner();
     if (isWalletConnected()) {
         await loadAllContracts();
         return [provider, signer];
@@ -199,6 +197,59 @@ async function deployDropContract(requiredNFTAddress="0xbAa9CBDAc7A1E3f376192dFA
 
 } 
 
+async function getDeployedContractsFromUser(userAddress= window.signer.getAddress()) {
+    let contractAddresses = [];
+    for (i=0; i<1000000;i++) {
+        try {
+            let drop = await miladyDropFactoryContract.DeployedDrops(i);
+            if (drop["deployer"] === await userAddress) {
+                contractAddresses.push(await drop["dropAddress"])
+            }
+        }
+        catch {
+            break
+        }
+    }
+    //document.getElementById("deployedDropsList").innerHTML = JSON.stringify(contractAddresses, 2);
+    return contractAddresses
+
+}
+
+function copyClaimUrl(index) {
+    // Get the text field
+    var url = window.claimUrls[index];
+  
+    // Select the text field
+    // copyText.select();
+    // copyText.setSelectionRange(0, 99999); // For mobile devices
+  
+    // Copy the text inside the text field
+    navigator.clipboard.writeText(url);
+  }
+
+async function displayDeployedContracts(contractAddresses) {
+    window.claimUrls = []
+    html = ""
+    for (i=0; i<contractAddresses.length;i++) {
+        window.claimUrls.push(`${new URL(window.location.href).origin}/claim/?mildayDropAddress=${contractAddresses[i]}`)
+        html += `
+        <div class="tooltip" onclick="copyClaimUrl(${i})"> \n 
+            ${window.claimUrls[i]} \n
+            <span class="tooltiptext">Click to copy</span>
+        </div> 
+        <br/>
+        `
+        //`<p onclick="copyClaimUrl(${i})"> ${window.claimUrls[i]}</p><br> \n`
+    }
+    document.getElementById("deployedDropsList").innerHTML = `${html}`;
+
+}
+
+async function refreshDeployedContractsUi() {
+    let contractAddresses = await getDeployedContractsFromUser(window.signer.getAddress())
+    await displayDeployedContracts(contractAddresses);
+}
+
 
 async function test() {
     //let response = await fetch('./merkle_proofs/index.json')
@@ -248,19 +299,21 @@ async function runOnLoad() {
 
 
 async function loadAllContracts() {
-    urlVars = await getUrlVars();
+    window.urlVars = await getUrlVars();
     //window.miladyDropContract = await getMiladyDropContract(provider, urlVars);
     //window.miladyDropContractWithSigner = window.miladyDropContract.connect(signer);
     window.miladyDropFactoryContract = await getMiladyDropFactoryContract(provider, urlVars["mildayDropFactoryAddress"]);
-    window.miladyDropFactoryContractWithSigner = window.miladyDropFactoryContract.connect(signer);
+    window.miladyDropFactoryContractWithSigner = await window.miladyDropFactoryContract.connect(window.signer);
     //load indexer
     //claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
     //window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth , isGateway=false);
     //await window.ipfsIndex.loadIndex(claimDataIpfsHash);
 
-    provider.on(miladyDropFactoryContract.filters.CreateNewDrop(await signer.getAddress()), (log, event) => {
+    await refreshDeployedContractsUi();
+    provider.on(miladyDropFactoryContract.filters.CreateNewDrop(await window.signer.getAddress()), (log, event) => {
         deployedDropAddress = ethers.utils.defaultAbiCoder.decode([ "address" ],log.data)[0]
+        refreshDeployedContractsUi();
         message(`confirmed at: ${log.transactionHash} ,deployed at: ${deployedDropAddress} `);
-        // Emitted whenever a DAI token transfer occurs
+        // Emitted whenever a contract from the user is deployed
     })
 }
