@@ -54,11 +54,16 @@
 				"type": "uint256"
 			}
 		],
-		"name": "MiladyDrops",
+		"name": "DeployedDrops",
 		"outputs": [
 			{
-				"internalType": "contract MiladyDrop",
-				"name": "",
+				"internalType": "address",
+				"name": "dropAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "deployer",
 				"type": "address"
 			}
 		],
