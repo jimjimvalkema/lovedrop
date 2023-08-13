@@ -1,6 +1,10 @@
+const delay = ms => new Promise(res => setTimeout(res, ms));
+
 class uriHandler {
     contractObj = null;
     uriType = "standard"
+    uriCache = []
+    baseURICache = null;
     constructor(contractObj,typesJsonFile ,uriType=null) {
         this.contractObj = contractObj;
         if (uriType==null) {
@@ -41,7 +45,10 @@ class uriHandler {
     async getBaseURI() {
         //TODO test
         //TODO IPFS
-        return (await this.contractObj.baseURI())
+        if (this.baseURICache == null) {
+            this.baseURICache = (await this.contractObj.baseURI());
+        }
+        return this.baseURICache;
     }
 
     async getURIType(contractObj, typesJsonFile) {
@@ -58,10 +65,89 @@ class uriHandler {
         
     } 
 
+    async getUrisInBulk(startId=0,  endId=null, idList =null) {
+        let uris = [];
+        //iter from startId to endId
+        if (idList === null) {
+            //do entire supply if endId is null
+            if (endId===null) {
+                endId=(await this.contractObj.totalSupply()).toNumber()
+            }
+            for (let i=startId; i<endId; i++) {
+                let id = i
+                uris.push( this.getTokenUriNoCache(id));
+            }
+        
+        //iter ofer idList
+        } else {
+            for (let i=0; i<idList.length; i++) {
+                let id = idList[i]
+                uris.push(this.getTokenUriNoCache(id));
+            }
+        }
+        return Promise.all(uris)
+    }
+
+
+    async syncUriCacheBulkInChunks(startId=0,  endId=null, idList =null, chunkSize=100) {
+        //iter from startId to endId
+        if (idList === null) {
+            //do entire supply if endId is null
+            if (endId===null) {
+                endId=(await this.contractObj.totalSupply()).toNumber()
+            }
+            
+            let endChunk = 0;
+            for (let startChunk = 0; startChunk<endId;) {
+                endChunk += chunkSize;
+                console.log(startChunk, endChunk);
+                if (endChunk>endId) { //brain cooked prob not good fix TODO
+                    endChunk=endId
+                }
+                let uris = await this.getUrisInBulk(startChunk,endChunk);
+                //console.log("sdf")
+                //console.log(uris)
+                this.uriCache = [...this.uriCache, ...uris];
+
+                startChunk += chunkSize
+            }
+        
+        //iter ofer idList
+        } else {console.error("TODO not implemeted")}
+        // else {
+        //     for (let i=0; i<idList.length; i++) {
+        //         let id = idList[i]
+        //         this.uriCache[id] = this.getTokenUriNoCache(id);
+        //     }
+        // }
+        return this.uriCache
+    }
+
+
     async getTokenUri(id) {
-        const reqObj = {method: 'GET'}
-        const r = (await fetch(await this.contractObj.tokenURI(id), reqObj))
-        return await r.json();
+        if (this.uriCache[id]) {
+            return await this.uriCache[id]
+        } else {
+            this.uriCache[id] = await this.getTokenUriNoCache(id)
+            return this.uriCache[id]
+        }
+
+    }
+
+    async getTokenUriNoCache(id) {
+        //const reqObj = {method: 'GET'}
+        let retries = 0;
+        while (retries < 10) {
+            try {
+                const URI =  await (await fetch(`${await this.getBaseURI()}${id}`)).json();
+                return URI
+            } catch(error) {
+                console.log(`errored on id: ${id} tried ${retries} times`)
+                console.log(`error is: ${error}`);
+                await delay(500);
+            }
+            retries += 1;
+        }
     }
 
     async hasAttribute(id, attribute) {
