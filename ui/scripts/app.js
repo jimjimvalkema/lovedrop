@@ -304,6 +304,7 @@ async function loadAllContracts() {
     //window.miladyDropContractWithSigner = window.miladyDropContract.connect(signer);
     window.miladyDropFactoryContract = await getMiladyDropFactoryContract(provider, urlVars["mildayDropFactoryAddress"]);
     window.miladyDropFactoryContractWithSigner = await window.miladyDropFactoryContract.connect(window.signer);
+    window.nftContract = await getNftContract(provider, "0xbAa9CBDAc7A1E3f376192dFAC0d41FcE4FC4a564");
     //load indexer
     //claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
     //window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth , isGateway=false);
