@@ -1,3 +1,5 @@
+//const { error } = require("console");
+
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 class uriHandler {
@@ -7,7 +9,7 @@ class uriHandler {
     baseURICache = null;
     ipfsGateway = null;
     //TODO fix naming
-    constructor(contractObj, extraUriMetaDataFile="./claim/scripts/extraUriMetaDataFile.json", _ipfsGateway="http://localhost:48084/", _extraUriMetaData = undefined) {
+    constructor(contractObj, extraUriMetaDataFile="./claim/scripts/extraUriMetaDataFile.json", _ipfsGateway="https://ipfs.io", _extraUriMetaData = undefined) {
         this.contractObj = contractObj;
         this.ipfsGateway = _ipfsGateway
         if (extraUriMetaDataFile) {
@@ -49,8 +51,20 @@ class uriHandler {
     async getBaseURI() {
         //TODO test
         //TODO IPFS
+        //TODO get base uri by striping result .getTokenUri() becuase scatter doesnt have baseURI exposed :(
         if (this.baseURICache == null) {
-            this.baseURICache = (await this.contractObj.baseURI());
+            try {
+                this.baseURICache = (await this.contractObj.baseURI());
+            } catch {
+                let s = (await nftContract.tokenURI(1))
+                if (s.endsWith("1")) {
+                    this.baseURICache = s.slice(0,-1);
+                } else if(s.endsWith("1.json")) {
+                    this.baseURICache = s.slice(0,-6)
+                } else {
+                    throw error(`NFT contract does not have baseURI() function and it's tokenURI() function return a non standard string: \n ${s}`)
+                }
+            }
         }
         return this.baseURICache;
     }
@@ -130,7 +144,7 @@ class uriHandler {
         let urlObj = new URL(urlString)
         switch (urlObj.protocol) {
             case ("ipfs:"):
-                return await fetch(`${this.ipfsGateway}ipfs${urlObj.pathname.slice(1)}`);
+                return await fetch(`${this.ipfsGateway}/ipfs/${urlObj.pathname.slice(2)}`);
             case ("http:"):
                 return await fetch(urlString);
             case ("https"):
@@ -158,7 +172,7 @@ class uriHandler {
                 const URI = await (await fetch(`${await this.getBaseURI()}${id}`)).json();
                 return URI
             } catch (error) {
-                console.log(`errored on id: ${id} tried ${retries} times`)
+                console.log(`errored on id: ${id} re-tried ${retries} times`)
                 console.log(`error is: ${error}`);
                 await delay(500);
             }
@@ -214,27 +228,70 @@ class uriHandler {
         return false
     }
 
-    async getIdsByAttribute(attribute, startId = 0, endId = null, idList = null) {
-        let matchingIds = []
-        if (idList === null) {
+    /**
+     * returns set object with all matchin attributes
+     * @param {Object} attribute 
+     * @param {Int} startId 
+     * @param {Int} endId 
+     * @param {Set} idSet 
+     * @return {Set} matchingIds
+     */
+    async getIdsByAttribute(attribute, startId = 0, endId = null, idSet = null) {
+        let matchingIds = new Set()
+        if (idSet === null) {
             if (endId === null) {
                 endId = (await this.contractObj.totalSupply()).toNumber()
             }
-            for (let i = startId; i < endId; i++) {
-                let id = i
+            for (let id = startId; id < endId; id++) {
                 //console.log(id)
                 if (await this.hasAttribute(id, attribute) === true) {
-                    matchingIds.push(id)
+                    matchingIds.add(id)
                 }
             }
         } else {
-            for (let i = 0; i < idList.length; i++) {
-                let id = idList[i]
+            for (const id of idSet.size) {
                 if (await this.hasAttribute(id, attribute) === true) {
-                    matchingIds.push(id)
+                    matchingIds.add(id)
                 }
             }
         }
         return matchingIds
+    }
+
+    /**
+     * 
+     * @param {Set} idSet 
+     */
+    async removeAttributeFromSet(attribute,idSet) {
+        for (const id of idSet) {
+            if (await this.hasAttribute(id, attribute) === true) {
+                idSet.delete(id)
+            }
+        }
+        return idSet
+
+    }
+
+    /**
+     * 
+     * @param {Object} attribute 
+     * @param {Set} idSet 
+     */
+    async addAttributeToSet(attribute, idSet, startId = 0, endId = null) {
+        if (endId === null) {
+            endId = (await this.contractObj.totalSupply()).toNumber()
+        }
+        for (let id = startId; id < endId; id++) {
+            if (!idSet.has(id)) {
+                if (await this.hasAttribute(id, attribute) === true) {
+                    idSet.add(id)
+                }
+            }
+        
+        }
+        return idSet
+
+        //range(startId,endId)
+        //let newIdSet = new Set([...Array(endId-startId).keys()].map(i => i + startId));
     }
 }
