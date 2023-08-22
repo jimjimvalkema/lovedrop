@@ -47,6 +47,9 @@ class uriHandler {
 
 
     }
+    async getTotalSupply(){
+        return 9998//(await this.contractObj.totalSupply()).toNumber()
+    }
 
     async getBaseURI() {
         //TODO test
@@ -87,7 +90,7 @@ class uriHandler {
         if (idList === null) {
             //do entire supply if endId is null
             if (endId === null) {
-                endId = (await this.contractObj.totalSupply()).toNumber()
+                endId = await this.getTotalSupply()
             }
             for (let i = startId; i < endId; i++) {
                 let id = i
@@ -111,7 +114,7 @@ class uriHandler {
         if (idList === null) {
             //do entire supply if endId is null
             if (endId === null) {
-                endId = (await this.contractObj.totalSupply()).toNumber()
+                endId = await this.getTotalSupply()
             }
 
             let endChunk = 0;
@@ -241,7 +244,7 @@ class uriHandler {
         let matchingIds = new Set()
         if (!idSet || idSet.size === 0) {
             if (endId === null) {
-                endId = (await this.contractObj.totalSupply()).toNumber()
+                endId = await this.getTotalSupply()
             }
             for (let id = startId; id < endId; id++) {
                 //console.log(id)
@@ -250,7 +253,7 @@ class uriHandler {
                 }
             }
         } else {
-            for (const id of idSet.size) {
+            for (const id of idSet) {
                 if (!excludeIdSet.has(id) && await this.hasAttribute(id, attribute) === true) {
                     matchingIds.add(id)
                 }
@@ -280,7 +283,7 @@ class uriHandler {
      */
     async addAttributeToSet(attribute, idSet, startId = 0, endId = null) {
         if (endId === null) {
-            endId = (await this.contractObj.totalSupply()).toNumber()
+            endId = await this.getTotalSupply()
         }
         for (let id = startId; id < endId; id++) {
             if (!idSet.has(id)) {
@@ -295,7 +298,7 @@ class uriHandler {
         //range(startId,endId)
         //let newIdSet = new Set([...Array(endId-startId).keys()].map(i => i + startId));
     }
-    intersection(setA, setB) {
+    setIntersection(setA, setB) {
         let intersectionSet = new Set();
     
         for (let i of setB) {
@@ -306,38 +309,55 @@ class uriHandler {
         return intersectionSet;
     }
 
+    setComplement(setA, setB) {
+        return new Set([...setA].filter(x => !setB.has(x)));
+    }
+
 
     /**
      * 
      * @param {Object} inputs 
      * @return {Object} idSet
      */
-    async processAndCondition(inputs) {
-        const inputTypesOrder = ["idList", "attributes", "conditions"]
-        const excludeIdSet = new Set(inputs.NOT)
-        let idSet = new Set();
-        for (const type in inputTypesOrder) {
-            switch (type) {
-                //TODO check order
-                case ("idList"): 
-                    idSet = new Set(inputs.idList) //idList = ids that we be checked if they have specified attributes and conditions
-                    break
-                case ("attributes"):
-                    for (attribute in inputs.attributes) {
-                        let attrIds = await this.getIdsByAttribute(attribute, 0, null, idSet, excludeIdSet)
-                        idSet = new Set(attrIds)
-                    }
-                    break
+    async processAndCondition(condition) {
+        const inputs = condition.inputs //TODO make cleaner
+        //console.log(inputs)
+        //const inputTypesOrder = ["idList", "attributes", "conditions"]
+        let excludeIdSet = new Set();
+        let idSet = new Set(); //maybe const if u do if else TODO
 
-                case ("conditions"):
-                    for (condition in inputs.conditions) {
-                        const newSet = await this.processCondition(condition)
-                        idSet = this.intersection(idSet, newSet);
-                    }
-                    break
-            }
-
+        if ("NOT" in condition && condition.NOT) {
+            excludeIdSet = await this.processNotCondition(condition.NOT)
         }
+
+        if ("idList" in inputs && inputs.idList) {
+            idSet = new Set(inputs.idList) //idList = ids that we be checked if they have specified attributes and conditions
+        }
+
+        if ("attributes" in inputs && inputs.attributes)  {
+            console.log(inputs.attributes)
+            for (const attribute of inputs.attributes) {
+                //console.log(`${JSON.stringify(attribute)}, ${0}, ${null}, ${JSON.stringify(idSet)}, ${excludeIdSet}`);
+                const newIdSet = await this.getIdsByAttribute(attribute, 0, null, idSet, excludeIdSet) //excludeIdSet is passed to prevent unnecessarily checking ids
+                //console.log(attrIds)
+                idSet = newIdSet
+            }
+        }
+
+        if ("conditions" in inputs && inputs.conditions) {
+            for (const con of inputs.conditions) {
+                if (!"idList" in con.NOT || !con.NOT.idList) {
+                    con.NOT.idList = []
+                }
+                const newIdSet = await this.processCondition(con)
+                idSet = this.setIntersection(idSet, newIdSet);
+            }
+        }
+
+        if (excludeIdSet.size) {
+            idSet = this.setComplement(idSet, excludeIdSet);
+        }
+
         return idSet
     }
 
@@ -347,32 +367,108 @@ class uriHandler {
      * @param {Object} inputs 
      * @return {Object} idSet
      */
-    async processOrCondition(inputs) {
-        const inputTypesOrder = ["idList", "attributes", "conditions"]
+    async processOrCondition(condition) {
+        const inputs = condition.inputs //TODO make cleaner
+        //const inputTypesOrder = ["idList", "attributes", "conditions"]
+        let excludeIdSet = new Set();        ;
         let idSet = new Set();
-        for (const type in inputTypesOrder) {
-            switch (type) {
-                //TODO check order
-                case ("idList"): 
-                    idSet = new Set(inputs.idList) //idList = ids that we add to everything else
-                    break
-                case ("attributes"):
-                    for (attribute in inputs.attributes) {
-                        let newIdSet = await this.getIdsByAttribute(attribute, 0, null, null, idSet) //idSet excluded so theyre not processed (they're allready)
-                        idSet = new Set([...idSet, ...newIdSet])
-                    }
-                    break
 
-                case ("conditions"):
-                    for (condition in inputs.conditions) {
-                        const newSet = await this.processCondition(condition)
-                        idSet = new Set([...idSet, ...newIdSet])
-                    }
-                    break
+        if ("NOT" in condition && condition.NOT) {
+            excludeIdSet = await this.processNotCondition(condition.NOT)
+        }
+
+        if ("idList" in inputs && inputs.idList) {
+            idSet = new Set(inputs.idList) //idList = ids that we add to everything else
+        } 
+
+        if ("attributes" in inputs && inputs.attributes)  {
+            for (const attribute of inputs.attributes) {
+                const newIdSet = await this.getIdsByAttribute(attribute, 0, null, null, new Set([...excludeIdSet, ...idSet])) //idSet excluded so theyre not processed (they're allready)
+                idSet = new Set([...idSet, ...newIdSet])
+            }
+        }
+
+        if ("conditions" in inputs && inputs.conditions) {
+            for (const con of inputs.conditions) {
+                if (!"idList" in con.NOT || !con.NOT.idList) {
+                    con.NOT.idList = []
+                }
+                const newIdSet = await this.processCondition(con)
+                idSet = new Set([...idSet, ...newIdSet])
+            }
+        }
+
+        if (excludeIdSet.size) {
+            idSet = this.setComplement(idSet, excludeIdSet);
+        }
+        return idSet
+
+    }
+
+    async processNotCondition(condition) {
+        const inputs = condition //TODO make cleaner
+        let idSet = new Set();
+        if ("idList" in inputs && inputs.idList) {
+            idSet = new Set(inputs.idList)
+        } 
+
+        if ("attributes" in inputs && inputs.attributes)  {
+            for (const attribute of inputs.attributes) {
+                const newIdSet = await this.getIdsByAttribute(attribute, 0, null, null, idSet) //idSet excluded so theyre not processed (they're allready in)
+                idSet = new Set([...idSet, ...newIdSet])
+            }  
+        }
+        if ("conditions" in inputs && inputs.conditions) {
+            for (const con of inputs.conditions) {
+                if (!"idList" in con.NOT || !con.NOT.idList) {
+                    con.NOT.idList = []
+                }
+                con.NOT.idList = [...new Set([...idSet, ...con.NOT.idList])] //prevents that condition from checking ids that are already checked
+                const newIdSet = await this.processCondition(con)
+                idSet = new Set([...idSet, ...newIdSet])
             }
 
         }
         return idSet
+    }
+
+    async processRangeCondition(condition) { //TODO idlist?
+        const inputs = condition.inputs //TODO make cleaner
+        let excludeIdSet = new Set();  
+        //console.log(inputs)
+
+        if (!"start" in inputs || !inputs.start) {
+            inputs.start = 0
+        }
+
+        if (!"stop" in inputs || !inputs.stop || inputs.stop === "totalSupply") {
+            inputs.stop = await this.getTotalSupply()
+        }
+
+        let idSet = new Set([...Array(inputs.stop-inputs.start).keys()].map(i => i + inputs.start)) //range(inputs.start, inputs.stop)
+
+        if ("NOT" in condition && condition.NOT) {
+            //console.log(condition.NOT)
+            excludeIdSet = await this.processNotCondition(condition.NOT)
+            //console.log(excludeIdSet)
+        }
+
+        if ("conditions" in inputs && inputs.conditions) {//TODO this can be a function?
+            for (const con of inputs.conditions) {
+                if (!"idList" in con.NOT || !con.NOT.idList) {
+                    con.NOT.idList = []
+                }
+                condition.NOT.idList = [...new Set([...idSet, ...con.NOT.idList])] //prevents that condition from checking ids that are already checked
+                const newIdSet = await this.processCondition(con)
+                idSet = new Set([...idSet, ...newIdSet])
+            }
+
+        }
+
+        //console.log(idSet, excludeIdSet)
+        idSet = this.setComplement(idSet, excludeIdSet);
+        return idSet
+        
 
     }
 
@@ -382,19 +478,24 @@ class uriHandler {
      * @returns {Set} idSet
      */
     async processCondition(condition) {
+        console.log(condition)
+        let idSet;
         //{"type":"OR", "input":{"idList":[]],"conditions":[], "attributes":[]}, "NOT":{"idList":[]],"conditions":[],"attributes":[]]}}
         switch (condition.type){
             case ("AND"):
+                idSet = await this.processAndCondition(condition)
                 break
             case ("OR"):
+                idSet = await this.processOrCondition(condition)
                 break
             case ("RANGE"):
+                idSet = await this.processRangeCondition(condition);
                 break
-            case ("NOT"):
-                //prob not needed
-                break
-
+            default:
+                throw new Error(`Condition type: ${condition.type} not recognized'`);
         }
+        console.log(idSet)
+        return idSet;
 
     }
 
