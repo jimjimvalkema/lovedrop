@@ -23,6 +23,47 @@
     .tooltip:hover .tooltiptext {
       visibility: visible;
     }
+
+    dropbtn {
+        /* background-color: #3498DB;
+        color: white;
+        padding: 16px;
+        font-size: 16px; */
+        border: none;
+        cursor: pointer;
+    } 
+
+    /* .dropbtn:hover, .dropbtn:focus {
+    background-color: #2980B9;
+    } */
+
+
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: lightgray;
+        width: auto;
+        white-space: nowrap;
+        overflow: auto;
+        /* box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); */
+        z-index: 1; 
+    }
+
+    /* .dropdown-content a {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+    } */
+
+    /* .dropdown a:hover {background-color: #ddd;} */
+
+    .show {display: block;}
     </style>
 <body>
     <a href="./?mildayDropFactoryAddress=0xb214Bff26c1bb335Ae273A954405C907A365B357&ipfsApi=http://ipfs.dappnode:5001">
@@ -42,7 +83,11 @@
     <input onchange="readFile(this)" type="file">
     <button onclick="claimIndexIpfsFromCsv()">generate</button>
     <button onclick="deployDropContract()">deploy</button>
-    <div id="deployedDropsList"></div>
+    <button onclick="displayNfts(0, 12)">go</button>
+    <div id="deployedDropsList"></div></br>
+    <div id="filtersDropDown"></div></br>
+    <div id="FilterBuilder"></div></br>
+    <div id="nftImages"></div></br>
     
 </body>
     <script src="./scripts/ipfs-http-client.js"
@@ -61,6 +106,8 @@
     <script src="./scripts/ipfsIndexer.js"  
         type="application/javascript"></script>
     <script src="./scripts/uriHandler.js"  
+        type="application/javascript"></script>
+        <script src="./scripts/FilterBuilder.js"  
         type="application/javascript"></script>
     <script src="./scripts/app.js"  
         type="application/javascript"></script>

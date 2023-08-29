@@ -2,6 +2,7 @@
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
+//TODO maybe attibute finder is better name? or maybe split classes
 class uriHandler {
     contractObj = null;
     extraUriMetaData = null;
@@ -9,7 +10,7 @@ class uriHandler {
     baseURICache = null;
     ipfsGateway = null;
     //TODO fix naming
-    constructor(contractObj, extraUriMetaDataFile = "./claim/scripts/extraUriMetaDataFile.json", _ipfsGateway = "https://ipfs.io", _extraUriMetaData = undefined) {
+    constructor(contractObj, _ipfsGateway = "http://localhost:48084", extraUriMetaDataFile = "./claim/scripts/extraUriMetaDataFile.json", _extraUriMetaData = undefined) {
         this.contractObj = contractObj;
         this.ipfsGateway = _ipfsGateway
         if (extraUriMetaDataFile) {
@@ -42,12 +43,12 @@ class uriHandler {
                 imgURL = (await fetch(await this.contractObj.tokenURI(id), reqObj))["image"];
                 break;
         }
-        console.log(imgURL)
         return imgURL;
 
 
     }
     async getTotalSupply(){
+        //TODO remove temp test value and add metadata to extraUriMetaDataFile to handle this and default to a better error handling when this value is incorrect
         return 9998//(await this.contractObj.totalSupply()).toNumber()
     }
 
@@ -65,7 +66,7 @@ class uriHandler {
                 } else if (s.endsWith("1.json")) {
                     this.baseURICache = s.slice(0, -6)
                 } else {
-                    throw error(`NFT contract does not have baseURI() function and it's tokenURI() function return a non standard string: \n ${s}`)
+                    throw new Error(`NFT contract does not have baseURI() function and it's tokenURI() function return a non standard string: \n ${s}`)
                 }
             }
         }
@@ -334,25 +335,61 @@ class uriHandler {
             idSet = new Set(inputs.idList) //idList = ids that we be checked if they have specified attributes and conditions
         }
 
+        // if ("attributes" in inputs && inputs.attributes)  {
+        //     console.log(inputs.attributes)
+        //     //prob better not to do parallelization
+        //     for (const attribute of inputs.attributes) {
+        //         //console.log(`${JSON.stringify(attribute)}, ${0}, ${null}, ${JSON.stringify(idSet)}, ${excludeIdSet}`);
+        //         const newIdSet = await this.getIdsByAttribute(attribute, 0, null, idSet, excludeIdSet) //excludeIdSet is passed to prevent unnecessarily checking ids
+        //         //console.log(attrIds)
+        //         idSet = newIdSet
+        //     }
+        // }
+
+        //TODO do it like in the OR,RANGE,NOT with paralelzation but do first itter in serial to drasticly reduce O(n) (becuase this is a AND)
+        //and dont flatten and do for loop with setIntersection
         if ("attributes" in inputs && inputs.attributes)  {
-            console.log(inputs.attributes)
+            //do 1 attribute first to reduce the set of ids before parallelisation 
+            const attributesCopy = [ ...inputs.attributes]
+            const firstAttr = attributesCopy.shift()
+            const newIdSet = await this.getIdsByAttribute(firstAttr, 0, null, idSet, excludeIdSet)
+            idSet = newIdSet;
+
+            let newIdSets = []
             for (const attribute of inputs.attributes) {
-                //console.log(`${JSON.stringify(attribute)}, ${0}, ${null}, ${JSON.stringify(idSet)}, ${excludeIdSet}`);
-                const newIdSet = await this.getIdsByAttribute(attribute, 0, null, idSet, excludeIdSet) //excludeIdSet is passed to prevent unnecessarily checking ids
-                //console.log(attrIds)
-                idSet = newIdSet
+                newIdSets.push(this.getIdsByAttribute(attribute, 0, null, idSet, excludeIdSet) ) //idSet excluded so theyre not processed (they're allready)
+            }
+            for (const newIdSet of (await Promise.all(newIdSets))) {
+                idSet= this.setIntersection(idSet, newIdSet)
             }
         }
 
-        if ("conditions" in inputs && inputs.conditions) {
+
+        if ("conditions" in inputs && inputs.conditions) {//TODO this can be a function?
+            let newIdSets = []
             for (const con of inputs.conditions) {
                 if (!"idList" in con.NOT || !con.NOT.idList) {
                     con.NOT.idList = []
                 }
-                const newIdSet = await this.processCondition(con)
-                idSet = this.setIntersection(idSet, newIdSet);
+                con.NOT.idList = [...new Set([...idSet, ...con.NOT.idList])] //prevents that condition from checking ids that are already checked
+                newIdSets.push(this.processCondition(con))
+            }
+            //paralelization TODO also do this for attributes?
+            //TODO check if correct
+            for (const newIdSet of (await Promise.all(newIdSets))) {
+                idSet= this.setIntersection(idSet, newIdSet)
             }
         }
+
+        // if ("conditions" in inputs && inputs.conditions) {
+        //     for (const con of inputs.conditions) {
+        //         if (!"idList" in con.NOT || !con.NOT.idList) {
+        //             con.NOT.idList = []
+        //         }
+        //         const newIdSet = await this.processCondition(con)
+        //         idSet = this.setIntersection(idSet, newIdSet);
+        //     }
+        // }
 
         if (excludeIdSet.size) {
             idSet = this.setComplement(idSet, excludeIdSet);
@@ -382,20 +419,29 @@ class uriHandler {
         } 
 
         if ("attributes" in inputs && inputs.attributes)  {
+            let newIdSets = []
             for (const attribute of inputs.attributes) {
-                const newIdSet = await this.getIdsByAttribute(attribute, 0, null, null, new Set([...excludeIdSet, ...idSet])) //idSet excluded so theyre not processed (they're allready)
-                idSet = new Set([...idSet, ...newIdSet])
+                newIdSets.push(this.getIdsByAttribute(attribute, 0, null, null, new Set([...excludeIdSet, ...idSet])) ) //idSet excluded so theyre not processed (they're allready)
             }
+            //paralelization
+            newIdSets = await Promise.all(newIdSets);
+            newIdSets = newIdSets.map((x) => [...x]);
+            idSet = new Set([...idSet, ...newIdSets.flat()])
         }
 
-        if ("conditions" in inputs && inputs.conditions) {
+        if ("conditions" in inputs && inputs.conditions) {//TODO this can be a function?
+            let newIdSets = []
             for (const con of inputs.conditions) {
                 if (!"idList" in con.NOT || !con.NOT.idList) {
                     con.NOT.idList = []
                 }
-                const newIdSet = await this.processCondition(con)
-                idSet = new Set([...idSet, ...newIdSet])
+                con.NOT.idList = [...new Set([...idSet, ...con.NOT.idList])] //prevents that condition from checking ids that are already checked
+                newIdSets.push(this.processCondition(con))
             }
+            //paralelization
+            newIdSets = await Promise.all(newIdSets);
+            newIdSets = newIdSets.map((x) => [...x]);
+            idSet = new Set([...idSet, ...newIdSets.flat()])
         }
 
         if (excludeIdSet.size) {
@@ -413,22 +459,31 @@ class uriHandler {
         } 
 
         if ("attributes" in inputs && inputs.attributes)  {
+            let newIdSets = []
             for (const attribute of inputs.attributes) {
-                const newIdSet = await this.getIdsByAttribute(attribute, 0, null, null, idSet) //idSet excluded so theyre not processed (they're allready in)
-                idSet = new Set([...idSet, ...newIdSet])
-            }  
+                newIdSets.push(this.getIdsByAttribute(attribute, 0, null, null, idSet) ) //idSet excluded so theyre not processed (they're allready)
+            } //TODO this one is O(n*totalsupply) n=attributes but runs paralel. in serial it can be O(n-newIdSet) where n reduces on every iter since the ids already found can be skipped since theyre already included
+            //paralelization
+            newIdSets = await Promise.all(newIdSets);
+            newIdSets = newIdSets.map((x) => [...x]);
+            idSet = new Set([...idSet, ...newIdSets.flat()])
         }
-        if ("conditions" in inputs && inputs.conditions) {
+        
+        if ("conditions" in inputs && inputs.conditions) {//TODO this can be a function?
+            let newIdSets = []
             for (const con of inputs.conditions) {
                 if (!"idList" in con.NOT || !con.NOT.idList) {
                     con.NOT.idList = []
                 }
                 con.NOT.idList = [...new Set([...idSet, ...con.NOT.idList])] //prevents that condition from checking ids that are already checked
-                const newIdSet = await this.processCondition(con)
-                idSet = new Set([...idSet, ...newIdSet])
+                newIdSets.push(this.processCondition(con))
             }
-
+            //paralelization
+            newIdSets = await Promise.all(newIdSets);
+            newIdSets = newIdSets.map((x) => [...x]);
+            idSet = new Set([...idSet, ...newIdSets.flat()])
         }
+
         return idSet
     }
 
@@ -436,6 +491,7 @@ class uriHandler {
         const inputs = condition.inputs //TODO make cleaner
         let excludeIdSet = new Set();  
         //console.log(inputs)
+
 
         if (!"start" in inputs || !inputs.start) {
             inputs.start = 0
@@ -447,6 +503,10 @@ class uriHandler {
 
         let idSet = new Set([...Array(inputs.stop-inputs.start).keys()].map(i => i + inputs.start)) //range(inputs.start, inputs.stop)
 
+        if ("idList" in inputs && inputs.idList) {
+            idSet = new Set([...idSet, ...inputs.idList])
+        } 
+
         if ("NOT" in condition && condition.NOT) {
             //console.log(condition.NOT)
             excludeIdSet = await this.processNotCondition(condition.NOT)
@@ -454,14 +514,19 @@ class uriHandler {
         }
 
         if ("conditions" in inputs && inputs.conditions) {//TODO this can be a function?
+            let newIdSets = []
+            //conditionsCopy = structuredClone(inputs.conditions)
             for (const con of inputs.conditions) {
                 if (!"idList" in con.NOT || !con.NOT.idList) {
                     con.NOT.idList = []
                 }
-                condition.NOT.idList = [...new Set([...idSet, ...con.NOT.idList])] //prevents that condition from checking ids that are already checked
-                const newIdSet = await this.processCondition(con)
-                idSet = new Set([...idSet, ...newIdSet])
+                con.NOT.idList = [...new Set([...idSet, ...con.NOT.idList])] //prevents that condition from checking ids that are already checked
+                newIdSets.push(this.processCondition(con))
             }
+            //paralelization
+            newIdSets = await Promise.all(newIdSets);
+            newIdSets = newIdSets.map((x) => [...x]);
+            idSet = new Set([...idSet, ...newIdSets.flat()])
 
         }
 
@@ -499,11 +564,46 @@ class uriHandler {
 
     }
 
+    //needs this for deep clone to prevent not idlist sticking around
+    async processFilter(filterObj) {
+        return this.processCondition(structuredClone(filterObj))
+    }
 
-    async attributeFilter(filter) {
 
+    /**TODO handle when urichache isnt loaded or possible to fetch
+     * @returns {Object} attributes
+     */
+    async getEveryAttributeType(uriCache=this.uriCache, forceResync=false) {
+        let attributeFormat = {
+            pathToAttributeList: ["attributes"],
+            traitTypeKey: "trait_type",
+            valueKey: "value"
+        }
+        //TODO make format global var
 
+        if ((await this.extraUriMetaData && !forceResync).everyAttribute) {
+            this.uriCache = await (await this.getUrlByProtocol((await this.extraUriMetaData).everyAttribute)).json()
+        } else {
+  
 
-        //TODO make and or not
+            let everyAttribute = {}
+            for (const id of uriCache) {
+                for (const attr of id.attributes) {
+                    const traitType = attr[attributeFormat.traitTypeKey]
+                    const value = attr[attributeFormat.valueKey]
+                    
+                    if (!(traitType in everyAttribute)) {
+                        everyAttribute[traitType] = [value];
+                    } else {
+                        if (everyAttribute[traitType].indexOf(value) == -1) { //checks if value is in list
+                            everyAttribute[traitType].push(value);
+
+                        }
+
+                    }
+                }
+            }
+            this.everyAttribute =everyAttribute
+        }
     }
 }
