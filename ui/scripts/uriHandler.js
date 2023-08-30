@@ -4,11 +4,12 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 
 //TODO maybe attibute finder is better name? or maybe split classes
 class uriHandler {
-    contractObj = null;
-    extraUriMetaData = null;
+    contractObj = undefined;
+    extraUriMetaData = undefined;
     uriCache = []
-    baseURICache = null;
-    ipfsGateway = null;
+    baseURICache = undefined;
+    ipfsGateway = undefined;
+    everyAttribute = undefined;
     //TODO fix naming
     constructor(contractObj, _ipfsGateway = "http://localhost:48084", extraUriMetaDataFile = "./claim/scripts/extraUriMetaDataFile.json", _extraUriMetaData = undefined) {
         this.contractObj = contractObj;
@@ -18,6 +19,12 @@ class uriHandler {
         } else {
             this.extraUriMetaData = _extraUriMetaData
         }
+    }
+
+
+    async fetchAllExtraMetaData() {
+        await this.syncUriCache();
+        await this.getEveryAttributeType();
     }
 
     async getImage(id) {
@@ -145,10 +152,17 @@ class uriHandler {
     }
 
     async getUrlByProtocol(urlString) {
+        let reqObj = {
+            method: 'POST',
+            // headers: {
+            //     'Authorization': this.auth
+            // },
+            //body: form
+        }
         let urlObj = new URL(urlString)
         switch (urlObj.protocol) {
             case ("ipfs:"):
-                return await fetch(`${this.ipfsGateway}/ipfs/${urlObj.pathname.slice(2)}`);
+                return await fetch(`${this.ipfsGateway}/ipfs/${urlObj.pathname.slice(2)}`,reqObj);
             case ("http:"):
                 return await fetch(urlString);
             case ("https"):
@@ -543,7 +557,6 @@ class uriHandler {
      * @returns {Set} idSet
      */
     async processCondition(condition) {
-        console.log(condition)
         let idSet;
         //{"type":"OR", "input":{"idList":[]],"conditions":[], "attributes":[]}, "NOT":{"idList":[]],"conditions":[],"attributes":[]]}}
         switch (condition.type){
@@ -559,7 +572,6 @@ class uriHandler {
             default:
                 throw new Error(`Condition type: ${condition.type} not recognized'`);
         }
-        console.log(idSet)
         return idSet;
 
     }
@@ -581,9 +593,11 @@ class uriHandler {
         }
         //TODO make format global var
 
-        if ((await this.extraUriMetaData && !forceResync).everyAttribute) {
-            this.uriCache = await (await this.getUrlByProtocol((await this.extraUriMetaData).everyAttribute)).json()
+        if (!forceResync && (await this.extraUriMetaData).everyAttribute) {
+            console.log(`found prerpossed data for contract: ${this.contractObj.address}, at  ${(await this.extraUriMetaData).everyAttribute}`)
+            this.everyAttribute = await (await this.getUrlByProtocol((await this.extraUriMetaData).everyAttribute)).json()
         } else {
+            console.log(`no premade metadata found for ntf contract: ${await this.contractObj.address} :( collecting attribute manually!`)
   
 
             let everyAttribute = {}
@@ -605,5 +619,6 @@ class uriHandler {
             }
             this.everyAttribute =everyAttribute
         }
+        return this.everyAttribute
     }
 }

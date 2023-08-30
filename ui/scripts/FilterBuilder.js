@@ -1,68 +1,208 @@
 //TODO better naming
 class FilterBuilder {
     filterTemplate = { "type": "OR", "inputs": { "idList": [], "conditions": [], "attributes": [] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }
-    validTypes = ["AND","OR","RANGE"];
+    validTypes = ["AND", "OR", "RANGE"];
     allFilters = []
     uriHandler = undefined;
     currentFilterIndex = 0;
     constructor(uriHandler, filters = []) {
+        console.log(filters)
         this.uriHandler = uriHandler;
-        this.allFilters = filters
+        //TODO needs deep copy?
+
+        for (let i = 0; i < filters.length; i++) {
+            this.allFilters.push(this.formatNewFilter(filters[i], i))
+        }
         this.allAtribute
+    }
+
+    formatNewFilter(filter, index) {
+        filter.filterIndex = index
+        const keys = Object.keys(this.filterTemplate)
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i]
+            console.log(key)
+            switch (key) {
+                case "type":
+                    continue
+                case "inputs":
+                    if (!("inputs" in filter)) {
+                        filter["inputs"] = structuredClone(this.filterTemplate.inputs)
+                    } else {
+                        const inputs = Object.keys(this.filterTemplate["inputs"])
+                        for (let i = 0; i < inputs.length; i++) {
+                            const inputName = inputs[i]
+                            if ((!(inputName in filter["inputs"])) || !(filter["inputs"][inputName])) {
+                                console.log(filter["inputs"][inputName])
+                                filter["inputs"][inputName] = []
+                            }
+                        }
+                    }
+                    continue
+                case "NOT":
+                    if (!("NOT" in filter)) {
+                        filter["NOT"] = structuredClone(this.filterTemplate.NOT)
+
+                    } else {
+                        const NOTInputs = Object.keys(this.filterTemplate["NOT"])
+                        for (let i = 0; i < NOTInputs.length; i++) {
+                            const inputName = NOTInputs[i]
+                            if (!(inputName in filter["NOT"]) || !(filter["NOT"][inputName])) {
+                                filter["NOT"][inputName] = []
+                            }
+                        }
+                    }
+                    continue
+
+            }
+        }
+
+
+
+        return filter
+    }
+
+    getCurrentFilter() {
+        return this.allFilters[this.currentFilterIndex]
     }
 
     async displayFilter(filterIndex) {
         let html = this.getTypeUi(filterIndex)
         html += `${JSON.stringify(await this.allFilters[filterIndex])}`
         document.getElementById("FilterBuilder").innerHTML = html
-        window.idsOnDisplay = [...(await this.uriHandler.processFilter(this.allFilters[filterIndex]))] //TODO check if filter is the same and cache its result in idList
+        this.currentFilterIndex = filterIndex
+        //window.idsOnDisplay = [...(await this.uriHandler.processFilter(this.allFilters[filterIndex]))] //TODO check if filter is the same and cache its result in idList
         return html
     }
 
     prettyPrintFilterInfo(filter) {
-        const listInputType =["idList","conditions","attributes"]
-        let inputInfoString = ""
-        if(filter.type === "RANGE") { //TODO matbe do switch
-            if (!(filter.inputs.start || filter.inputs.stop)) {
+        const listInputType = ["idList", "conditions", "attributes"]
+        var inputInfoString = "[";
+        //.log(inputInfoString)
+        if (filter.type === "RANGE") { //TODO matbe do switch
+            if ((!filter.inputs.start) && (!filter.inputs.stop)) {
                 inputInfoString += "all, "
-            } else if(filter.inputs.start) {
+            } else if (filter.inputs.start) {
                 inputInfoString += `from ${filter.inputs.start} - all, `
-            } else if(filter.inputs.stop) {
+            } else if (filter.inputs.stop) {
                 inputInfoString += `from 0 - ${filter.inputs.stop}, `
             } else {
                 inputInfoString += `from ${filter.inputs.start} - ${filter.inputs.stop}, `
             }
         }
-        console.log(filter)
-        for(const inputType of listInputType) {
+        //.log(inputInfoString)
+        for (const inputType of listInputType) {
+            //.log(`${inputType}, ${inputInfoString}`)
             if (filter.inputs[inputType] && Object.keys(filter.inputs[inputType]).length > 0) {
-                inputInfoString += `${inputType}: ${filter.inputs[inputType].length+1} items, `
-            }
-        }
-        if (filter["NOT"] && Object.keys(filter["NOT"]).length > 0) {
-            inputInfoString += "NOT: "
-            for(const inputType of listInputType) {
-                if (filter.NOT[inputType] && Object.keys(filter.NOT[inputType]).length > 0) {
-                    inputInfoString += `${inputType}: ${filter.NOT[inputType].length+1} items, `
+                if (inputType === "attributes") {
+                    //TODO do this in a function
+                    //.log(inputInfoString)
+                    if (filter.inputs[inputType].length < 2) {
+                        const firstTwoItems = filter.inputs[inputType].map((x) => x.value);
+                        inputInfoString += `${inputType}: ${firstTwoItems.toString()}, `
+
+                    } else {
+                        const firstTwoItems = filter.inputs[inputType].slice(0, 2).map((x) => x.value);
+                        const firstTwoItemsString = firstTwoItems.toString()
+                        inputInfoString += `${inputType}: ${firstTwoItemsString}.. (+${filter.inputs[inputType].length - 1}), `
+
+                    }
+                    //.log(inputInfoString)
+
+                } else if (inputType === "conditions") {
+                    if (filter.inputs[inputType].length < 2) {
+                        const firstTwoItems = filter.inputs[inputType].map((x) => `${x.filterIndex + 1}:${x.filterIndex + 1}`);
+                        inputInfoString += `${inputType}: ${firstTwoItems.toString()}, `
+
+                    } else {
+                        const firstTwoItems = filter.inputs[inputType].slice(0, 2).map((x) => `${x.filterIndex + 1}:${x.filterIndex + 1}`);
+                        const firstTwoItemsString = firstTwoItems.toString()
+                        inputInfoString += `${inputType}: ${firstTwoItemsString}.. (+${filter.inputs[inputType].length - 1}), `
+
+                    }
+                    //.log(`conditions result: ${inputInfoString}`)
+
+                } else {
+                    //.log(inputInfoString)
+                    if (filter.inputs[inputType].length < 2) {
+                        inputInfoString += `${inputType}: ${filter.inputs[inputType].toString()}, `
+
+                    } else {
+                        const firstTwoItems = filter.inputs[inputType].slice(0, 2).toString()
+                        inputInfoString += `${inputType}: ${firstTwoItems}.. (+${filter.inputs[inputType].length - 1}), `
+
+                    }
+                    //.log(inputInfoString)
+
                 }
             }
+
+        }
+        inputInfoString = inputInfoString.slice(0, -2)
+        inputInfoString += "]"
+        //.log(inputInfoString)
+        if (filter["NOT"] && Object.keys(filter["NOT"]).length > 0) {
+            inputInfoString += " NOT: ["
+            for (const inputType of listInputType) {
+                if (filter.NOT[inputType] && Object.keys(filter.NOT[inputType]).length > 0) {
+                    if (inputType === "attributes") {
+                        //TODO do this in a function
+                        if (filter.NOT[inputType].length < 2) {
+                            const firstTwoItems = filter.NOT[inputType].map((x) => x.value);
+                            inputInfoString += `${inputType}: ${firstTwoItems.toString()}, `
+
+                        } else {
+                            const firstTwoItems = filter.NOT[inputType].slice(0, 2).map((x) => x.value);
+                            const firstTwoItemsString = firstTwoItems.toString()
+                            inputInfoString += `${inputType}: ${firstTwoItemsString}.. (+${filter.NOT[inputType].length - 1}), `
+
+                        }
+                        //.log(inputInfoString)
+
+                    } else if (inputType === "conditions") {
+                        if (filter.NOT[inputType].length < 2) {
+                            const firstTwoItems = filter.NOT[inputType].map((x) => `${x.filterIndex + 1}:${x.type}`);
+                            inputInfoString += `${inputType}: ${firstTwoItems.toString()}, `
+
+                        } else {
+                            const firstTwoItems = filter.NOT[inputType].slice(0, 2).map((x) => `${x.filterIndex + 1}:${x.filterIndex + 1}`);
+                            const firstTwoItemsString = firstTwoItems.toString()
+                            inputInfoString += `${inputType}: ${firstTwoItemsString}.. (+${filter.NOT[inputType].length - 1}), `
+
+                        }
+                        //.log(inputInfoString)
+
+                    } else {
+                        if (filter.NOT[inputType].length < 2) {
+                            inputInfoString += `${inputType}: ${filter.NOT[inputType].toString()}, `
+
+                        } else {
+                            const firstTwoItems = filter.NOT[inputType].slice(0, 2).toString()
+                            inputInfoString += `${inputType}: ${firstTwoItems}.. (+${filter.NOT[inputType].length - 1}), `
+
+                        }
+                        //.log(inputInfoString)
+
+                    }
+                }
+            }
+            //.log(inputInfoString)
+            inputInfoString = inputInfoString.slice(0, -2)
+            inputInfoString += "]"
+            //.log(inputInfoString)
         }
 
 
-        inputInfoString = inputInfoString.slice(0, -2)
-        const infoString = `${filter.type}: ${inputInfoString}`
-        console.log(infoString)
-        return infoString
+
+        inputInfoString = `Filter${filter.filterIndex + 1} ${filter.type}: ${inputInfoString}`
+        return inputInfoString
     }
 
     filtersDropDown(filters = this.allFilters) {
         let selectFiltersButtons = ""
-        console.log(filters)
-        for(let i=0; i<filters.length; i++) {
+        for (let i = 0; i < filters.length; i++) {
             const info = this.prettyPrintFilterInfo(filters[i])
             selectFiltersButtons += `<button onclick="fBuilder.displayFilter(${i})" >edit</button>${info}</br>\n`
-            console.log(selectFiltersButtons)
-            console.log(filters[i])
         }
 
         const html = `<div class="dropdown">\n
@@ -98,21 +238,32 @@ class FilterBuilder {
                 <button onclick="fBuilder.setType(${filterIndex}, \'RANGE\')">RANGE</button></br>\n
             </div>\n
         </div>\n`
-        const html = `${JSON.stringify(this.allFilters[filterIndex].type)} ${dropdown}` 
+        const html = `${JSON.stringify(this.allFilters[filterIndex].type)} ${dropdown}`
         return html
     }
 
-    addAttribute(filterIndex, target="inputs", attribute) {
-        this.allFilters[filterIndex][target].push(attribute) 
+    addItem(filterIndex, target = ["inputs", "attributes"], item) {
+        let l = this.allFilters[filterIndex]
+        for (let i of target) {
+            l = l[i]
+
+        }
+        l.push(item)
     }
 
-    removeAttribute(filterIndex, target="inputs", attributeIndex) {
-        this.allFilters[filterIndex][target].splice(attributeIndex, 1)
+    removeItem(filterIndex, target = ["inputs", "attributes"], itemIndex) {
+        let l = this.allFilters[filterIndex]
+        for (let i of target) {
+            l = l[i]
+
+        }
+        l.splice(itemIndex, 1)
     }
+
 
     getAttributeUi(filterIndex = 0) {
 
-        attributesTypes =
+        attributesTypes = this.uriHandler.allAtribute
         //TODO find fix for doing fBuilder.setType
         const dropdown = `<div class="dropdown">\n
             <button onclick="fBuilder.displayTypes()" class="dropbtn">addAttribute</button>\n
@@ -120,7 +271,7 @@ class FilterBuilder {
                 ${attributes}
             </div>\n
         </div>\n`
-        const html = `${JSON.stringify(this.allFilters[filterIndex].type)} ${dropdown}` 
+        const html = `${JSON.stringify(this.allFilters[filterIndex].type)} ${dropdown}`
         return html
     }
 
@@ -130,8 +281,8 @@ class FilterBuilder {
         document.getElementById("filterTypeDropdown").classList.toggle("show");
     }
 
-        /* When the user clicks on the button, 
-    toggle between hiding and showing the dropdown content */
+    /* When the user clicks on the button, 
+toggle between hiding and showing the dropdown content */
     displayfilters() {
         this.filtersDropDown()
         document.getElementById("allFiltersDropdown").classList.toggle("show");

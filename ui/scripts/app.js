@@ -10,21 +10,21 @@ const attr4 = { "trait_type": "Shirt", "value": "maf creeper" }
 const attr6 = { "trait_type": "Hair", "value": "tuft brown" }
 
 //[9,8,7,6,5,6,7,8,9,10,11,12] that have [attr1] but exclude those that have attr2
-//window.f1 ={"type":"AND", "inputs":{"idList":[9,8,7,6,5,6,7,8,9,10,11,12,6999,5825,9796,6143],"conditions":undefined, "attributes":[attr1]},"NOT":{"idList":undefined,"conditions":undefined,"attributes":[attr2]}}
-window.f1 = { "type": "OR", "inputs": { "attributes": [{ "trait_type": "Hat", "value": "cake hat" }, { "trait_type": "Hat", "value": "alien hat" },  { "trait_type": "Hat", "value": "migoko hat" }] }, "NOT":{"attributes":[{"trait_type": "Race","value": "clay"}, {"trait_type": "Race","value": "black"},{"trait_type": "Race","value": "tan"} ]} }
+//window.f1 ={"type":"AND", "inputs":{"idList":[9,8,7,6,5,6,7,8,9,10,11,12,6999,5825,9796,6143],"conditions":[], "attributes":[attr1]},"NOT":{"idList":[],"conditions":[],"attributes":[attr2]}}
+let f1 = { "type": "OR", "inputs": { "attributes": [{ "trait_type": "Hat", "value": "cake hat" }, { "trait_type": "Hat", "value": "alien hat" },  { "trait_type": "Hat", "value": "migoko hat" }] }, "NOT":{"attributes":[{"trait_type": "Race","value": "clay"}, {"trait_type": "Race","value": "black"},{"trait_type": "Race","value": "tan"} ]} }
 //includes [90,80,70,60,50], [attr3,attr4] but not [1,2,3,4]
-let f2 = { "type": "OR", "inputs": { "idList": [90, 80, 70, 60, 50], "conditions": undefined, "attributes": [attr3, attr4] }, "NOT": { "idList": [2748, 2986], "conditions": undefined, "attributes": undefined } }
+let f2 = { "type": "OR", "inputs": { "idList": [90, 80, 70, 60, 50], "conditions": [], "attributes": [attr3, attr4] }, "NOT": { "idList": [2748, 2986], "conditions": [], "attributes": [] } }
 
 //0 till 5000 except attr4
-let f3 = { "type": "RANGE", "inputs": { "start": 0, "stop": 5000 }, "NOT": { "idList": undefined, "conditions": undefined, "attributes": [attr4] } }
+let f3 = { "type": "RANGE", "inputs": { "start": 0, "stop": 5000 }, "NOT": { "idList": [], "conditions": [], "attributes": [attr4] } }
 // everything except f3
-let f4 = { "type": "RANGE", "inputs": { "start": 0, "stop": null }, "NOT": { "idList": undefined, "conditions": [f3], "attributes": undefined } }
+let f4 = { "type": "RANGE", "inputs": { "start": 0, "stop": null }, "NOT": { "idList": [], "conditions": [f3], "attributes": [] } }
 
 //includes results from [f1,f2] and those with [attr6] but excludes [f4]
 //every att6(tuft brown), f1 (9-12,6999,5825,9796,6143 that has cake hat and isnt black), f2 90,80,70,60,50 = all bushland + all maf creeper but not 2748,2986
 // but not f4 (5001-10000 but cakehat is allowed)
 
-window.f5 = { "type": "OR", "inputs": { "idList": undefined, "conditions": [f1, f2], "attributes": [attr6] }, "NOT": { "idList": undefined, "conditions": [f4], "attributes": undefined } }
+window.f5 = { "type": "OR", "inputs": { "idList": [], "conditions": [f1, f2], "attributes": [attr6] }, "NOT": { "idList": [], "conditions": [f4], "attributes": [] } }
 
 let f6 = { "type": "OR", "inputs": { "idList": [], "conditions": [{ "type": "AND", "inputs": { "idList": [], "conditions": [], "attributes": [{ "trait_type": "Hat", "value": "alien hat" }, { "trait_type": "Eyes", "value": "teary" }] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }], "attributes": [{ "trait_type": "Hat", "value": "cake hat" }, { "trait_type": "Hat", "value": "migoko hat" }] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }
 
@@ -289,8 +289,32 @@ async function refreshDeployedContractsUi() {
     await displayDeployedContracts(contractAddresses);
 }
 
+function updatedDisplayedNft(id, target) {
+    const NOTidList = fBuilder.getCurrentFilter().NOT.idList
+    if(NOTidList.indexOf(id) === -1 ) {
+        document.getElementById(`exlcudeStatusDiv${id}`).textContent ="excuded click to undo";
+        document.getElementById(`exlcudeStatusDiv${id}`).style.background="rgba(100, 100, 100, 0.8)";
+        fBuilder.addItem(fBuilder.currentFilterIndex, target, id)
+    } else {
+        document.getElementById(`exlcudeStatusDiv${id}`).textContent ="click to exclude"
+        document.getElementById(`exlcudeStatusDiv${id}`).style.background="rgba(20, 200, 20, 0.8)";
+        const index = NOTidList.indexOf(id)
+        fBuilder.removeItem(fBuilder.currentFilterIndex, target, index)
+        
+    }
+
+}
+
+async function toggleExclude(id, target) {
+    //TODO update display instead of reloading everything
+    //displayNfts(0, 12)
+    updatedDisplayedNft(id,target)
+    await fBuilder.displayFilter(fBuilder.currentFilterIndex)
+}
+
 async function displayNfts(currentPage, maxPerPage = 12) {
-    const ids =await window.idsOnDisplay;
+    const ids = window.currentIdsDisplay;
+    console.log(ids)
     const URI = window.URI //TODO
     let images = ""
     for (let i = 0; i < maxPerPage; i++) {
@@ -303,11 +327,27 @@ async function displayNfts(currentPage, maxPerPage = 12) {
         } catch { }
 
         let id = ids[currentPage * maxPerPage + i]
+        const NOTidList = fBuilder.getCurrentFilter().NOT.idList
+        let exlcudeStatusDivMsg
+        let exlcudeStatusDivColor
+        if(NOTidList.indexOf(id) === -1 ) {
+            exlcudeStatusDivMsg ="click to exclude"
+            exlcudeStatusDivColor ="rgba(20, 200, 20, 0.8)"
+            //fBuilder.addItem(fBuilder.currentFilterIndex, target, id)
+        } else {
+            exlcudeStatusDivMsg ="excuded click to undo"
+            exlcudeStatusDivColor ="rgba(100, 100, 100, 0.8)"
+            //const index = NOTidList.indexOf(id)
+            //fBuilder.removeItem(fBuilder.currentFilterIndex, target, index)
+            
+        }
+
+  
         url = await URI.getImage(id)
-        images += `<div id="NFT${id}" onclick="toggleExclude(${id})" style="position: relative; margin: 2px; cursor:pointer; border:5px solid green; width: 15%; display: inline-block;" >\n 
+        images += `<div id="NFT${id}" onclick="toggleExclude(${id}, [\'NOT\',\'idList\'] )" style="position: relative; margin: 2px; cursor:pointer; width: 15%; display: inline-block;" >\n 
                 <img src="${url}" id="image${i}" style="max-width: 100%; max-height: 100%;">\n 
-                <div  style="float: right; position: absolute; left: 0px; bottom: 0px; z-index: 1; background-color: rgba(20, 200, 20, 0.8); padding: 5px; color: #FFFFFF; font-weight: bold;">\n 
-                    click to exclude (TODO)\n 
+                <div id="exlcudeStatusDiv${id}" style="float: right; position: absolute; left: 0px; bottom: 0px; z-index: 1; background-color: ${exlcudeStatusDivColor}; padding: 5px; color: #FFFFFF; font-weight: bold;">\n 
+                ${exlcudeStatusDivMsg}\n 
                 </div>\n 
             </div>\n `
     }
@@ -320,6 +360,11 @@ async function displayNfts(currentPage, maxPerPage = 12) {
 }
 
 
+async function runFilter() {
+    window.currentIdsDisplay = [...structuredClone(await u.processFilter(fBuilder.getCurrentFilter()))]
+    displayNfts(0, 12)
+}
+
 async function test() {
     //let response = await fetch('./merkle_proofs/index.json')
     // if (!isWalletConnected()) {
@@ -329,20 +374,21 @@ async function test() {
 
     let start = Date.now();
     u = await new uriHandler(nftContract, window.urlVars["ipfsApi"])
-    await u.syncUriCache();
-    window.currentIdsDisplay = await u.processFilter(f1)
+    await u.fetchAllExtraMetaData()
+    window.currentIdsDisplay = [...structuredClone(await u.processFilter(f1))]
     let timeTaken = Date.now() - start;
     console.log("Total time taken : " + timeTaken + " milliseconds");
     console.log(window.currentIdsDisplay)
 
-    window.idsOnDisplay = [...window.currentIdsDisplay]
     window.URI = u
-    displayNfts(0, 12)
 
-    window.fBuilder = await new FilterBuilder(window.URI, [f1,f2,f3,f4,f5,f6])
+
+    window.fBuilder = await new FilterBuilder(window.URI, structuredClone([f1,f2,f3,f4,f5,f7]))
     //fBuilder.displayFilter(0)
     fBuilder.filtersDropDown();
     //console.log(html)
+
+    displayNfts(0, 12)
 
 
 };
