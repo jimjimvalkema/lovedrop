@@ -26,9 +26,11 @@ let f4 = { "type": "RANGE", "inputs": { "start": 0, "stop": null }, "NOT": { "id
 
 window.f5 = { "type": "OR", "inputs": { "idList": [], "conditions": [f1, f2], "attributes": [attr6] }, "NOT": { "idList": [], "conditions": [f4], "attributes": [] } }
 
-let f6 = { "type": "OR", "inputs": { "idList": [], "conditions": [{ "type": "AND", "inputs": { "idList": [], "conditions": [], "attributes": [{ "trait_type": "Hat", "value": "alien hat" }, { "trait_type": "Eyes", "value": "teary" }] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }], "attributes": [{ "trait_type": "Hat", "value": "cake hat" }, { "trait_type": "Hat", "value": "migoko hat" }] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }
+let f6 = { "type": "AND", "inputs": { "idList": [], "conditions": [], "attributes": [{ "trait_type": "Hat", "value": "alien hat" }, { "trait_type": "Eyes", "value": "teary" }] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }
 
-let f7 = { "type": "AND", "inputs": { "conditions": [f1, f2, f3, f4, f5, f6] } }
+let f7 = { "type": "OR", "inputs": { "idList": [], "conditions": [f6], "attributes": [{ "trait_type": "Hat", "value": "cake hat" }, { "trait_type": "Hat", "value": "migoko hat" }] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }
+
+let f8 = { "type": "AND", "inputs": { "conditions": [f1, f2, f3, f4, f5, f6] } }
 
 function message(message) {
     console.log(message);
@@ -360,20 +362,20 @@ async function displayNfts(currentPage, maxPerPage = 12) {
 }
 
 
-async function runFilter() {
-    window.currentIdsDisplay = [...structuredClone(await u.processFilter(fBuilder.getCurrentFilter()))]
+async function runFilter(currentFilter=fBuilder.getCurrentFilter()) {
+    window.currentIdsDisplay = [...structuredClone(await u.processFilter(currentFilter))]
     displayNfts(0, 12)
 }
 
 async function test() {
     //let response = await fetch('./merkle_proofs/index.json')
     // if (!isWalletConnected()) {
-    //     return 0
+    //     return 0http://127.0.0.1:45005
     // }
 
 
     let start = Date.now();
-    u = await new uriHandler(nftContract, window.urlVars["ipfsApi"])
+    window.u = await new uriHandler(nftContract, window.urlVars["ipfsApi"])
     await u.fetchAllExtraMetaData()
     window.currentIdsDisplay = [...structuredClone(await u.processFilter(f1))]
     let timeTaken = Date.now() - start;
@@ -383,7 +385,7 @@ async function test() {
     window.URI = u
 
 
-    window.fBuilder = await new FilterBuilder(window.URI, structuredClone([f1,f2,f3,f4,f5,f7]))
+    window.fBuilder = await new FilterBuilder(window.URI, structuredClone([f1,f2,f3,f4,f5,f6,f7,f8]))
     //fBuilder.displayFilter(0)
     fBuilder.filtersDropDown();
     //console.log(html)
