@@ -2,6 +2,8 @@
     "0xbaa9cbdac7a1e3f376192dfac0d41fce4fc4a564": {
         "type": "milady",
         "name": "miladyTest",
-        "scrapedUriData" : "ipfs://bafybeigkwunx3qniepqbw6axe3xbylhvnmqwuklgphqfh6i2k47fe37ylu"
+        "scrapedUriData" : "ipfs://bafybeigkwunx3qniepqbw6axe3xbylhvnmqwuklgphqfh6i2k47fe37ylu",
+        "everyAttribute": "ipfs://bafkreigbdc2qajb374a3aeg47bqftw53bq57ex7ltx2g345fk62typrgkq",
+        "baseUriCompressed": "ipfs://bafybeia3c7bqriidimrfxm66ko4vsvdbsqzaceljwktv75godff54iopca"
     }
 }

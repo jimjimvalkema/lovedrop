@@ -76,6 +76,7 @@ class FilterBuilder {
     }
 
     prettyPrintFilterInfo(filter) {
+        const attrValueKey = this.uriHandler.attributeFormat.valueKey
         const listInputType = ["idList", "conditions", "attributes"]
         var inputInfoString = "[";
         //.log(inputInfoString)
@@ -98,11 +99,11 @@ class FilterBuilder {
                     //TODO do this in a function
                     //.log(inputInfoString)
                     if (filter.inputs[inputType].length < 2) {
-                        const firstTwoItems = filter.inputs[inputType].map((x) => x.value);
+                        const firstTwoItems = filter.inputs[inputType].map((x) => ` ${x[attrValueKey]}`);
                         inputInfoString += `${inputType}: ${firstTwoItems.toString()}, `
 
                     } else {
-                        const firstTwoItems = filter.inputs[inputType].slice(0, 2).map((x) => x.value);
+                        const firstTwoItems = filter.inputs[inputType].slice(0, 2).map((x) => ` ${x[attrValueKey]}`);
                         const firstTwoItemsString = firstTwoItems.toString()
                         inputInfoString += `${inputType}: ${firstTwoItemsString}.. (+${filter.inputs[inputType].length - 1}), `
 
@@ -111,11 +112,11 @@ class FilterBuilder {
 
                 } else if (inputType === "conditions") {
                     if (filter.inputs[inputType].length < 2) {
-                        const firstTwoItems = filter.inputs[inputType].map((x) => `${x.filterIndex + 1}:${x.filterIndex + 1}`);
+                        const firstTwoItems = filter.inputs[inputType].map((x) => ` F${x.filterIndex + 1}:${x.type}`);
                         inputInfoString += `${inputType}: ${firstTwoItems.toString()}, `
 
                     } else {
-                        const firstTwoItems = filter.inputs[inputType].slice(0, 2).map((x) => `${x.filterIndex + 1}:${x.filterIndex + 1}`);
+                        const firstTwoItems = filter.inputs[inputType].slice(0, 2).map((x) => ` F${x.filterIndex + 1}:${x.type}`);
                         const firstTwoItemsString = firstTwoItems.toString()
                         inputInfoString += `${inputType}: ${firstTwoItemsString}.. (+${filter.inputs[inputType].length - 1}), `
 
@@ -148,11 +149,11 @@ class FilterBuilder {
                     if (inputType === "attributes") {
                         //TODO do this in a function
                         if (filter.NOT[inputType].length < 2) {
-                            const firstTwoItems = filter.NOT[inputType].map((x) => x.value);
+                            const firstTwoItems = filter.NOT[inputType].map((x) => ` ${x.value}`);
                             inputInfoString += `${inputType}: ${firstTwoItems.toString()}, `
 
                         } else {
-                            const firstTwoItems = filter.NOT[inputType].slice(0, 2).map((x) => x.value);
+                            const firstTwoItems = filter.NOT[inputType].slice(0, 2).map((x) => ` ${x.value}`);
                             const firstTwoItemsString = firstTwoItems.toString()
                             inputInfoString += `${inputType}: ${firstTwoItemsString}.. (+${filter.NOT[inputType].length - 1}), `
 
@@ -161,11 +162,11 @@ class FilterBuilder {
 
                     } else if (inputType === "conditions") {
                         if (filter.NOT[inputType].length < 2) {
-                            const firstTwoItems = filter.NOT[inputType].map((x) => `${x.filterIndex + 1}:${x.type}`);
+                            const firstTwoItems = filter.NOT[inputType].map((x) => ` F${x.filterIndex + 1}:${x.type}`);
                             inputInfoString += `${inputType}: ${firstTwoItems.toString()}, `
 
                         } else {
-                            const firstTwoItems = filter.NOT[inputType].slice(0, 2).map((x) => `${x.filterIndex + 1}:${x.filterIndex + 1}`);
+                            const firstTwoItems = filter.NOT[inputType].slice(0, 2).map((x) => ` F${x.filterIndex + 1}:${x.filterIndex + 1}`);
                             const firstTwoItemsString = firstTwoItems.toString()
                             inputInfoString += `${inputType}: ${firstTwoItemsString}.. (+${filter.NOT[inputType].length - 1}), `
 
