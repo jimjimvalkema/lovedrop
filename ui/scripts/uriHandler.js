@@ -35,7 +35,7 @@ class uriHandler {
     }
 
     async fetchAllExtraMetaData() {
-        await this.syncUriCache();
+        //await this.syncUriCache();
         await this.getEveryAttributeType();
     }
 
@@ -234,7 +234,7 @@ class uriHandler {
 
     }
 
-    async hasAttribute(id, attribute) {
+    async hasAttributeWithTokenUri(id, attribute) {
         //attribute = {"trait_type": "Background","value": "bjork"},
         //just incase this standart changes
         let tokenURI = null
@@ -265,6 +265,24 @@ class uriHandler {
             }
         }
         return false
+    }
+
+    hasAttributeWithEveryAttribute(id,attribute) {
+        const traitTypeKey = this.attributeFormat.traitTypeKey;
+        const valueKey = this.attributeFormat.valueKey;
+        const traitType = attribute[traitTypeKey]
+        const value = attribute[valueKey]
+        const index = this.everyAttribute[traitType].attributes[value].ids.indexOf(JSON.stringify(id))
+        return index !== -1
+
+    }
+
+    async hasAttribute(id, attribute) {
+        if (this.everyAttribute) {
+            return this.hasAttributeWithEveryAttribute(id,attribute)
+        } else {
+            return await this.hasAttributeWithTokenUri(id,attribute)
+        }
     }
 
     /**
@@ -604,33 +622,49 @@ class uriHandler {
     }
 
 
-    /**TODO handle when urichache isnt loaded or possible to fetch
+    /**TODO handle when urichache possible to fetch
      * @returns {Object} attributes
      */
-    async getEveryAttributeType(uriCache=this.uriCache, forceResync=false) {
+    async getEveryAttributeType(forceResync=false,keepIds=true,uriCache=null) {
+        
+
         //TODO make format global var
 
         if (!forceResync && (await this.extraUriMetaData).everyAttribute) {
             console.log(`found prerpossed data for contract: ${this.contractObj.address}, at  ${(await this.extraUriMetaData).everyAttribute}`)
-            this.everyAttribute = await (await this.getUrlByProtocol((await this.extraUriMetaData).everyAttribute)).json()
+            const r = await u.getUrlByProtocol("ipfs://bafybeichhvd4y4uyh6z7macd56xh4dk6bzfd5ckzninqbywc56up22kaom")
+            this.everyAttribute = CBOR.decode(await r.arrayBuffer())
+
+            //this.everyAttribute = await (await this.getUrlByProtocol((await this.extraUriMetaData).everyAttribute)).json()
         } else {
             console.log(`no premade metadata found for ntf contract: ${await this.contractObj.address} :( collecting attribute manually!`)
+            if (!uriCache) {
+                await this.syncUriCache()
+                uriCache = this.uriCache;
+            }
   
 
             let everyAttribute = {}
-            for (const id of uriCache) {
-                for (const attr of id.attributes) {
+            const uriKeys = Object.keys(uriCache);
+
+            for (const id of uriKeys) {
+                const metaData = uriCache[id]
+                for (const attr of metaData.attributes) {
                     const traitType = attr[this.attributeFormat.traitTypeKey]
                     const value = attr[this.attributeFormat.valueKey]
                     
                     if (!(traitType in everyAttribute)) {
                         const valueAsFloat = parseFloat(value)
-                        if (isNaN(valueAsFloat)) {
+                        if (isNaN(valueAsFloat)) { //check if value is number
                             everyAttribute[traitType] = {"dataType":"string", "attributes":{}}; 
                         } else {
                             everyAttribute[traitType] = {"dataType":"number","min":valueAsFloat, "max":valueAsFloat, "attributes":{}};
                         }
-                        everyAttribute[traitType]["attributes"][value] = 1
+
+                        everyAttribute[traitType]["attributes"][value] = {"amount":1}
+                        if (keepIds) {
+                            everyAttribute[traitType]["attributes"][value]["ids"] = [id];
+                        }
                     } else {
                         if (! (value in everyAttribute[traitType]["attributes"])) { //checks if value is in list
                             if (everyAttribute[traitType]["dataType"] == "number") {
@@ -644,9 +678,16 @@ class uriHandler {
                                     everyAttribute[traitType].max = Math.max(everyAttribute[traitType].max, valueAsFloat);
                                 }
                             } 
-                            everyAttribute[traitType]["attributes"][value] = 1;
+                            everyAttribute[traitType]["attributes"][value] = {"amount": 1};
+
+                            if (keepIds) {
+                                everyAttribute[traitType]["attributes"][value]["ids"] = [id];
+                            }
                         } else {
-                            everyAttribute[traitType]["attributes"][value] += 1;
+                            everyAttribute[traitType]["attributes"][value]["amount"] += 1;
+                            if (keepIds) {
+                                everyAttribute[traitType]["attributes"][value]["ids"].push(id);
+                            }
 
                         }
 

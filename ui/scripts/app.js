@@ -26,11 +26,13 @@ let f4 = { "type": "RANGE", "inputs": { "start": 0, "stop": null }, "NOT": { "id
 
 window.f5 = { "type": "OR", "inputs": { "idList": [], "conditions": [f1, f2], "attributes": [attr6] }, "NOT": { "idList": [], "conditions": [f4], "attributes": [] } }
 
-let f6 = { "type": "AND", "inputs": { "idList": [], "conditions": [], "attributes": [{ "trait_type": "Hat", "value": "alien hat" }, { "trait_type": "Eyes", "value": "teary" }] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }
+let f6 = { "type": "AND", "inputs": { "idList": [], "conditions": [], "attributes": [{ "trait_type": "Hat", "value": "alien hat" }, {"trait_type":"Eyes","value":"teary"}] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }
 
 let f7 = { "type": "OR", "inputs": { "idList": [], "conditions": [f6], "attributes": [{ "trait_type": "Hat", "value": "cake hat" }, { "trait_type": "Hat", "value": "migoko hat" }] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }
 
 let f8 = { "type": "AND", "inputs": { "conditions": [f1, f2, f3, f4, f5, f6] } }
+
+window.f9 = { "type": "RANGE", "inputs": { "idList": [], "conditions": [], "attributes": [] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }
 
 function message(message) {
     console.log(message);
@@ -293,15 +295,15 @@ async function refreshDeployedContractsUi() {
 
 function updatedDisplayedNft(id, target) {
     const NOTidList = fBuilder.getCurrentFilter().NOT.idList
-    if(NOTidList.indexOf(id) === -1 ) {
+    const index = NOTidList.indexOf(id)
+    if(index === -1 ) {
         document.getElementById(`exlcudeStatusDiv${id}`).textContent ="excuded click to undo";
         document.getElementById(`exlcudeStatusDiv${id}`).style.background="rgba(100, 100, 100, 0.8)";
-        fBuilder.addItem(fBuilder.currentFilterIndex, target, id)
+        fBuilder.addItem(fBuilder.currentFilterIndex, id, target)
     } else {
         document.getElementById(`exlcudeStatusDiv${id}`).textContent ="click to exclude"
-        document.getElementById(`exlcudeStatusDiv${id}`).style.background="rgba(20, 200, 20, 0.8)";
-        const index = NOTidList.indexOf(id)
-        fBuilder.removeItem(fBuilder.currentFilterIndex, target, index)
+        document.getElementById(`exlcudeStatusDiv${id}`).style.background="rgba(20, 50, 200, 0.8)";
+        fBuilder.removeItem(fBuilder.currentFilterIndex, index, target)
         
     }
 
@@ -311,7 +313,8 @@ async function toggleExclude(id, target) {
     //TODO update display instead of reloading everything
     //displayNfts(0, 12)
     updatedDisplayedNft(id,target)
-    await fBuilder.displayFilter(fBuilder.currentFilterIndex)
+    //await fBuilder.displayFilter(fBuilder.currentFilterIndex)
+    document.getElementById("fullFilterJson").innerHTML = JSON.stringify(fBuilder.getCurrentFilter())
 }
 
 async function displayNfts(currentPage, maxPerPage = 12) {
@@ -334,10 +337,10 @@ async function displayNfts(currentPage, maxPerPage = 12) {
         let exlcudeStatusDivColor
         if(NOTidList.indexOf(id) === -1 ) {
             exlcudeStatusDivMsg ="click to exclude"
-            exlcudeStatusDivColor ="rgba(20, 200, 20, 0.8)"
+            exlcudeStatusDivColor ="rgba(20, 50, 200, 0.8)"
             //fBuilder.addItem(fBuilder.currentFilterIndex, target, id)
         } else {
-            exlcudeStatusDivMsg ="excuded click to undo"
+            exlcudeStatusDivMsg ="excluded click to undo"
             exlcudeStatusDivColor ="rgba(100, 100, 100, 0.8)"
             //const index = NOTidList.indexOf(id)
             //fBuilder.removeItem(fBuilder.currentFilterIndex, target, index)
@@ -377,7 +380,7 @@ async function test() {
     let start = Date.now();
     window.u = await new uriHandler(nftContract, window.urlVars["ipfsApi"])
     await u.fetchAllExtraMetaData()
-    window.currentIdsDisplay = [...structuredClone(await u.processFilter(f1))]
+    
     let timeTaken = Date.now() - start;
     console.log("Total time taken : " + timeTaken + " milliseconds");
     console.log(window.currentIdsDisplay)
@@ -385,12 +388,18 @@ async function test() {
     window.URI = u
 
 
-    window.fBuilder = await new FilterBuilder(window.URI, structuredClone([f1,f2,f3,f4,f5,f6,f7,f8]))
+    window.fBuilder = await new FilterBuilder(window.URI, structuredClone([f1,f2,f3,f4,f5,f6,f7,f8,f9]))
     //fBuilder.displayFilter(0)
     fBuilder.filtersDropDown();
+    fBuilder.currentFilterIndex=8;
+    fBuilder.displayFilter(8)
+    await runFilter()
     //console.log(html)
 
-    displayNfts(0, 12)
+    //displayNfts(0, 12)
+    //window.testHtml = fBuilder.getEditAttributesButton();
+
+    //document.getElementById("testHtml").innerHTML = window.testHtml
 
 
 };
@@ -399,10 +408,13 @@ window.onload = runOnLoad;
 
 async function runOnLoad() {
     window.urlVars = await getUrlVars();
-    window.mildayDropFactoryAbiFile = await fetch('./../abi/mildayDropFactoryAbi.json');
-    window.mildayDropAbiFile = await fetch('./../abi/mildayDropAbi.json');
-    let ERC721ABIFile = await fetch('./../abi/ERC721ABI.json');
-    let ERC20ABIFile = await fetch('./../abi/ERC20ABI.json');
+    //TODO
+    // u = new URL(window.location.href)
+    // base = u.host+u.pathname
+    window.mildayDropFactoryAbiFile = await fetch('./abi/mildayDropFactoryAbi.json');
+    window.mildayDropAbiFile = await fetch('./abi/mildayDropAbi.json');
+    let ERC721ABIFile = await fetch('./abi/ERC721ABI.json');
+    let ERC20ABIFile = await fetch('./abi/ERC20ABI.json');
     mildayDropAbi = await window.mildayDropAbiFile.json();
     mildayDropFactoryAbi = await window.mildayDropFactoryAbiFile.json();
     ERC721ABI = await ERC721ABIFile.json();

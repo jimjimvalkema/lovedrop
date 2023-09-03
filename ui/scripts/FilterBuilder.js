@@ -338,7 +338,7 @@ class FilterBuilder {
     }
 
 
-
+    //TODO better name
     getButtonHtml({btnType, buttonId, item, itemName, target = ["inputs", "attributes"], itemIndex=0, style = "width:60px;"}={}) {
         let html = ""
 
@@ -384,7 +384,7 @@ class FilterBuilder {
     }
 
 
-    getAllTraitsMenu(traitType, everyAttribute = this.uriHandler.everyAttribute, target = ["inputs", "attributes"]) {
+    getAllTraitsMenu(traitType, target = ["inputs", "attributes"], everyAttribute = this.uriHandler.everyAttribute) {
         const traitTypeKey = this.uriHandler.attributeFormat.traitTypeKey
         const valueKey = this.uriHandler.attributeFormat.valueKey
 
@@ -483,7 +483,7 @@ class FilterBuilder {
     }
 
     /* When the user clicks on the button, 
-toggle between hiding and showing the dropdown content */
+    toggle between hiding and showing the dropdown content */
     displayfilters() {
         this.filtersDropDown()
         document.getElementById("allFiltersDropdown").classList.toggle("show");

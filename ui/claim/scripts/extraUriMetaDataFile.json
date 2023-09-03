@@ -3,7 +3,9 @@
         "type": "milady",
         "name": "miladyTest",
         "scrapedUriData" : "ipfs://bafybeigkwunx3qniepqbw6axe3xbylhvnmqwuklgphqfh6i2k47fe37ylu",
-        "everyAttribute": "ipfs://bafkreigbdc2qajb374a3aeg47bqftw53bq57ex7ltx2g345fk62typrgkq",
+        "scrapedUriDataCbor": "ipfs://bafybeiew5nk2a37qfdthij7dtqjilwd37mrtj4bam2svbkuggsfc6oeiiu",
+        "everyAttribute": "ipfs://bafybeifjcawdoxgq3z5wzyvdekz67jf5vxxpghdimkq5xcby5y5czloe2q",
+        "everyAttributeCbor":"ipfs://bafybeichhvd4y4uyh6z7macd56xh4dk6bzfd5ckzninqbywc56up22kaom",
         "baseUriCompressed": "ipfs://bafybeia3c7bqriidimrfxm66ko4vsvdbsqzaceljwktv75godff54iopca"
     }
 }
