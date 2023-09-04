@@ -444,10 +444,10 @@ class FilterBuilder {
         return html
     }
 
-    getEditAttributesButton(currentFilter = this.getCurrentFilter(), dorpdown = false) {
+    getEditAttributesButton(currentFilter = this.getCurrentFilter(), dropdown = false) {
         //TODO find fix for doing fBuilder.setType
         let html
-        if (dorpdown) {
+        if (dropdown) {
             html = `<div class="dropdown">\n
             <button onclick="fBuilder.displayAllTraitTypes()" class="dropbtn">setType</button>\n
             <div id="allTraitTypesDropDown" class="dropdown-content">\n
