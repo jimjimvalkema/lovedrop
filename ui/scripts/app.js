@@ -310,7 +310,6 @@ function updatedDisplayedNft(id, target) {
 }
 
 async function toggleExclude(id, target) {
-    //TODO update display instead of reloading everything
     //displayNfts(0, 12)
     updatedDisplayedNft(id,target)
     //await fBuilder.displayFilter(fBuilder.currentFilterIndex)
@@ -319,7 +318,6 @@ async function toggleExclude(id, target) {
 
 async function displayNfts(currentPage, maxPerPage = 12) {
     const ids = window.currentIdsDisplay;
-    console.log(ids)
     const URI = window.URI //TODO
     let images = ""
     for (let i = 0; i < maxPerPage; i++) {
@@ -366,7 +364,7 @@ async function displayNfts(currentPage, maxPerPage = 12) {
 
 
 async function runFilter(currentFilter=fBuilder.getCurrentFilter()) {
-    window.currentIdsDisplay = [...structuredClone(await u.processFilter(currentFilter))]
+    window.currentIdsDisplay = [...structuredClone(await fBuilder.runFilter())]
     displayNfts(0, 12)
 }
 
@@ -378,6 +376,7 @@ async function test() {
 
 
     let start = Date.now();
+
     window.u = await new uriHandler(nftContract, window.urlVars["ipfsApi"])
     await u.fetchAllExtraMetaData()
     
@@ -391,9 +390,12 @@ async function test() {
     window.fBuilder = await new FilterBuilder(window.URI, structuredClone([f1,f2,f3,f4,f5,f6,f7,f8,f9]))
     //fBuilder.displayFilter(0)
     fBuilder.filtersDropDown();
-    fBuilder.currentFilterIndex=8;
-    fBuilder.displayFilter(8)
+    fBuilder.currentFilterIndex=6;
+    fBuilder.displayFilter(6)
     await runFilter()
+
+
+    
     //console.log(html)
 
     //displayNfts(0, 12)
