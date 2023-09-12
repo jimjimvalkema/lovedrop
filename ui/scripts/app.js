@@ -313,7 +313,7 @@ async function toggleExclude(id, target) {
     //displayNfts(0, 12)
     updatedDisplayedNft(id,target)
     //await fBuilder.displayFilter(fBuilder.currentFilterIndex)
-    document.getElementById("fullFilterJson").innerHTML = JSON.stringify(fBuilder.getCurrentFilter())
+    document.getElementById("editFilter").innerHTML = fBuilder.getEditFilterUi()
 }
 
 async function displayNfts(currentPage, maxPerPage = 12) {
@@ -347,7 +347,7 @@ async function displayNfts(currentPage, maxPerPage = 12) {
 
   
         url = await URI.getImage(id)
-        images += `<div id="NFT${id}" onclick="toggleExclude(${id}, [\'NOT\',\'idList\'] )" style="position: relative; margin: 2px; cursor:pointer; width: 15%; display: inline-block;" >\n 
+        images += `<div id="NFT${id}" onclick="toggleExclude(${id}, [\'NOT\',\'idList\'] )" style="position: relative; margin: 2px; cursor:pointer; width: 10vw; display: inline-block;" >\n 
                 <img src="${url}" id="image${i}" style="max-width: 100%; max-height: 100%;">\n 
                 <div id="exlcudeStatusDiv${id}" style="float: right; position: absolute; left: 0px; bottom: 0px; z-index: 1; background-color: ${exlcudeStatusDivColor}; padding: 5px; color: #FFFFFF; font-weight: bold;">\n 
                 ${exlcudeStatusDivMsg}\n 
@@ -357,15 +357,15 @@ async function displayNfts(currentPage, maxPerPage = 12) {
     //TODO make field for "go to page: x"
     const amountPages = Math.ceil(ids.length / maxPerPage - 1)
     pageSelecter = `
-        <p> <button onclick="displayNfts(${Math.max(0, currentPage - 1)},${maxPerPage})">prev</button><button onclick="displayNfts(${Math.min(amountPages, currentPage + 1)},${maxPerPage})">next</button>
-        page: ${currentPage + 1} of: ${amountPages + 1} pages </p> \n`
-    document.getElementById("nftImages").innerHTML = `${pageSelecter} <br>\n  ${images} ${pageSelecter}`
+        <button onclick="displayNfts(${Math.max(0, currentPage - 1)},${maxPerPage})">prev</button><button onclick="displayNfts(${Math.min(amountPages, currentPage + 1)},${maxPerPage})">next</button>
+        page: ${currentPage + 1} of: ${amountPages + 1} pages \n`
+    document.getElementById("nftImages").innerHTML = `${images} </br> ${pageSelecter}`
 }
 
 
 async function runFilter(currentFilter=fBuilder.getCurrentFilter()) {
     window.currentIdsDisplay = [...structuredClone(await fBuilder.runFilter())]
-    displayNfts(0, 12)
+    displayNfts(0, 14)
 }
 
 async function test() {
