@@ -1,7 +1,6 @@
 
 
 
-
 //TODO better naming
 class FilterBuilder {
     filterTemplate = { "type": "OR", "inputs": { "idList": [], "conditions": [], "attributes": [] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }
@@ -71,14 +70,126 @@ class FilterBuilder {
     async displayFilter(filterIndex=this.currentFilterIndex) {
         let html = ""
         //TODO remove debug \/
-        html += `\n <div id="fullFilterJson"> ${JSON.stringify(await this.allFilters[filterIndex])} </div>`
+        //html += `\n <div id="fullFilterJson"> ${JSON.stringify(await this.allFilters[filterIndex])} </div>`
         document.getElementById("FilterBuilder").innerHTML = html
         this.currentFilterIndex = filterIndex
-        document.getElementById("editAttributes").innerHTML =  this.getEditFilterUi(filterIndex) + this.getEditAttributesButton() 
-        document.getElementById("test").innerHTML = this.getEditItemsDropDown(this.getCurrentFilter(),["inputs","attributes"]) //TODO do this everytime item gets added
-
+        document.getElementById("editFilter").innerHTML = this.getEditFilterUi(filterIndex)
+        //document.getElementById("editAttributes").innerHTML =    this.getEditAttributesButton() 
+        //document.getElementById("test").innerHTML = this.getEditItemsDropDown(this.getCurrentFilter(),["inputs","attributes"]) //TODO do this everytime item gets added
+        document.getElementById("inputSelector").innerHTML = this.getInputSelectorUi()
         //window.idsOnDisplay = [...(await this.uriHandler.processFilter(this.allFilters[filterIndex]))] //TODO check if filter is the same and cache its result in idList
         return html
+    }
+    displayDropDown(id) {
+        document.getElementById(id).classList.toggle("show");
+    }
+
+    currentInputTypeUi() {
+        switch (window.currentTarget[1]) {
+            case "idList":
+                return "id"
+            case "conditions":
+                return "filter"
+            case "attributes":
+                return "attribute"
+        }
+    }
+
+    setInputTypeUi(type) {
+        window.currentTarget[1] = type
+        this.setInputSelectorField(window.currentTarget)
+        document.getElementById("displayDropDownbtn").innerHTML = this.currentInputTypeUi()
+    }
+
+    inputTypeDropDown() {
+        //TODO find fix for doing fBuilder.setType
+        const dropdown = `<div class="dropdown">\n
+            <button onclick="fBuilder.displayDropDown(\'inputTypeDropDown\')" class="dropbtn" id="displayDropDownbtn" >${this.currentInputTypeUi()}</button>\n
+            <div id="inputTypeDropDown" class="dropdown-content">\n
+                <button onclick="fBuilder.setInputTypeUi( \'attributes\')">attribute</button></br>\n
+                <button onclick="fBuilder.setInputTypeUi( \'idList\')">id</button></br>\n
+                <button onclick="fBuilder.setInputTypeUi( \'conditions\')">filter</button></br>\n
+            </div>\n
+        </div>\n`
+        const html = `${dropdown}`
+        return html
+    }
+
+    getInputSelectorUi() {
+        if (!window.currentTarget) {
+            window.currentTarget = ["inputs", "attributes"]
+        }
+        this.setInputSelectorField(window.currentTarget)
+        window.currentTarget[0] = "inputs"
+        let html = `
+        Add type: ${this.inputTypeDropDown()} to: <a id='AddExclBtn'><button onclick='fBuilder.switchAddExclButton()'>include list</button></a>
+        `
+        return html
+    }
+
+    switchAddExclButton() {
+        let html = ""
+        if (window.currentTarget[0] === "NOT"){
+            window.currentTarget[0] = "inputs"
+            html = "<button onclick='fBuilder.switchAddExclButton()'>include list</button>" 
+        } else {
+            window.currentTarget[0] = "NOT"
+            html = "<button onclick='fBuilder.switchAddExclButton()'>exclude list</button>"
+        }
+        document.getElementById("AddExclBtn").innerHTML = html
+        document.getElementById("editFilter").innerHTML = this.getEditFilterUi(this.currentFilterIndex)
+        this.setInputSelectorField(window.currentTarget)
+        return html
+    }
+
+    setInputSelectorField(target) {
+        switch (target[target.length-1]) {
+            case "attributes":
+                document.getElementById("inputSelectorField").innerHTML = this.getTraitTypeMenu(this.uriHandler.everyAttribute,"max-height: 30vh;margin-left:10ch;",window.currentTarget)
+                break
+            case "idList":
+                document.getElementById("inputSelectorField").innerHTML = `add nft id:<input onchange='fBuilder.addIdUi(${this.currentFilterIndex},this.value, ${JSON.stringify(window.currentTarget)})' type="number" id="idInput" name="id" min="0" max="${this.uriHandler.getTotalSupply()}"/></br>TODO make comma+space separated input` //min="10" max="100" />`
+                break
+            case "conditions":
+                document.getElementById("inputSelectorField").innerHTML = `${this.filterSelecterUi(this.allFilters, "removeFilterUi", "add")}`
+                //document.getElementById("inputSelectorField").style = 'overflow-y: scroll; height:10vh;'
+                break
+        }
+        
+    }
+
+    async addIdUi(filterIndex, id, target) {
+        if (id <= (await this.uriHandler.getTotalSupply())) {
+            this.addItem(filterIndex,id,target)
+            document.getElementById("editFilter").innerHTML = this.getEditFilterUi(this.currentFilterIndex)
+
+        } else {
+            console.log("TODO handle user error, id outside total supply")
+        }
+    }
+
+    addFilterUi(filterIndex, target=window.currentTarget) {
+        const addFilter = this.allFilters[filterIndex]
+        this.addItem(this.currentFilterIndex, addFilter, target)
+        document.getElementById(`filter${filterIndex}`).innerHTML = `remove`
+        document.getElementById(`filter${filterIndex}`).onclick = function() {fBuilder.removeFilterUi(filterIndex)}
+        document.getElementById("editFilter").innerHTML = this.getEditFilterUi(this.currentFilterIndex)
+
+        //This is debug
+        //document.getElementById("fullFilterJson").innerHTML = JSON.stringify(this.getCurrentFilter())
+
+    }
+
+    removeFilterUi(filterIndex, target=window.currentTarget) {
+        const removeFilter = this.allFilters[filterIndex]
+
+        this.removeItem(this.currentFilterIndex, removeFilter, target)
+        document.getElementById(`filter${filterIndex}`).innerHTML = `add`
+        document.getElementById(`filter${filterIndex}`).onclick = function() {fBuilder.addFilterUi(filterIndex)}
+        document.getElementById("editFilter").innerHTML = this.getEditFilterUi(this.currentFilterIndex)
+
+        //This is debug
+        //document.getElementById("fullFilterJson").innerHTML = JSON.stringify(this.getCurrentFilter())
     }
 
     async runFilter(filter=this.getCurrentFilter()) {
@@ -156,7 +267,7 @@ class FilterBuilder {
         inputInfoString += "]"
         //.log(inputInfoString)
         if (filter["NOT"] && Object.keys(filter["NOT"]).length > 0) {
-            inputInfoString += " NOT: ["
+            inputInfoString += "</br> NOT: ["
             for (const inputType of listInputType) {
                 if (filter.NOT[inputType] && Object.keys(filter.NOT[inputType]).length > 0) {
                     if (inputType === "attributes") {
@@ -208,9 +319,34 @@ class FilterBuilder {
 
 
 
-        inputInfoString = `Filter${filter.filterIndex + 1} ${filter.type}: ${inputInfoString}`
+        inputInfoString = `<div class="tooltip"> \n 
+            ${filter.filterName}
+            <span class="tooltiptext">type: ${filter.type} </br> inputs: ${inputInfoString}</span>
+        </div>`
         return inputInfoString
     }
+
+    filterSelecterUi(filters, buttonType="edit") {
+        let selectFiltersButtons = ""
+        for (let i = 0; i < filters.length; i++) {
+            const info = this.prettyPrintFilterInfo(filters[i])
+            if (buttonType==="edit") {
+                selectFiltersButtons += `<button id='editFilter${i}' onclick="fBuilder.displayFilter(${i})" >edit</button>${info}</br>\n`
+            } else {
+                //buttonType=add/remove
+                if (!(this.currentFilterIndex === i)) {
+                    if (this.getItemIndex(this.currentFilterIndex ,this.allFilters[i], window.currentTarget ) === -1) {
+                        selectFiltersButtons += `<button id='filter${i}' onclick="fBuilder.addFilterUi(${i})" >add</button>${info}</br>\n`
+
+                    } else {
+                        selectFiltersButtons += `<button id='filter${i}' onclick="fBuilder.removeFilterUi(${i})" >remove</button>${info}</br>\n`
+                    }
+                }
+
+            }
+        }
+        return selectFiltersButtons
+    } 
 
     filtersDropDown(filters = this.allFilters) {
         let selectFiltersButtons = ""
@@ -220,12 +356,12 @@ class FilterBuilder {
         }
 
         const html = `<div class="dropdown">\n
-            <button onclick="fBuilder.displayfilters()" class="dropbtn">showFilters</button>\n
-            <div id="allFiltersDropdown" class="dropdown-content">\n
-                ${selectFiltersButtons}
+            <button onclick="fBuilder.displayfilters()" class="dropbtn">select</button>\n
+            <div id="allFiltersDropdown" class="dropdown-content" style='overflow:visible; z-index:100'>\n
+                ${this.filterSelecterUi(filters)}
                 </div>\n
         </div>\n`
-        document.getElementById("filtersDropDown").innerHTML = html;
+        //document.getElementById("filtersDropDown").innerHTML = html;
         return html
 
     }
@@ -258,14 +394,32 @@ class FilterBuilder {
         return inputTypes
     }
 
-    getUiFromInputTypes(inputTypes) {
+    getUiFromInputTypes(inputTypes, inputField="inputs") {
         let html = ""
         const keys = Object.keys(inputTypes)
         for (const key of keys) {
-            html += `${key}:${inputTypes[key]} items ${"<button>edit TODO</button>"}, `
+            const target = [inputField, key]
+            const btnId  = `allInputTypesDropdown${JSON.stringify(target).replaceAll("\"", "")}`
+            const countId = `count:${JSON.stringify(target).replaceAll("\"", "")}`
+            html += `${key}:<a id=${countId}>${inputTypes[key]}</a> items 
+            <div class="dropdown">
+                <button onclick=\"fBuilder.displayEditItemsDropDown(\'${btnId}\')\" class="dropbtn">edit TODO</button>
+                <div id='${btnId}' class="dropdown-content">${this.getEditItemsDropDown(fBuilder.getCurrentFilter(),target)}</div></br>
+            </div>\n, `
         }
-        return html.slice(0,-2)
+        html = html.slice(0,-2)
+        return html 
     }
+
+        /* When the user clicks on the button, 
+    toggle between hiding and showing the dropdown content */
+    displayEditItemsDropDown(btnId) {
+        document.getElementById(btnId).classList.toggle("show");
+    }
+
+    // showEditItemsDropDown(target, currentFilter=this.getCurrentFilter()) {
+    //     document.getElementById("test").innerHTML = this.getEditItemsDropDown(fBuilder.getCurrentFilter(),target)
+    // }
 
 
 
@@ -275,23 +429,48 @@ class FilterBuilder {
         const inputTypesNOT = this.getNonEmptyInputTypes(filter, "NOT")
         if (Boolean(Object.keys(inputTypes).length)) {
             html+=`
-            inputs:[ ${this.getUiFromInputTypes(inputTypes)}]
+            inputs:[ ${this.getUiFromInputTypes(inputTypes, "inputs")}]
             `
         }
 
         if (Boolean(Object.keys(inputTypesNOT).length)) {
             html+=`
-            NOT inputs:[ ${this.getUiFromInputTypes(inputTypes)}]
+            NOT inputs:[ ${this.getUiFromInputTypes(inputTypesNOT, "NOT")}]
             `
         }
 
         return html
     }
 
+    setFilterName(filterName,filterIndex) {
+        this.allFilters[filterIndex].filterName = filterName;
+        document.getElementById("filterName").onclick = `\'fBuilder.editFilterName()\'`
+        this.displayFilter()
+    }
+
+    editFilterName(filterIndex=this.currentFilterIndex) {
+        if (document.getElementById("filterName").innerHTML.startsWith("<div")) {
+            document.getElementById("filterName").innerHTML = `Name: ${this.allFilters[filterIndex].filterName}`
+        } else {
+            document.getElementById("filterName").onclick = ''
+            document.getElementById("filterName").innerHTML = `Name: 
+            <input 
+                type="text" 
+                name="txt" 
+                value="${this.allFilters[filterIndex].filterName}"
+                onchange="fBuilder.setFilterName(this.value, ${filterIndex})"
+                style="width:11ch"
+            >`
+        }
+    }
+
     getEditFilterUi(filterIndex=this.currentFilterIndex) {
+        const currenFilterName = this.allFilters[filterIndex].filterName
         const html = `
         <div>
-            filter name:  ${"FILTERNAMETODO"}${"<button>EDIT TODO</button>"}, 
+            ${this.filtersDropDown()}
+            <a id="filterName" onclick='fBuilder.editFilterName()' class='clickable'>Name: ${currenFilterName}</a>
+        
             Type: ${this.getCurrentFilter().type}${this.getTypeUi(filterIndex)},  
             ${this.getInputsUi(this.allFilters[filterIndex])}
 
@@ -305,7 +484,7 @@ class FilterBuilder {
     getTypeUi(filterIndex = 0) {
         //TODO find fix for doing fBuilder.setType
         const dropdown = `<div class="dropdown">\n
-            <button onclick="fBuilder.displayTypes()" class="dropbtn">edit</button>\n
+            <button onclick="fBuilder.displayTypes()" class="dropbtn" >edit</button>\n
             <div id="filterTypeDropdown" class="dropdown-content">\n
                 <button onclick="fBuilder.setType(${filterIndex}, \'AND\')">AND</button></br>\n
                 <button onclick="fBuilder.setType(${filterIndex}, \'OR\')">OR</button></br>\n
@@ -330,19 +509,20 @@ class FilterBuilder {
         //     l = l[i]
 
         // }
-
         let l = this.getTargettedObject(this.allFilters[filterIndex], target)
+        if (typeof(item) !== 'object') {
+            if (l.indexOf(item) !== -1 ) {
+                console.log("item already in list")
+                return -1
+            }
+        }
         const index = l.push(item) - 1
         return index
     }
 
-    removeItem(filterIndex, itemIndex, target = ["inputs", "attributes"]) {
-        // let l = this.allFilters[filterIndex]
-        // for (let i of target) {
-        //     l = l[i]
-
-        // }
+    removeItem(filterIndex, item, target = ["inputs", "attributes"]) {
         let l = this.getTargettedObject(this.allFilters[filterIndex], target)
+        const itemIndex = this.getItemIndex(filterIndex,item,target)//l.map(x => JSON.stringify(x)).indexOf(JSON.stringify(item))
         l.splice(itemIndex, 1)
     }
 
@@ -372,89 +552,110 @@ class FilterBuilder {
     }
 
     addItemInUi(filterIndex, item,buttonId, target = ["inputs", "attributes"]) {
-        const traitTypeKey = this.uriHandler.attributeFormat.traitTypeKey
         const valueKey = this.uriHandler.attributeFormat.valueKey
+        let itemName;
+        if (target[target.length-1] === "attributes" ) {
+            itemName = item[valueKey]
+        } else {
+            itemName = item
+        }
 
+        const traitTypeKey = this.uriHandler.attributeFormat.traitTypeKey
         const itemIndex = this.addItem(filterIndex, item, target)
         document.getElementById(buttonId).innerHTML = this.getButtonHtml({
-            btnType:"remove",
+            btnType:'remove',
             buttonId:buttonId,
-            item:JSON.stringify(item),
-            itemName:item[valueKey],
-            target:["inputs", "attributes"],
+            item:item,
+            itemName:itemName,
+            target:target,
             itemIndex
         });
 
         //This is debug
-        document.getElementById("fullFilterJson").innerHTML = JSON.stringify(this.getCurrentFilter())
+        //document.getElementById("fullFilterJson").innerHTML = JSON.stringify(this.getCurrentFilter())
+
+        //this.setInputSelectorField(window.currentTarget)
+        document.getElementById("editFilter").innerHTML = this.getEditFilterUi(filterIndex)
         console.log(`changing: ${buttonId}`)
     }
 
 
-    removeItemInUi(filterIndex, item, itemIndex,buttonId, target = ["inputs", "attributes"], isSwitch=true) {
-        const traitTypeKey = this.uriHandler.attributeFormat.traitTypeKey
+    removeItemInUi(filterIndex, item,buttonId, target = ["inputs", "attributes"], isSwitch=true) {
         const valueKey = this.uriHandler.attributeFormat.valueKey
-        this.removeItem(filterIndex, itemIndex, target)
+        let itemName;
+        if (target[target.length-1] === "attributes" ) {
+            itemName = item[valueKey]
+        } else {
+            itemName = item
+        }
+        const traitTypeKey = this.uriHandler.attributeFormat.traitTypeKey
+        this.removeItem(filterIndex, item, target)
         if (isSwitch) {
             document.getElementById(buttonId).innerHTML = this.getButtonHtml({
-                btnType:"add",
+                btnType:'add',
                 buttonId:buttonId,
-                item:JSON.stringify(item),
-                itemName:item[valueKey],
-                target:["inputs", "attributes"]
+                item:item,
+                itemName:itemName,
+                target:target
             });
         } else {
             document.getElementById(buttonId).innerHTML = ''
         }
         
         //This is debug
-        document.getElementById("fullFilterJson").innerHTML = JSON.stringify(this.getCurrentFilter())
-        console.log(`changing: ${buttonId}`)
+        //document.getElementById("fullFilterJson").innerHTML = JSON.stringify(this.getCurrentFilter())
 
-        //quick fix for indexes changing when removing
-        this.displayFilter()
+        //this.setInputSelectorField(window.currentTarget)
+        //document.getElementById("editFilter").innerHTML = this.getEditFilterUi(filterIndex)
+        if (buttonId.startsWith("remove")) {
+            document.getElementById(`count:${buttonId.split("-")[1]}`).innerHTML -= 1
+        }
+        console.log(`changing: ${buttonId}`)
     }
 
 
     //TODO better name
-    getButtonHtml({btnType, buttonId, item, itemName, target = ["inputs", "attributes"], itemIndex=0, isSwitch=true, style = "width:60px;"}={}) {
+    getButtonHtml({btnType, buttonId, item, itemName, target = ["inputs", "attributes"], isSwitch=true, style = "width:8ch;"}={}) {
+        // if("filterIndex" in item) {
+        //     item = {"filterIndex":item.filterIndex}
+        // }
+
         let html = ""
 
         switch (btnType) {
             case "add":
                 html = `
-                <div id='${buttonId}'>
+                <div id=${buttonId}>
                     <button 
+                        class='dropbtn'
                         style="${style}" 
                         onclick='
                             fBuilder.addItemInUi(
                                 ${this.currentFilterIndex},
-                                ${item}, 
+                                ${JSON.stringify(item).replaceAll("\'","")}, 
                                 "${buttonId}",
-                                ${JSON.stringify(target)},
+                                ${JSON.stringify(target).replaceAll("\'", "\"")},
                             )'>add
                     </button>
-                    <a>${itemName}</a>
-                </div>\n`
+                    <a>${itemName}</a></div>\n`
                 break
 
                 case "remove":
                     html = `
-                    <div id='${buttonId}'>
+                    <div id=${buttonId}>
                         <button 
+                            class='dropbtn'
                             style="${style}" 
                             onclick='
                                 fBuilder.removeItemInUi(
                                     ${this.currentFilterIndex},
-                                    ${item}, 
-                                    ${itemIndex},
+                                    ${JSON.stringify(item).replaceAll("\'","")}, 
                                     "${buttonId}",
-                                    ${JSON.stringify(target)},
+                                    ${JSON.stringify(target).replaceAll("\'", "\"")},
                                     ${isSwitch}
                                 )'>remove
                         </button>
-                        <a>${itemName}</a>
-                    </div>\n`
+                        <a>${itemName}</a></div>\n`
                     break
         }
 
@@ -491,17 +692,16 @@ class FilterBuilder {
                 html += this.getButtonHtml({
                     btnType : "add",
                     buttonId : buttonId,
-                    item : JSON.stringify(item),
+                    item : item,
                     itemName : attribute,
-                    target:["inputs", "attributes"]})
+                    target: target})
             } else {
                 html += this.getButtonHtml({
                     btnType : "remove",
                     buttonId : buttonId,
-                    item : JSON.stringify(item),
+                    item : item,
                     itemName : attribute,
-                    target : ["inputs", "attributes"],
-                    itemIndex : itemIndex})
+                    target : target})
             }   
 
         }
@@ -509,21 +709,42 @@ class FilterBuilder {
 
     }
 
-    getTraitTypeMenu(everyAttribute = this.uriHandler.everyAttribute) {
+    getTraitTypeMenu(everyAttribute = this.uriHandler.everyAttribute, style="", target=["inputs","attributes"]) {
 
         let html = ""
-        for (let traitType of Object.keys(everyAttribute)) {
+        const keys = Object.keys(everyAttribute)
+        for (let i=0; i<keys.length;i++) {
+            const traitType = keys[i]
             html += `<div class="dropdown">\n
-                <button onclick="fBuilder.displayAllAttributes(\'${traitType}\')" class="dropbtn">${traitType}</button></br>\n
-                <div id="${traitType}AttributesDropDown" class="dropdown-content" >\n
-                    ${this.getAllTraitsMenu(traitType)}
+                <button onclick="fBuilder.displayAllAttributes(\'${traitType}\')" class="dropbtn">${traitType}</button>\n
+                <div id="${traitType}AttributesDropDown" class="dropdown-content" style="${style};z-index:${i+1}">\n
+                    ${this.getAllTraitsMenu(traitType, target)}
                 </div>\n
-            </div>\n`
+            </div></br>\n
+            `
         }
         return html
     }
 
+    getEditAttributesButton(currentFilter = this.getCurrentFilter(), dropdown = true ) {
+        //TODO find fix for doing fBuilder.setType
+        let html
+        if (dropdown) {
+            html = `<div class="dropdown">\n
+            <button onclick="fBuilder.displayAllTraitTypes()" class="dropbtn">set attribute</button>\n
+            <div id="allTraitTypesDropDown" class="dropdown-content">\n
+                ${this.getTraitTypeMenu()}
+            </div>\n
+        </div>\n`
+        } else {
+            html = this.getTraitTypeMenu()
+        }
+        return html
+
+    }
+
     getEditItemsDropDown(filter, target=["inputs", "attributes"]) {
+        const btnId = `editItemsDropDown${JSON.stringify(target).replaceAll("\"","")}`
         const traitTypeKey = this.uriHandler.attributeFormat.traitTypeKey
         const attrValueKey =  this.uriHandler.attributeFormat.valueKey
         const items = this.getTargettedObject(filter, target);
@@ -538,43 +759,43 @@ class FilterBuilder {
                 itemsNames = itemsNames.map((x) => `${x.filterIndex}:${x.filterName}`)
                 itemType = "condition"
                 break
+            case "idList":
+                itemType = "ids"
+                break
         }
 
         let html = ""
         for (let i=0; i<items.length; i++) {
             const itemIndex = this.getItemIndex(this.currentFilterIndex, items[i], target);
-            const buttonId = `remove${JSON.stringify(items[i]).replaceAll("\"","").slice(1,-1)}` //it's ugly but works
+            let buttonId;
+            let stringFiedItem;
+            if (target[1]==="conditions") {
+                buttonId = `remove-${JSON.stringify(target)}-Filter${items[i].filterIndex}`
+                buttonId = buttonId.replaceAll("\"","").replaceAll(" ","") //it's ugly but works
+                stringFiedItem = `filter:${JSON.stringify(items[i].filterIndex)}`
+
+            } else {
+                buttonId = `remove-${JSON.stringify(target)}-${JSON.stringify(items[i]).slice(1,-1)}` //it's ugly but works
+                buttonId = buttonId.replaceAll("\"","").replaceAll(" ","")
+                stringFiedItem = JSON.stringify(items[i])
+
+            }
+        
+
 
             html += this.getButtonHtml({
-                btnType : "remove",
+                btnType : 'remove',
                 buttonId : buttonId,
-                item : JSON.stringify(items[i]),
+                item : items[i],
                 itemName : itemsNames[i],
                 target : target,
                 itemIndex : itemIndex,
                 isSwitch : false})
         }
 
-        return html+`<button>add ${itemType} TODO</button>`
-
-
-    }
-
-    getEditAttributesButton(currentFilter = this.getCurrentFilter(), dropdown = false ) {
-        //TODO find fix for doing fBuilder.setType
-        let html
-        if (dropdown) {
-            html = `<div class="dropdown">\n
-            <button onclick="fBuilder.displayAllTraitTypes()" class="dropbtn">setType</button>\n
-            <div id="allTraitTypesDropDown" class="dropdown-content">\n
-                ${this.getTraitTypeMenu()}
-            </div>\n
-        </div>\n`
-        } else {
-            html = this.getTraitTypeMenu()
-        }
+        html += `<button onclick='window.currentTarget=${JSON.stringify(target)}'>TODO add ${itemType}</button>`
+        //document.getElementById("allTraitTypesDropDown").innerHTML = this.getTraitTypeMenu()
         return html
-
     }
 
 
@@ -582,8 +803,8 @@ class FilterBuilder {
         document.getElementById(`${trait_type}AttributesDropDown`).classList.toggle("show");
     }
 
-    displayAllTraitTypes() {
-        document.getElementById("allTraitTypesDropDown").classList.toggle("show");
+    displayAllTraitTypes(btnId) {
+        document.getElementById(btnId).classList.toggle("show");
     }
 
 
@@ -610,7 +831,7 @@ class FilterBuilder {
 }
 
 // Close the dropdown if the user clicks outside of it
-window.onclick = function (event) {
+window.onclick = function (event) { //TODO  dropbtn class unique for each dropdown to make sure other dropdowns close when new one apears
     if (!event.target.matches('.dropbtn')) {
         var dropdowns = document.getElementsByClassName("dropdown-content");
         var i;
