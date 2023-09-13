@@ -34,6 +34,14 @@ let f8 = { "type": "AND", "inputs": { "conditions": [f1, f2, f3, f4, f5, f6] } }
 
 window.f9 = { "type": "RANGE", "inputs": { "idList": [], "conditions": [], "attributes": [] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }
 
+
+window.BlueBowl = {"type":"OR","inputs":{"idList":[],"conditions":[],"attributes":[{"trait_type":"Hair","value":"bowl blue"}]},"NOT":{"idList":[],"conditions":[],"attributes":[]},"filterName":"newFilter10","filterIndex":9}
+
+
+window.fBlueEyeBlueBowl = {"type":"AND","inputs":{"idList":[],"conditions":[window.BlueBowl],"attributes":[{"trait_type":"Eye Color","value":"blue"}]},"NOT":{"idList":[],"conditions":[],"attributes":[]},"filterName":"newFilter11","filterIndex":10}
+
+window.blackTennisPlayers = {"type":"AND","inputs":{"idList":[],"conditions":[],"attributes":[{"trait_type":"Race","value":"black"},{"trait_type":"Background","value":"tennis"}]},"NOT":{"idList":[],"conditions":[],"attributes":[]},"filterName":"newFilter12","filterIndex":11}
+
 function message(message) {
     console.log(message);
     document.getElementById("message").innerHTML = message;
@@ -359,13 +367,19 @@ async function displayNfts(currentPage, maxPerPage = 12) {
     pageSelecter = `
         <button onclick="displayNfts(${Math.max(0, currentPage - 1)},${maxPerPage})">prev</button><button onclick="displayNfts(${Math.min(amountPages, currentPage + 1)},${maxPerPage})">next</button>
         page: ${currentPage + 1} of: ${amountPages + 1} pages \n`
-    document.getElementById("nftImages").innerHTML = `${images} </br> ${pageSelecter}`
+    document.getElementById("nftImages").innerHTML = `${pageSelecter} </br> ${images} </br> ${pageSelecter}`
 }
 
 
 async function runFilter(currentFilter=fBuilder.getCurrentFilter()) {
+    let start = Date.now();
+
     window.currentIdsDisplay = [...structuredClone(await fBuilder.runFilter())]
+    console.log(window.currentIdsDisplay)
     displayNfts(0, 14)
+
+    let timeTaken = Date.now() - start;   
+    console.log("Total time taken : " + timeTaken + " milliseconds");
 }
 
 async function test() {
@@ -380,19 +394,18 @@ async function test() {
     window.u = await new uriHandler(nftContract, window.urlVars["ipfsApi"])
     await u.fetchAllExtraMetaData()
     
-    let timeTaken = Date.now() - start;
-    console.log("Total time taken : " + timeTaken + " milliseconds");
-    console.log(window.currentIdsDisplay)
-
     window.URI = u
 
 
-    window.fBuilder = await new FilterBuilder(window.URI, structuredClone([f1,f2,f3,f4,f5,f6,f7,f8,f9]))
+    window.fBuilder = await new FilterBuilder(window.URI, structuredClone([f1,f2,f3,f4,f5,f6,f7,f8,f9,window.BlueBowl,window.fBlueEyeBlueBowl,window.blackTennisPlayers]))
     //fBuilder.displayFilter(0)
     fBuilder.filtersDropDown();
-    fBuilder.currentFilterIndex=6;
-    fBuilder.displayFilter(6)
+    fBuilder.currentFilterIndex=11;
+    fBuilder.displayFilter(11)
     await runFilter()
+
+    console.log(window.currentIdsDisplay)
+
 
 
     
@@ -439,6 +452,7 @@ async function runOnLoad() {
     window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth, isGateway = false);
 
     await loadAllContracts()
+    test()
 
 }
 

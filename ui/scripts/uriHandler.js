@@ -59,7 +59,7 @@ class uriHandler {
                 break;
             case "milady":
                 // miladymaker.net cors wont allow me to get metadata :(
-                imgURL = `https://www.miladymaker.net/milady/${id}.png`;
+                imgURL = `https://raw.githubusercontent.com/remiliacorp/miladycollection/main/${id}.png`;
                 break;
             default:
                 //imgURL = `https://www.miladymaker.net/milady/${id}.png`;
@@ -144,7 +144,6 @@ class uriHandler {
             let endChunk = 0;
             for (let startChunk = 0; startChunk < endId;) {
                 endChunk += chunkSize;
-                console.log(startChunk, endChunk);
                 if (endChunk > endId) { //brain cooked prob not good fix TODO
                     endChunk = endId
                 }
@@ -197,7 +196,6 @@ class uriHandler {
     }
 
     async syncUriCache(startId = 0, endId = null, chunkSize = 100) {
-        console.log((await this.extraUriMetaData).scrapedUriData)
         if ((await this.extraUriMetaData).scrapedUriData) {
             this.uriCache = await (await this.getUrlByProtocol((await this.extraUriMetaData).scrapedUriData)).json()
         } else {
@@ -285,6 +283,25 @@ class uriHandler {
         }
     }
 
+    getIdsWithEveryAtrribureObj(attribute) {
+        if(!this.everyAttribute) {
+            throw Error(`everyAttribute is: ${this.everyAttribute}`)
+        } else {
+            return this.everyAttribute[attribute[this.attributeFormat.traitTypeKey]].attributes[attribute[this.attributeFormat.valueKey]].ids
+        }
+    }
+
+
+    getNumberWithinRange(arr,start,stop) {
+        //TODO can we assume it sorted?
+        // arr.sort(function(a, b) {
+        //     return a - b;
+        //   });
+        return arr.filter(function( x ) {
+            return (x>start&&x<stop);
+         });
+    }
+
     /**
      * returns set object with all matchin attributes
      * @param {Object} attribute 
@@ -295,23 +312,41 @@ class uriHandler {
      * @return {Set} matchingIds
      */
     async getIdsByAttribute(attribute, startId = 0, endId = null, idSet = null, excludeIdSet = new Set()) {
+        //console.log(attribute, startId = 0, endId = null, idSet = null, excludeIdSet = new Set())
         let matchingIds = new Set()
         if (!idSet || idSet.size === 0) {
             if (endId === null) {
                 endId = await this.getTotalSupply()
             }
-            for (let id = startId; id < endId; id++) {
-                //console.log(id)
-                if (!excludeIdSet.has(id) && await this.hasAttribute(id, attribute) === true) {
-                    matchingIds.add(id)
+
+            if(this.everyAttribute) {
+                let allIds = this.getIdsWithEveryAtrribureObj(attribute)
+                if (startId===0 && endId===await this.getTotalSupply()) {
+                    matchingIds = new Set([...allIds])
+                } else {
+                    matchingIds = new Set([...this.getNumberWithinRange(allIds, startId, endId)])
+                }
+
+            } else {
+                for (let id = startId; id < endId; id++) {
+                    if (!excludeIdSet.has(id) && await this.hasAttribute(id, attribute) === true) {
+                        matchingIds.add(id)
+                    }
                 }
             }
         } else {
-            for (const id of idSet) {
-                if (!excludeIdSet.has(id) && await this.hasAttribute(id, attribute) === true) {
-                    matchingIds.add(id)
+            if(this.everyAttribute) {
+                let allIds = this.getIdsWithEveryAtrribureObj(attribute)
+                matchingIds = this.setIntersection(idSet,new Set([...allIds]))
+
+            } else {
+                for (const id of idSet) {
+                    if (!excludeIdSet.has(id) && await this.hasAttribute(id, attribute) === true) {
+                        matchingIds.add(id)
+                    }
                 }
             }
+
         }
         return matchingIds
     }
@@ -353,6 +388,8 @@ class uriHandler {
         //let newIdSet = new Set([...Array(endId-startId).keys()].map(i => i + startId));
     }
     setIntersection(setA, setB) {
+        window.setA = setA
+        window.setB = setB
         let intersectionSet = new Set();
     
         for (let i of setB) {
@@ -405,32 +442,48 @@ class uriHandler {
             //do 1 attribute first to reduce the set of ids before parallelisation 
             const attributesCopy = [ ...inputs.attributes]
             const firstAttr = attributesCopy.shift()
-            const newIdSet = await this.getIdsByAttribute(firstAttr, 0, null, idSet, excludeIdSet)
-            idSet = newIdSet;
+            const firstAttrSet = (await this.getIdsByAttribute(firstAttr, 0, null, idSet, excludeIdSet))
+            if (idSet.size) {
+                idSet= this.setIntersection(idSet, firstAttrSet)
+            } else {
+                idSet = firstAttrSet
+            }
 
             let newIdSets = []
-            for (const attribute of inputs.attributes) {
+            for (const attribute of attributesCopy) {
                 newIdSets.push(this.getIdsByAttribute(attribute, 0, null, idSet, excludeIdSet) ) //idSet excluded so theyre not processed (they're allready)
             }
-            for (const newIdSet of (await Promise.all(newIdSets))) {
-                idSet= this.setIntersection(idSet, newIdSet)
+            if (newIdSets.length) {
+                for (const newIdSet of (await Promise.all(newIdSets))) {
+                    idSet= this.setIntersection(idSet, newIdSet)
+                }
             }
         }
 
 
         if ("conditions" in inputs && typeof(inputs.conditions) === "object" && Object.keys(inputs.conditions).length) {//TODO this can be a function?
+            const conditionsClone = structuredClone(inputs.conditions)
             let newIdSets = []
-            for (const con of inputs.conditions) {
-                if (!"idList" in con.NOT || !con.NOT.idList) {
-                    con.NOT.idList = []
-                }
-                con.NOT.idList = [...new Set([...idSet, ...con.NOT.idList])] //prevents that condition from checking ids that are already checked
+            for (const con of conditionsClone) {
+                // if (!"idList" in con.NOT || !con.NOT.idList) {
+                //     con.NOT.idList = []
+                // }
+                // console.log((await this.getTotalSupply()))
+                // let allIds = new Set([...Array(await this.getTotalSupply()).keys()].map(i => i + 0))
+                // con.NOT.idList = this.setComplement(allIds, idSet)  //[...new Set([...idSet, ...con.NOT.idList])] //prevents that condition from checking ids that are already checked
+                con.idSetFromAndParent = idSet
                 newIdSets.push(this.processCondition(con))
             }
+
             //paralelization TODO also do this for attributes?
             //TODO check if correct
-            for (const newIdSet of (await Promise.all(newIdSets))) {
-                idSet= this.setIntersection(idSet, newIdSet)
+            const resolvedNewIdSets = await Promise.all(newIdSets);
+            //const resolvedNewIdSets = newIdSets.map((x) => [...x]);
+            if (resolvedNewIdSets.length) {
+                for (const newIdSet of resolvedNewIdSets) {
+                    idSet= this.setIntersection(await idSet, await newIdSet)
+                }
+
             }
         }
 
@@ -444,9 +497,9 @@ class uriHandler {
         //     }
         // }
 
-        if (excludeIdSet.size) {
-            idSet = this.setComplement(idSet, excludeIdSet);
-        }
+        // if (excludeIdSet.size) {
+        //     idSet = this.setComplement(idSet, excludeIdSet);
+        // }
 
         return idSet
     }
@@ -474,7 +527,13 @@ class uriHandler {
         if ("attributes" in inputs && typeof(inputs.attributes) === "object" && Object.keys(inputs.attributes).length)  {
             let newIdSets = []
             for (const attribute of inputs.attributes) {
-                newIdSets.push(this.getIdsByAttribute(attribute, 0, null, null, new Set([...excludeIdSet, ...idSet])) ) //idSet excluded so theyre not processed (they're allready)
+                if ("idSetFromAndParent" in condition) {
+                    newIdSets.push(this.getIdsByAttribute(attribute, 0, null,condition.idSetFromAndParent, new Set([...excludeIdSet, ...idSet])) ) //idSet excluded so theyre not processed (they're allready)
+
+                } else {
+                    newIdSets.push(this.getIdsByAttribute(attribute, 0, null, null, new Set([...excludeIdSet, ...idSet])) ) //idSet excluded so theyre not processed (they're allready)
+                }
+                
             }
             //paralelization
             newIdSets = await Promise.all(newIdSets);
@@ -509,7 +568,6 @@ class uriHandler {
         let idSet = new Set();
         if ("idList" in inputs && typeof(inputs.idList) === "object" && Object.keys(inputs.idList).length) {
             idSet = new Set(inputs.idList)
-            console.log(idSet)
         } 
         //if ("attributes" in inputs && inputs.attributes)  {
         if ("attributes" in inputs && typeof(inputs.attributes) === "object" && Object.keys(inputs.attributes).length)  {
@@ -554,6 +612,7 @@ class uriHandler {
         if (!"stop" in inputs || !inputs.stop || inputs.stop === "totalSupply") {
             inputs.stop = await this.getTotalSupply()
         }
+        //TODO inputs.stop-inputs.start
 
         let idSet = new Set([...Array(inputs.stop-inputs.start).keys()].map(i => i + inputs.start)) //range(inputs.start, inputs.stop)
 
