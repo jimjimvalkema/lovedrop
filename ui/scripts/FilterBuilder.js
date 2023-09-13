@@ -57,7 +57,9 @@ class FilterBuilder {
         }
 
         filter.filterIndex = index
-        filter.filterName = `${filter.type}FILTER${filter.filterIndex}`
+        if (!("filterName" in filter)) {
+            filter.filterName = `${filter.type}FILTER${filter.filterIndex}`
+        }
 
 
         return filter
@@ -79,6 +81,13 @@ class FilterBuilder {
         document.getElementById("inputSelector").innerHTML = this.getInputSelectorUi()
         //window.idsOnDisplay = [...(await this.uriHandler.processFilter(this.allFilters[filterIndex]))] //TODO check if filter is the same and cache its result in idList
         return html
+    }
+
+    switchFilter(filterIndex) {
+        this.currentFilterIndex = filterIndex
+        document.getElementById("editFilter").innerHTML = this.getEditFilterUi(filterIndex)
+        this.setInputSelectorField(window.currentTarget)
+
     }
     displayDropDown(id) {
         document.getElementById(id).classList.toggle("show");
@@ -193,9 +202,8 @@ class FilterBuilder {
     }
 
     async runFilter(filter=this.getCurrentFilter()) {
-        console.log("getEditItemsDropDown")
         this.displayFilter()
-        return this.uriHandler.processFilter(filter)
+        return await this.uriHandler.processFilter(filter)
         
     }
 
@@ -331,7 +339,7 @@ class FilterBuilder {
         for (let i = 0; i < filters.length; i++) {
             const info = this.prettyPrintFilterInfo(filters[i])
             if (buttonType==="edit") {
-                selectFiltersButtons += `<button id='editFilter${i}' onclick="fBuilder.displayFilter(${i})" >edit</button>${info}</br>\n`
+                selectFiltersButtons += `<button id='editFilter${i}' onclick="fBuilder.switchFilter(${i})" >edit</button>${info}</br>\n`
             } else {
                 //buttonType=add/remove
                 if (!(this.currentFilterIndex === i)) {
@@ -348,6 +356,18 @@ class FilterBuilder {
         return selectFiltersButtons
     } 
 
+    createNewFilterUi() {
+        let newFilter = structuredClone(this.filterTemplate)
+        newFilter.filterName = `newFilter${this.allFilters.length+1}`
+        newFilter.filterIndex = this.allFilters.length
+        this.currentFilterIndex = this.allFilters.length
+        this.allFilters.push(this.formatNewFilter(newFilter, this.allFilters.length))
+
+        document.getElementById("editFilter").innerHTML = this.getEditFilterUi(this.currentFilterIndex )
+        this.setInputSelectorField(window.currentTarget)
+
+    }
+
     filtersDropDown(filters = this.allFilters) {
         let selectFiltersButtons = ""
         for (let i = 0; i < filters.length; i++) {
@@ -357,8 +377,9 @@ class FilterBuilder {
 
         const html = `<div class="dropdown">\n
             <button onclick="fBuilder.displayfilters()" class="dropbtn">select</button>\n
-            <div id="allFiltersDropdown" class="dropdown-content" style='overflow:visible; z-index:100'>\n
+            <div id="allFiltersDropdown" class="dropdown-content" style='overflow:visible; z-index:100; max-height:fit-content;'>\n
                 ${this.filterSelecterUi(filters)}
+                <button class="dropbtn" onclick='fBuilder.createNewFilterUi()'>create new filter</button>
                 </div>\n
         </div>\n`
         //document.getElementById("filtersDropDown").innerHTML = html;
@@ -611,6 +632,7 @@ class FilterBuilder {
             document.getElementById(`count:${buttonId.split("-")[1]}`).innerHTML -= 1
         }
         console.log(`changing: ${buttonId}`)
+        document.getElementById("editFilter").innerHTML = this.getEditFilterUi(filterIndex)
     }
 
 
@@ -756,7 +778,7 @@ class FilterBuilder {
                 itemType = "attribute"
                 break
             case "conditions":
-                itemsNames = itemsNames.map((x) => `${x.filterIndex}:${x.filterName}`)
+                itemsNames = itemsNames.map((x) => `${x.filterIndex+1}:${x.filterName}`)
                 itemType = "condition"
                 break
             case "idList":
