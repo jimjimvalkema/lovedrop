@@ -582,22 +582,27 @@ class FilterBuilder {
         }
 
         const traitTypeKey = this.uriHandler.attributeFormat.traitTypeKey
+        console.log(`adding ${JSON.stringify(item)} to filterindex:${filterIndex} to target: ${target}`)
         const itemIndex = this.addItem(filterIndex, item, target)
-        document.getElementById(buttonId).innerHTML = this.getButtonHtml({
-            btnType:'remove',
-            buttonId:buttonId,
-            item:item,
-            itemName:itemName,
-            target:target,
-            itemIndex
-        });
+        if (buttonId !== "") {
+            document.getElementById(buttonId).innerHTML = this.getButtonHtml({
+                btnType:'remove',
+                buttonId:buttonId,
+                item:item,
+                itemName:itemName,
+                target:target,
+                itemIndex
+            });
+
+        }
 
         //This is debug
         //document.getElementById("fullFilterJson").innerHTML = JSON.stringify(this.getCurrentFilter())
 
         //this.setInputSelectorField(window.currentTarget)
         document.getElementById("editFilter").innerHTML = this.getEditFilterUi(filterIndex)
-        console.log(`changing: ${buttonId}`)
+        console.log(`pressed: ${buttonId}`)
+        
     }
 
 
@@ -685,19 +690,8 @@ class FilterBuilder {
 
     }
 
-
-    getAllTraitsMenu(traitType, target = ["inputs", "attributes"], everyAttribute = this.uriHandler.everyAttribute) {
-        const traitTypeKey = this.uriHandler.attributeFormat.traitTypeKey
-        const valueKey = this.uriHandler.attributeFormat.valueKey
-
-        let html = ""
-        switch (everyAttribute[traitType].attribute) {
-            case "string":
-                break
-            case "number":
-                break
-        }
-        
+    getStringButtons(everyAttribute, traitType, traitTypeKey, valueKey, target) {
+        let html = ''
         for (let attribute of Object.keys(everyAttribute[traitType].attributes)) {
             
             //specific to attr
@@ -729,6 +723,55 @@ class FilterBuilder {
         }
         return html
 
+    }
+
+
+    getAllTraitsMenu(traitType, target = ["inputs", "attributes"], everyAttribute = this.uriHandler.everyAttribute) {
+        const traitTypeKey = this.uriHandler.attributeFormat.traitTypeKey
+        const valueKey = this.uriHandler.attributeFormat.valueKey
+
+        let html = ""
+
+        switch (everyAttribute[traitType].dataType) {
+            case "string":
+                html += this.getStringButtons(everyAttribute, traitType,traitTypeKey, valueKey, target)
+                break
+            case "number": //addItemInUi(filterIndex, item,buttonId, target = ["inputs", "attributes"])
+                //TODO!! prevent adding duplicates and dont use onchange
+                html += `<input 
+                style='width:15ch'
+                class='dropbtn' 
+                onkeydown='fBuilder.addNumerAttributeUi(event,${this.currentFilterIndex},"${traitType}", this.value,"", ${JSON.stringify(target)})' 
+                type="number" id="${traitType}Input" 
+                name="${traitType}" 
+                min="${everyAttribute[traitType].min}"
+                max="${everyAttribute[traitType].max}"
+                placeholder='min:${parseInt(everyAttribute[traitType].min)} - max:${parseInt(everyAttribute[traitType].max)}'
+                />Press enter to add
+                `
+                
+                break
+        }
+        
+
+        return html
+
+    }
+
+    addNumerAttributeUi(event, filterIndex, traitType,value,buttonId, target = ["inputs", "attributes"]) {
+        if(event.key === 'Enter') {
+            const traitTypeKey = this.uriHandler.attributeFormat.traitTypeKey
+            const valueKey = this.uriHandler.attributeFormat.valueKey
+            let attr = {}
+            attr[traitTypeKey]= traitType
+            attr[valueKey] = value
+            if(this.getItemIndex(filterIndex, attr, target) === -1) {
+                this.addItemInUi(filterIndex, attr,buttonId, target)  
+
+            } else {
+                console.log(`item: ${JSON.stringify(attr)}, already added to filterindex: ${filterIndex}, at target: ${JSON.stringify(target)}`)
+            }
+        }
     }
 
     getTraitTypeMenu(everyAttribute = this.uriHandler.everyAttribute, style="", target=["inputs","attributes"]) {

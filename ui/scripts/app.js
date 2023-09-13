@@ -371,12 +371,15 @@ async function displayNfts(currentPage, maxPerPage = 12) {
 }
 
 
+
 async function runFilter(currentFilter=fBuilder.getCurrentFilter()) {
     let start = Date.now();
+    document.getElementById('nftImages').style.display = 'none' //TODO this applies only after the function is done
 
     window.currentIdsDisplay = [...structuredClone(await fBuilder.runFilter())]
     console.log(window.currentIdsDisplay)
     displayNfts(0, 14)
+    document.getElementById('nftImages').style.display = 'initial'
 
     let timeTaken = Date.now() - start;   
     console.log("Total time taken : " + timeTaken + " milliseconds");
@@ -389,7 +392,6 @@ async function test() {
     // }
 
 
-    let start = Date.now();
 
     window.u = await new uriHandler(nftContract, window.urlVars["ipfsApi"])
     await u.fetchAllExtraMetaData()
@@ -401,7 +403,7 @@ async function test() {
     //fBuilder.displayFilter(0)
     fBuilder.filtersDropDown();
     fBuilder.currentFilterIndex=11;
-    fBuilder.displayFilter(11)
+    //fBuilder.displayFilter(11)
     await runFilter()
 
     console.log(window.currentIdsDisplay)
