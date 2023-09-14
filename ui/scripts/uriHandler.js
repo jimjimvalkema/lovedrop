@@ -5,24 +5,27 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 //TODO maybe attibute finder is better name? or maybe split classes
 class uriHandler {
     contractObj = undefined;
+
     extraUriMetaData = undefined;
+
     uriCache = []
     baseURICache = undefined;
     ipfsGateway = undefined;
     everyAttribute = undefined;
     useCustomCompressedImages;
+    idStartsAt = 0;
     attributeFormat = {
         pathToAttributeList: ["attributes"],
         traitTypeKey: "trait_type",
         valueKey: "value"
     } //TODO make this customizable with extraUriMetaDataFile
     //TODO fix naming
-    constructor(contractObj, _ipfsGateway = "http://localhost:48084",customCompressedImages=true, extraUriMetaDataFile = "./claim/scripts/extraUriMetaDataFile.json", _extraUriMetaData = undefined) {
+    constructor(contractObj, _ipfsGateway = "http://localhost:48084",_customCompressedImages=true, _extraUriMetaDataFile = "./extraUriMetaDataFile.json", _extraUriMetaData = undefined) {
         this.contractObj = contractObj;
         this.ipfsGateway = _ipfsGateway;
-        this.useCustomCompressedImages = customCompressedImages;
-        if (extraUriMetaDataFile) {
-            this.extraUriMetaData = this.getExtraUriMetaData(contractObj, extraUriMetaDataFile)
+        this.useCustomCompressedImages = _customCompressedImages;
+        if (_extraUriMetaDataFile) {
+            this.extraUriMetaData = this.getExtraUriMetaData(contractObj, _extraUriMetaDataFile)
         } else {
             this.extraUriMetaData = _extraUriMetaData
         }
@@ -37,6 +40,11 @@ class uriHandler {
     async fetchAllExtraMetaData() {
         //await this.syncUriCache();
         await this.getEveryAttributeType();
+        if ("idStartsAt" in (await this.extraUriMetaData) && isInterger((await this.extraUriMetaData).idStartsAt)) {
+            this.idStartsAt = (await this.extraUriMetaData).idStartsAt
+
+        }
+        console.log(await this.extraUriMetaData)
     }
 
     async getImage(id) {
@@ -48,14 +56,17 @@ class uriHandler {
         }
         //console.log(this.contractObj);
         //console.log(this.uriType);
-        if (this.useCustomCompressedImages) {
+        if (this.useCustomCompressedImages && ((await this.extraUriMetaData).baseUriCompressed)) {
             return `${await this.getCompressedImages()}/${id}.jpg`;
         }
 
+        //console.log(await this.contractObj.tokenURI(id))
+        
         let imgURL = "";
         switch ((await this.extraUriMetaData).type) {
             case "standard":
-                imgURL = (await fetch(await this.contractObj.tokenURI(id), reqObj))["image"];
+                //console.log((await this.getTokenUri(id))["image"])
+                imgURL = (await this.getUrlByProtocol((await this.getTokenUri(id))["image"], true)) //(await fetch(await this.contractObj.tokenURI(id), reqObj))["image"];
                 break;
             case "milady":
                 // miladymaker.net cors wont allow me to get metadata :(
@@ -63,7 +74,7 @@ class uriHandler {
                 break;
             default:
                 //imgURL = `https://www.miladymaker.net/milady/${id}.png`;
-                imgURL = (await fetch(await this.contractObj.tokenURI(id), reqObj))["image"];
+                imgURL = (await this.getUrlByProtocol((await this.getTokenUri(id))["image"], true))
                 break;
         }
         return imgURL;
@@ -72,7 +83,7 @@ class uriHandler {
     }
     async getTotalSupply(){
         //TODO remove temp test value and add metadata to extraUriMetaDataFile to handle this and default to a better error handling when this value is incorrect
-        return 9998//(await this.contractObj.totalSupply()).toNumber()
+        return (await this.contractObj.totalSupply()).toNumber()
     }
 
     async getBaseURI() {
@@ -99,11 +110,14 @@ class uriHandler {
     async getExtraUriMetaData(contractObj, extraUriMetaDataFile) {
         let extraUriMetaData = await (await fetch(extraUriMetaDataFile)).json();
         const contractAddr = (await contractObj.address).toLowerCase()
+        console.log(contractAddr)
+        
         if (contractAddr in extraUriMetaData) {
+            console.log(extraUriMetaData[contractAddr])
             return extraUriMetaData[contractAddr]
         } else {
             console.log(`Nft contract: ${contractAddr} not found in extraUriMetaDataFile: ${extraUriMetaDataFile}, setting to default values`)
-            return { "type": "standart", "name": "standart", "ScrapedUriData": undefined }
+            return { "type": "standard", "name": "standard", "ScrapedUriData": undefined, "baseUriCompressed":false }
         }
 
     }
@@ -196,6 +210,8 @@ class uriHandler {
     }
 
     async syncUriCache(startId = 0, endId = null, chunkSize = 100) {
+        // const traitTypeKey = this.attributeFormat.traitTypeKey
+        // const valueKey = this.attributeFormat.valueKey
         if ((await this.extraUriMetaData).scrapedUriData) {
             this.uriCache = await (await this.getUrlByProtocol((await this.extraUriMetaData).scrapedUriData)).json()
         } else {
@@ -203,7 +219,22 @@ class uriHandler {
             //syncUriCacheByScraping already
             //this.uriCache = 
             this.uriCache = await this.syncUriCacheByScraping(startId, endId, chunkSize)
+            let emptyIdFormat = {"name": "WhoopsDoesntexist:p","description": "WhoopsDoesntexist:p","image": "WhoopsDoesntexist:p","attributes":[]}
+            console.log(this.uriCache)
+            this.uriCache = this.uriCache.map(function( element ) {
+                if( element === undefined) {
+                    return emptyIdFormat
+                } else {
+                    return element
+                }
+            });
+            console.log(this.uriCache)
+            //assumes that it starts either at 0 or 1 ofc
+            if(this.uriCache[0].attributes.length === 0) {
+                this.idStartsAt=1
+            }
         }
+        return this.uriCache
     }
 
     async getTokenUriNoCache(id) {
@@ -211,7 +242,8 @@ class uriHandler {
         let retries = 0;
         while (retries < 10) {
             try {
-                const URI = await (await fetch(`${await this.getBaseURI()}${id}`)).json();
+                const URI =  await (await this.getUrlByProtocol(`${await this.getBaseURI()}${id}`)).json()
+                //await (await fetch(`${await this.getBaseURI()}${id}`)).json();
                 return URI
             } catch (error) {
                 console.log(`errored on id: ${id} re-tried ${retries} times`)
@@ -567,7 +599,7 @@ class uriHandler {
         const inputs = condition //TODO make cleaner
         let idSet = new Set();
         if ("idList" in inputs && typeof(inputs.idList) === "object" && Object.keys(inputs.idList).length) {
-            idSet = new Set(inputs.idList)
+            idSet = new Set(inputs.idList.map((x)=> parseInt(x)))
         } 
         //if ("attributes" in inputs && inputs.attributes)  {
         if ("attributes" in inputs && typeof(inputs.attributes) === "object" && Object.keys(inputs.attributes).length)  {
@@ -579,6 +611,8 @@ class uriHandler {
             newIdSets = await Promise.all(newIdSets);
             newIdSets = newIdSets.map((x) => [...x]);
             idSet = new Set([...idSet, ...newIdSets.flat()])
+            console.log(idSet)
+            console.log('aaaaaaaaaaaaa')
         }
         
         if ("conditions" in inputs && typeof(inputs.conditions) === "object" && Object.keys(inputs.conditions).length) {//TODO this can be a function?
@@ -604,16 +638,21 @@ class uriHandler {
         let excludeIdSet = new Set();  
         //console.log(inputs)
 
-
-        if (!"start" in inputs || !inputs.start) {
-            inputs.start = 0
+        console.log(inputs)
+        console.log(!("start" in inputs))
+        if ((!("start" in inputs)) || !inputs.start) {
+            console.log(this.idStartsAt)
+            inputs["start"] = this.idStartsAt
         }
+        console.log(inputs)
 
         if (!"stop" in inputs || !inputs.stop || inputs.stop === "totalSupply") {
-            inputs.stop = await this.getTotalSupply()
+            inputs["stop"] = await this.getTotalSupply()
         }
         //TODO inputs.stop-inputs.start
-
+        console.log("aaaaaaaaaaa")
+        console.log(inputs.stop,inputs.start)
+        console.log(inputs.stop-inputs.start)
         let idSet = new Set([...Array(inputs.stop-inputs.start).keys()].map(i => i + inputs.start)) //range(inputs.start, inputs.stop)
 
         if ("idList" in inputs && typeof(inputs.idList) === "object" && Object.keys(inputs.idList).length) {
@@ -643,8 +682,9 @@ class uriHandler {
 
         }
 
-        //console.log(idSet, excludeIdSet)
+        console.log(idSet, excludeIdSet)
         idSet = this.setComplement(idSet, excludeIdSet);
+        console.log(idSet)
         return idSet
         
 
@@ -690,23 +730,24 @@ class uriHandler {
         //TODO make format global var
 
         if (!forceResync && (await this.extraUriMetaData).everyAttribute) {
-            console.log(`found prerpossed data for contract: ${this.contractObj.address}, at  ${(await this.extraUriMetaData).everyAttribute}`)
-            const r = await u.getUrlByProtocol("ipfs://bafybeichhvd4y4uyh6z7macd56xh4dk6bzfd5ckzninqbywc56up22kaom")
+            console.log(`found preprossed data for contract: ${this.contractObj.address}, at  ${(await this.extraUriMetaData).everyAttribute}`)
+            const r = await this.getUrlByProtocol((await this.extraUriMetaData).everyAttributeCbor)
             this.everyAttribute = CBOR.decode(await r.arrayBuffer())
 
             //this.everyAttribute = await (await this.getUrlByProtocol((await this.extraUriMetaData).everyAttribute)).json()
         } else {
             console.log(`no premade metadata found for ntf contract: ${await this.contractObj.address} :( collecting attribute manually!`)
             if (!uriCache) {
-                await this.syncUriCache()
-                uriCache = this.uriCache;
+                uriCache = await this.syncUriCache()
             }
   
 
             let everyAttribute = {}
-            const uriKeys = Object.keys(uriCache);
+            //console.log(uriCache)
+            const uriKeys = Object.keys(uriCache).map(((x)=>parseInt(x)));
+            //console.log(uriKeys)
 
-            for (const id of uriKeys) {
+            for (let id=0; id<uriCache.length; id++) {
                 const metaData = uriCache[id]
                 for (const attr of metaData.attributes) {
                     const traitType = attr[this.attributeFormat.traitTypeKey]
