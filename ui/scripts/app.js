@@ -1,5 +1,10 @@
-// TODO get 3rd party provider incase user doesnt connect 
-const provider = new ethers.providers.Web3Provider(window.ethereum);
+let provider;
+if (window.ethereum) {
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+} else {
+    console.log("couldn't connect to inject ethereum provide, connecting to external provicer")
+    provider = new ethers.providers.JsonRpcProvider('https://eth.llamarpc.com');
+}
 
 //TODO remove
 const attr1 = { "trait_type": "Hat", "value": "cake hat" }
@@ -41,6 +46,7 @@ window.BlueBowl = {"type":"OR","inputs":{"idList":[],"conditions":[],"attributes
 window.fBlueEyeBlueBowl = {"type":"AND","inputs":{"idList":[],"conditions":[window.BlueBowl],"attributes":[{"trait_type":"Eye Color","value":"blue"}]},"NOT":{"idList":[],"conditions":[],"attributes":[]},"filterName":"newFilter11","filterIndex":10}
 
 window.blackTennisPlayers = {"type":"AND","inputs":{"idList":[],"conditions":[],"attributes":[{"trait_type":"Race","value":"black"},{"trait_type":"Background","value":"tennis"}]},"NOT":{"idList":[],"conditions":[],"attributes":[]},"filterName":"newFilter12","filterIndex":11}
+window.emptyFilter = {"type":"RANGE","inputs":{"idList":[],"conditions":[],"attributes":[]},"NOT":{"idList":[],"conditions":[],"attributes":[]},"filterName":"emptyfilter1","filterIndex":12}
 
 function message(message) {
     console.log(message);
@@ -378,7 +384,7 @@ async function runFilter(currentFilter=fBuilder.getCurrentFilter()) {
 
     window.currentIdsDisplay = [...structuredClone(await fBuilder.runFilter())]
     console.log(window.currentIdsDisplay)
-    displayNfts(0, 14)
+    displayNfts(0, 24)
     document.getElementById('nftImages').style.display = 'initial'
 
     let timeTaken = Date.now() - start;   
@@ -393,16 +399,16 @@ async function test() {
 
 
 
-    window.u = await new uriHandler(nftContract, window.urlVars["ipfsApi"])
+    window.u = await new uriHandler(nftContract, window.urlVars["ipfsApi"],true, "./scripts/extraUriMetaDataFile.json")
     await u.fetchAllExtraMetaData()
     
     window.URI = u
 
 
-    window.fBuilder = await new FilterBuilder(window.URI, structuredClone([f1,f2,f3,f4,f5,f6,f7,f8,f9,window.BlueBowl,window.fBlueEyeBlueBowl,window.blackTennisPlayers]))
+    window.fBuilder = await new FilterBuilder(window.URI, structuredClone([f1,f2,f3,f4,f5,f6,f7,f8,f9,window.BlueBowl,window.fBlueEyeBlueBowl,window.blackTennisPlayers,window.emptyFilter]))
     //fBuilder.displayFilter(0)
     fBuilder.filtersDropDown();
-    fBuilder.currentFilterIndex=11;
+    fBuilder.currentFilterIndex=12;
     //fBuilder.displayFilter(11)
     await runFilter()
 
@@ -465,7 +471,8 @@ async function loadAllContracts() {
     //window.miladyDropContractWithSigner = window.miladyDropContract.connect(signer);
     window.miladyDropFactoryContract = await getMiladyDropFactoryContract(provider, urlVars["mildayDropFactoryAddress"]);
     window.miladyDropFactoryContractWithSigner = await window.miladyDropFactoryContract.connect(window.signer);
-    window.nftContract = await getNftContract(provider, "0xbAa9CBDAc7A1E3f376192dFAC0d41FcE4FC4a564");
+    //on claim ui -> window.nftContract = await getNftContract(provider, "0xbAa9CBDAc7A1E3f376192dFAC0d41FcE4FC4a564");
+    window.nftContract = await getNftContract(provider, urlVars["nft"]);
     //load indexer
     //claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
     //window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth , isGateway=false);

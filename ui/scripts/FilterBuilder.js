@@ -29,6 +29,11 @@ class FilterBuilder {
                     if (!("inputs" in filter)) {
                         filter["inputs"] = structuredClone(this.filterTemplate.inputs)
                     } else {
+                        if (filter["type"]==="RANGE") {
+                            if (!"start" in filter.inputs) {
+                                filter.inputs["start"] = this.uriHandler.idStartsAt
+                            }
+                        }
                         const inputs = Object.keys(this.filterTemplate["inputs"])
                         for (let i = 0; i < inputs.length; i++) {
                             const inputName = inputs[i]
@@ -73,7 +78,7 @@ class FilterBuilder {
         let html = ""
         //TODO remove debug \/
         //html += `\n <div id="fullFilterJson"> ${JSON.stringify(await this.allFilters[filterIndex])} </div>`
-        document.getElementById("FilterBuilder").innerHTML = html
+        //document.getElementById("FilterBuilder").innerHTML = html
         this.currentFilterIndex = filterIndex
         document.getElementById("editFilter").innerHTML = this.getEditFilterUi(filterIndex)
         //document.getElementById("editAttributes").innerHTML =    this.getEditAttributesButton() 
@@ -130,8 +135,9 @@ class FilterBuilder {
         }
         this.setInputSelectorField(window.currentTarget)
         window.currentTarget[0] = "inputs"
-        let html = `
-        Add type: ${this.inputTypeDropDown()} to: <a id='AddExclBtn'><button onclick='fBuilder.switchAddExclButton()'>include list</button></a>
+        let html =`
+        Add: ${this.inputTypeDropDown()} </br>
+        to: <a id='AddExclBtn'><button onclick='fBuilder.switchAddExclButton()'>include list</button></a>
         `
         return html
     }
@@ -157,7 +163,7 @@ class FilterBuilder {
                 document.getElementById("inputSelectorField").innerHTML = this.getTraitTypeMenu(this.uriHandler.everyAttribute,"max-height: 30vh;margin-left:10ch;",window.currentTarget)
                 break
             case "idList":
-                document.getElementById("inputSelectorField").innerHTML = `add nft id:<input onchange='fBuilder.addIdUi(${this.currentFilterIndex},this.value, ${JSON.stringify(window.currentTarget)})' type="number" id="idInput" name="id" min="0" max="${this.uriHandler.getTotalSupply()}"/></br>TODO make comma+space separated input` //min="10" max="100" />`
+                document.getElementById("inputSelectorField").innerHTML = `add nft id:<input onchange='fBuilder.addIdUi(${this.currentFilterIndex},this.value, ${JSON.stringify(window.currentTarget)})' type="number" id="idInput" name="id" min="${this.uriHandler.idStartsAt}" max="${this.uriHandler.getTotalSupply()}"/></br>TODO make comma+space separated input` //min="10" max="100" />`
                 break
             case "conditions":
                 document.getElementById("inputSelectorField").innerHTML = `${this.filterSelecterUi(this.allFilters, "removeFilterUi", "add")}`
@@ -168,12 +174,12 @@ class FilterBuilder {
     }
 
     async addIdUi(filterIndex, id, target) {
-        if (id <= (await this.uriHandler.getTotalSupply())) {
+        if (id <= (await this.uriHandler.getTotalSupply()) && id >= this.uriHandler.idStartsAt) {
             this.addItem(filterIndex,id,target)
             document.getElementById("editFilter").innerHTML = this.getEditFilterUi(this.currentFilterIndex)
 
         } else {
-            console.log("TODO handle user error, id outside total supply")
+            console.log("TODO handle user error, id outside total supply or below lowesr id")
         }
     }
 
@@ -396,7 +402,6 @@ class FilterBuilder {
         }
 
         this.allFilters[filterIndex].type = type
-        document.getElementById("FilterBuilder").innerHTML = this.displayFilter(filterIndex)
     }
 
     getNonEmptyInputTypes(filter=this.getCurrentFilter(), target="inputs") {
@@ -782,7 +787,7 @@ class FilterBuilder {
             const traitType = keys[i]
             html += `<div class="dropdown">\n
                 <button onclick="fBuilder.displayAllAttributes(\'${traitType}\')" class="dropbtn">${traitType}</button>\n
-                <div id="${traitType}AttributesDropDown" class="dropdown-content" style="${style};z-index:${i+1}">\n
+                <div id="${traitType}AttributesDropDown" class="dropdown-content" style="${style};z-index:${i+2}">\n
                     ${this.getAllTraitsMenu(traitType, target)}
                 </div>\n
             </div></br>\n
