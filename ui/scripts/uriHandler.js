@@ -9,11 +9,13 @@ class uriHandler {
     extraUriMetaData = undefined;
 
     uriCache = []
+    totalSupply = undefined
     baseURICache = undefined;
     ipfsGateway = undefined;
     everyAttribute = undefined;
     useCustomCompressedImages;
     idStartsAt = 0;
+    baseUriExtension="";
     attributeFormat = {
         pathToAttributeList: ["attributes"],
         traitTypeKey: "trait_type",
@@ -42,7 +44,16 @@ class uriHandler {
         await this.getEveryAttributeType();
         if ("idStartsAt" in (await this.extraUriMetaData) && isInterger((await this.extraUriMetaData).idStartsAt)) {
             this.idStartsAt = (await this.extraUriMetaData).idStartsAt
+        }
 
+        if ("type" in (await this.extraUriMetaData)) {
+            switch ((await this.extraUriMetaData).type) {
+                case "milady":
+                    this.totalSupply = 9999 //contract is bugged and gives a total supply that too large
+                    break;
+                default:
+                    break;
+            }
         }
         console.log(await this.extraUriMetaData)
     }
@@ -70,7 +81,7 @@ class uriHandler {
                 break;
             case "milady":
                 // miladymaker.net cors wont allow me to get metadata :(
-                imgURL = `https://raw.githubusercontent.com/remiliacorp/miladycollection/main/${id}.png`;
+                imgURL = `https://www.miladymaker.net/milady/${id}.png`;
                 break;
             default:
                 //imgURL = `https://www.miladymaker.net/milady/${id}.png`;
@@ -82,8 +93,14 @@ class uriHandler {
 
     }
     async getTotalSupply(){
+        console.log("total supply")
         //TODO remove temp test value and add metadata to extraUriMetaDataFile to handle this and default to a better error handling when this value is incorrect
-        return (await this.contractObj.totalSupply()).toNumber()
+        if (this.totalSupply) {
+            console.log(this.totalSupply)
+            return this.totalSupply
+        } else {
+            return (await this.contractObj.totalSupply()).toNumber()
+        }
     }
 
     async getBaseURI() {
@@ -91,16 +108,23 @@ class uriHandler {
         //TODO IPFS
         //TODO get base uri by striping result .getTokenUri() becuase scatter doesnt have baseURI exposed :(
         if (this.baseURICache == null) {
-            try {
-                this.baseURICache = (await this.contractObj.baseURI());
-            } catch {
-                let s = (await nftContract.tokenURI(1))
-                if (s.endsWith("1")) {
-                    this.baseURICache = s.slice(0, -1);
-                } else if (s.endsWith("1.json")) {
-                    this.baseURICache = s.slice(0, -6)
-                } else {
-                    throw new Error(`NFT contract does not have baseURI() function and it's tokenURI() function return a non standard string: \n ${s}`)
+            if ("type" in (await this.extraUriMetaData) && ((await this.extraUriMetaData).type === "milady")) {
+                this.baseURICache = this.getUrlByProtocol("ipfs://bafybeiawqw7zaoliz2rjgiqwzyykwzjsmr24i3a6paazalmqijsldtfg7i/",true)
+
+            } else {
+                try {
+                    this.baseURICache = (await this.contractObj.baseURI());
+                } catch {
+                
+                    let s = (await nftContract.tokenURI(1))
+                    if (s.endsWith("1")) {
+                        this.baseURICache = s.slice(0, -1);
+                    } else if (s.endsWith("1.json")) {
+                        this.baseURICache = s.slice(0, -6)
+                        this.baseUriExtension = ".json"
+                    } else {
+                        throw new Error(`NFT contract does not have baseURI() function and it's tokenURI() function return a non standard string: \n ${s}`)
+                    }
                 }
             }
         }
@@ -242,7 +266,8 @@ class uriHandler {
         let retries = 0;
         while (retries < 10) {
             try {
-                const URI =  await (await this.getUrlByProtocol(`${await this.getBaseURI()}${id}`)).json()
+                //console.log(`${await this.getBaseURI()}${id}${this.baseUriExtension}`)
+                const URI =  await (await this.getUrlByProtocol(`${await this.getBaseURI()}${id}${this.baseUriExtension}`)).json()
                 //await (await fetch(`${await this.getBaseURI()}${id}`)).json();
                 return URI
             } catch (error) {
@@ -532,7 +557,7 @@ class uriHandler {
         // if (excludeIdSet.size) {
         //     idSet = this.setComplement(idSet, excludeIdSet);
         // }
-
+        idSet = this.setComplement(idSet, excludeIdSet)
         return idSet
     }
 
@@ -605,14 +630,16 @@ class uriHandler {
         if ("attributes" in inputs && typeof(inputs.attributes) === "object" && Object.keys(inputs.attributes).length)  {
             let newIdSets = []
             for (const attribute of inputs.attributes) {
+                console.log(newIdSets)
                 newIdSets.push(this.getIdsByAttribute(attribute, 0, null, null, idSet) ) //idSet excluded so theyre not processed (they're allready)
             } //TODO this one is O(n*totalsupply) n=attributes but runs paralel. in serial it can be O(n-newIdSet) where n reduces on every iter since the ids already found can be skipped since theyre already included
             //paralelization
             newIdSets = await Promise.all(newIdSets);
+            console.log(newIdSets)
             newIdSets = newIdSets.map((x) => [...x]);
+            console.log(newIdSets)
             idSet = new Set([...idSet, ...newIdSets.flat()])
             console.log(idSet)
-            console.log('aaaaaaaaaaaaa')
         }
         
         if ("conditions" in inputs && typeof(inputs.conditions) === "object" && Object.keys(inputs.conditions).length) {//TODO this can be a function?
@@ -638,8 +665,6 @@ class uriHandler {
         let excludeIdSet = new Set();  
         //console.log(inputs)
 
-        console.log(inputs)
-        console.log(!("start" in inputs))
         if ((!("start" in inputs)) || !inputs.start) {
             console.log(this.idStartsAt)
             inputs["start"] = this.idStartsAt
@@ -660,9 +685,9 @@ class uriHandler {
         } 
 
         if ("NOT" in condition && condition.NOT) {
-            //console.log(condition.NOT)
+            console.log(condition.NOT)
             excludeIdSet = await this.processNotCondition(condition.NOT)
-            //console.log(excludeIdSet)
+            console.log(excludeIdSet)
         }
 
         if ("conditions" in inputs && typeof(inputs.conditions) === "object" && Object.keys(inputs.conditions).length) {//TODO this can be a function?
@@ -739,8 +764,7 @@ class uriHandler {
             console.log(`no premade metadata found for ntf contract: ${await this.contractObj.address} :( collecting attribute manually!`)
             if (!uriCache) {
                 uriCache = await this.syncUriCache()
-            }
-  
+            }  
 
             let everyAttribute = {}
             //console.log(uriCache)
