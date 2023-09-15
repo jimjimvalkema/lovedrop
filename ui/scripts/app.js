@@ -40,10 +40,9 @@ let f8 = { "type": "AND", "inputs": { "conditions": [f1, f2, f3, f4, f5, f6] } }
 window.f9 = { "type": "RANGE", "inputs": { "idList": [], "conditions": [], "attributes": [] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }
 
 
-window.BlueBowl = {"type":"OR","inputs":{"idList":[],"conditions":[],"attributes":[{"trait_type":"Hair","value":"bowl blue"}]},"NOT":{"idList":[],"conditions":[],"attributes":[]},"filterName":"newFilter10","filterIndex":9}
+window.BlueHair = {"type":"OR","inputs":{"idList":[],"conditions":[],"attributes":[{"trait_type":"Hair","value":"bowl blue"},{"trait_type":"Hair","value":"tuft blue"},{"trait_type":"Hair","value":"short blue"},{"trait_type":"Hair","value":"og blue"},{"trait_type":"Hair","value":"braid blue"}]},"NOT":{"idList":[],"conditions":[],"attributes":[]},"filterName":"blueHair","filterIndex":9}
 
-
-window.fBlueEyeBlueBowl = {"type":"AND","inputs":{"idList":[],"conditions":[window.BlueBowl],"attributes":[{"trait_type":"Eye Color","value":"blue"}]},"NOT":{"idList":[],"conditions":[],"attributes":[]},"filterName":"newFilter11","filterIndex":10}
+window.BlueEyesAndHair= {"type":"AND","inputs":{"idList":[],"conditions":[window.BlueHair],"attributes":[{"trait_type":"Eye Color","value":"blue"}]},"NOT":{"idList":[],"conditions":[],"attributes":[]},"filterName":"BlueEyesAndHair","filterIndex":10}
 
 window.blackTennisPlayers = {"type":"AND","inputs":{"idList":[],"conditions":[],"attributes":[{"trait_type":"Race","value":"black"},{"trait_type":"Background","value":"tennis"}]},"NOT":{"idList":[],"conditions":[],"attributes":[]},"filterName":"newFilter12","filterIndex":11}
 window.emptyFilter = {"type":"RANGE","inputs":{"idList":[],"conditions":[],"attributes":[]},"NOT":{"idList":[],"conditions":[],"attributes":[]},"filterName":"emptyfilter1","filterIndex":12}
@@ -358,7 +357,6 @@ async function displayNfts(currentPage, maxPerPage = 12) {
             //fBuilder.removeItem(fBuilder.currentFilterIndex, target, index)
             
         }
-
   
         url = await URI.getImage(id)
         images += `<div id="NFT${id}" onclick="toggleExclude(${id}, [\'NOT\',\'idList\'] )" style="position: relative; margin: 2px; cursor:pointer; width: 10vw; display: inline-block;" >\n 
@@ -371,7 +369,7 @@ async function displayNfts(currentPage, maxPerPage = 12) {
     //TODO make field for "go to page: x"
     const amountPages = Math.ceil(ids.length / maxPerPage - 1)
     pageSelecter = `
-        <button onclick="displayNfts(${Math.max(0, currentPage - 1)},${maxPerPage})">prev</button><button onclick="displayNfts(${Math.min(amountPages, currentPage + 1)},${maxPerPage})">next</button>
+        <button onclick="displayNfts(${Math.max(0, currentPage - 1)},${maxPerPage})">prev</button><button onclick="displayNfts(${Math.min(amountPages, currentPage + 1)},${maxPerPage})">next</button> <button onclick="displayNfts(0,${maxPerPage})">first</button><button onclick="displayNfts(${amountPages},${maxPerPage})">last</button>
         page: ${currentPage + 1} of: ${amountPages + 1} pages \n`
     document.getElementById("nftImages").innerHTML = `${pageSelecter} </br> ${images} </br> ${pageSelecter}`
 }
@@ -405,14 +403,28 @@ async function test() {
     window.URI = u
 
 
-    window.fBuilder = await new FilterBuilder(window.URI, structuredClone([f1,f2,f3,f4,f5,f6,f7,f8,f9,window.BlueBowl,window.fBlueEyeBlueBowl,window.blackTennisPlayers,window.emptyFilter]))
+    window.fBuilder = await new FilterBuilder(window.URI, structuredClone([f1,f2]))
     //fBuilder.displayFilter(0)
-    fBuilder.filtersDropDown();
-    fBuilder.currentFilterIndex=12;
+    fBuilder.getUi();
+    fBuilder.currentFilterIndex=1;
+    
     //fBuilder.displayFilter(11)
     await runFilter()
 
     console.log(window.currentIdsDisplay)
+    const td = new TextDecoder()
+    b58 = ethers.utils.base58.encode(
+        ethers.utils.toUtf8Bytes(
+                    JSON.stringify(fBuilder.getCurrentFilter())
+                ))
+    console.log(b58)
+    console.log(b58.length)
+    console.log(JSON.parse(td.decode(ethers.utils.base58.decode(b58).buffer)))
+    cb58 = ethers.utils.base58.encode(new Uint8Array(CBOR.encode(fBuilder.getCurrentFilter())))
+    console.log(cb58)
+    console.log(cb58.length)
+    console.log(CBOR.decode(ethers.utils.base58.decode(cb58).buffer))
+
 
 
 

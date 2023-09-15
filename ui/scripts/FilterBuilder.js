@@ -83,9 +83,47 @@ class FilterBuilder {
         document.getElementById("editFilter").innerHTML = this.getEditFilterUi(filterIndex)
         //document.getElementById("editAttributes").innerHTML =    this.getEditAttributesButton() 
         //document.getElementById("test").innerHTML = this.getEditItemsDropDown(this.getCurrentFilter(),["inputs","attributes"]) //TODO do this everytime item gets added
-        document.getElementById("inputSelector").innerHTML = this.getInputSelectorUi()
+        //document.getElementById("inputSelector").innerHTML = this.getInputSelectorUi()
         //window.idsOnDisplay = [...(await this.uriHandler.processFilter(this.allFilters[filterIndex]))] //TODO check if filter is the same and cache its result in idList
         return html
+    }
+
+    //breaks on array buffers
+    removeEmptyKeys(object) {
+        //fix for
+        const keys = Object.keys(object)
+        for(const key of keys) {
+            if (typeof(object[key]) ==="object") {
+                if (!Array.isArray(object[key])) {
+                    if (Object.keys(object[key]).length) {
+                        this.removeEmptyKeys(object[key])
+                        if (!Object.keys(object[key]).length) {
+                            delete object[key]
+                        }
+                    } else {
+                        delete object[key]
+                    }
+                } else if(object[key].length) {
+                    this.removeEmptyKeys(object[key])
+                    if(!object[key].length) { 
+                        delete object[key]
+                    }
+
+                } else {
+                    delete object[key]
+                }
+            } else {
+                if (!object[key]) {
+                    delete object[key]
+                }
+            }
+        }
+        return object
+    }
+
+    getUi() {
+        document.getElementById("inputSelector").innerHTML = this.getInputSelectorUi()
+        document.getElementById("editFilter").innerHTML = this.getEditFilterUi(this.currentFilterIndex)
     }
 
     switchFilter(filterIndex) {
@@ -208,7 +246,8 @@ class FilterBuilder {
     }
 
     async runFilter(filter=this.getCurrentFilter()) {
-        this.displayFilter()
+        //this.displayFilter()
+        document.getElementById("editFilter").innerHTML = this.getEditFilterUi(this.currentFilterIndex)
         return await this.uriHandler.processFilter(filter)
         
     }
@@ -343,26 +382,29 @@ class FilterBuilder {
     filterSelecterUi(filters, buttonType="edit") {
         let selectFiltersButtons = ""
         for (let i = 0; i < filters.length; i++) {
-            const info = this.prettyPrintFilterInfo(filters[i])
-            if (buttonType==="edit") {
-                selectFiltersButtons += `<button id='editFilter${i}' onclick="fBuilder.switchFilter(${i})" >edit</button>${info}</br>\n`
-            } else {
-                //buttonType=add/remove
-                if (!(this.currentFilterIndex === i)) {
-                    if (this.getItemIndex(this.currentFilterIndex ,this.allFilters[i], window.currentTarget ) === -1) {
-                        selectFiltersButtons += `<button id='filter${i}' onclick="fBuilder.addFilterUi(${i})" >add</button>${info}</br>\n`
+            if (filters[i]) {
+                const info = this.prettyPrintFilterInfo(filters[i])
+                if (buttonType==="edit") {
+                    selectFiltersButtons += `<button id='editFilter${i}' onclick="fBuilder.switchFilter(${i})" >edit</button>${info}</br>\n`
+                } else {
+                    //buttonType=add/remove
+                    if (!(this.currentFilterIndex === i)) {
+                        if (this.getItemIndex(this.currentFilterIndex ,this.allFilters[i], window.currentTarget ) === -1) {
+                            selectFiltersButtons += `<button id='filter${i}' onclick="fBuilder.addFilterUi(${i})" >add</button>${info}</br>\n`
 
-                    } else {
-                        selectFiltersButtons += `<button id='filter${i}' onclick="fBuilder.removeFilterUi(${i})" >remove</button>${info}</br>\n`
+                        } else {
+                            selectFiltersButtons += `<button id='filter${i}' onclick="fBuilder.removeFilterUi(${i})" >remove</button>${info}</br>\n`
+                        }
                     }
-                }
 
+                }
             }
+
         }
         return selectFiltersButtons
     } 
-
-    createNewFilterUi() {
+    
+    createNewFilterUi(filterTemplate) {
         let newFilter = structuredClone(this.filterTemplate)
         newFilter.filterName = `newFilter${this.allFilters.length+1}`
         newFilter.filterIndex = this.allFilters.length
@@ -374,11 +416,15 @@ class FilterBuilder {
 
     }
 
+    
+
     filtersDropDown(filters = this.allFilters) {
         let selectFiltersButtons = ""
         for (let i = 0; i < filters.length; i++) {
-            const info = this.prettyPrintFilterInfo(filters[i])
-            selectFiltersButtons += `<button onclick="fBuilder.displayFilter(${i})" >edit</button>${info}</br>\n`
+            if (filters[i]) {
+                const info = this.prettyPrintFilterInfo(filters[i])
+                selectFiltersButtons += `<button onclick="fBuilder.displayFilter(${i})" >edit</button>${info}</br>\n`
+            }
         }
 
         const html = `<div class="dropdown">\n
@@ -402,6 +448,7 @@ class FilterBuilder {
         }
 
         this.allFilters[filterIndex].type = type
+        document.getElementById("editFilter").innerHTML = this.getEditFilterUi(filterIndex)
     }
 
     getNonEmptyInputTypes(filter=this.getCurrentFilter(), target="inputs") {
@@ -896,6 +943,30 @@ class FilterBuilder {
         document.getElementById("allFiltersDropdown").classList.toggle("show");
     }
 
+    importFilter(base58CBOR) {
+        //decode(base58CBOR)
+        const filter = base58CBOR
+        window.currentFilterIndex = filter.filterIndex
+        this.currentFilterIndex = filter.filterIndex
+        this.allFilters = []
+        this.addFilter(filter)
+        this.getUi()
+    }
+
+    addFilter(filter) {
+        console.log(filter)
+        if ("inputs" in filter && "conditions" in filter.inputs && filter.inputs.conditions.length) {
+            for(let key in filter.inputs.conditions) {
+                this.addFilter(filter.inputs.conditions[key])
+            }
+        }
+        if ("NOT" in filter && "conditions" in filter.NOT && filter.NOT.conditions.length) {
+            for(let key in filter.NOT.conditions) {
+                this.addFilter(filter.NOT.conditions[key])
+            }
+        }
+        this.allFilters[filter.filterIndex] = (this.formatNewFilter(filter, filter.filterIndex))
+    }
 
 
 }

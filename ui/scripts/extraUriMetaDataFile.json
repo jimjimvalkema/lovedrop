@@ -2,20 +2,23 @@
     "0xbaa9cbdac7a1e3f376192dfac0d41fce4fc4a564": {
         "type": "milady",
         "name": "miladyTest",
-        "scrapedUriData" : "ipfs://bafybeigkwunx3qniepqbw6axe3xbylhvnmqwuklgphqfh6i2k47fe37ylu",
-        "scrapedUriDataCbor": "ipfs://bafybeiew5nk2a37qfdthij7dtqjilwd37mrtj4bam2svbkuggsfc6oeiiu",
-        "everyAttribute": "ipfs://bafybeifjcawdoxgq3z5wzyvdekz67jf5vxxpghdimkq5xcby5y5czloe2q",
-        "everyAttributeCbor":"ipfs://bafybeichhvd4y4uyh6z7macd56xh4dk6bzfd5ckzninqbywc56up22kaom",
-        "baseUriCompressed": "ipfs://bafybeiezitb4ewavoxz6tuzn5apatfh7yvq5k4g5rtmebjm757fnpyp4su"
+        "correctedMetaDataSeparatedFiles":"bafybeiawqw7zaoliz2rjgiqwzyykwzjsmr24i3a6paazalmqijsldtfg7i",
+        "baseUriCompressed": "ipfs://bafybeiezitb4ewavoxz6tuzn5apatfh7yvq5k4g5rtmebjm757fnpyp4su",
+        "scrapedUriData" : "ipfs://bafybeibexus34rk6bt7psn7gly2sduq3xui4jzshoimmdvrw3otqzglp3y",
+        "scrapedUriDataCbor": "ipfs://bafybeic7f5slx2tqmkt3uj6573cvdtfgwk3pg3xyuu2jra7klyohkh2sii",
+        "everyAttribute": "ipfs://bafybeicgayygxqzdsz37hkn3shfpsxrbyyiemodpyrpkoazxbb3p5khc5m",
+        "everyAttributeCbor":"ipfs://bafybeigey4mq6pxl7zk77rwls7glb46pjzxhm5rf33eu6fbzfh4pwoktmy"
     },
     "0x5af0d9827e0c53e4799bb226655a1de152a425a5" : {
         "type": "milady",
         "name": "miladyMainnet",
-        "scrapedUriData" : "ipfs://bafybeigkwunx3qniepqbw6axe3xbylhvnmqwuklgphqfh6i2k47fe37ylu",
-        "scrapedUriDataCbor": "ipfs://bafybeiew5nk2a37qfdthij7dtqjilwd37mrtj4bam2svbkuggsfc6oeiiu",
-        "everyAttribute": "ipfs://bafybeifjcawdoxgq3z5wzyvdekz67jf5vxxpghdimkq5xcby5y5czloe2q",
-        "everyAttributeCbor":"ipfs://bafybeichhvd4y4uyh6z7macd56xh4dk6bzfd5ckzninqbywc56up22kaom",
-        "baseUriCompressed": "ipfs://bafybeiezitb4ewavoxz6tuzn5apatfh7yvq5k4g5rtmebjm757fnpyp4su"
+        "correctedMetaDataSeparatedFiles":"bafybeiawqw7zaoliz2rjgiqwzyykwzjsmr24i3a6paazalmqijsldtfg7i",
+        "baseUriCompressed": "ipfs://bafybeiezitb4ewavoxz6tuzn5apatfh7yvq5k4g5rtmebjm757fnpyp4su",
+        "scrapedUriData" : "ipfs://bafybeibexus34rk6bt7psn7gly2sduq3xui4jzshoimmdvrw3otqzglp3y",
+        "scrapedUriDataCbor": "ipfs://bafybeic7f5slx2tqmkt3uj6573cvdtfgwk3pg3xyuu2jra7klyohkh2sii",
+        "everyAttribute": "ipfs://bafybeicgayygxqzdsz37hkn3shfpsxrbyyiemodpyrpkoazxbb3p5khc5m",
+        "everyAttributeCbor":"ipfs://bafybeigey4mq6pxl7zk77rwls7glb46pjzxhm5rf33eu6fbzfh4pwoktmy"
+        
     },
 
     "0x67b5ee6e29a4230177dda07ad7848e42d89cf9a0" : {
@@ -26,6 +29,13 @@
         "scrapedUriDataCbor": "ipfs://bafybeih62dlui4td2bcwxlgjkn63lz2ibqp7i2k3s6a3zmm4xxioj4m6hq",
         "everyAttribute": "ipfs://bafybeiek26panjzlaqif5ovolak7bgz4kjj7lbsfupixnytjxj47lcu5dq",
         "everyAttributeCbor":"ipfs://bafkreidwkpbcw2gzxufhnjyamfkl3izdkfzwugzlerzrodr5xldr6ikwwq"
-    }
+    },
 
+    "oldMiladyDataWithout9999": {
+        "scrapedUriData" : "ipfs://bafybeigkwunx3qniepqbw6axe3xbylhvnmqwuklgphqfh6i2k47fe37ylu",
+        "scrapedUriDataCbor": "ipfs://bafybeiew5nk2a37qfdthij7dtqjilwd37mrtj4bam2svbkuggsfc6oeiiu",
+        "everyAttribute": "ipfs://bafybeifjcawdoxgq3z5wzyvdekz67jf5vxxpghdimkq5xcby5y5czloe2q",
+        "everyAttributeCbor":"ipfs://bafybeichhvd4y4uyh6z7macd56xh4dk6bzfd5ckzninqbywc56up22kaom",
+        "baseUriCompressed": "ipfs://bafybeiezitb4ewavoxz6tuzn5apatfh7yvq5k4g5rtmebjm757fnpyp4su"
+    }
 }
