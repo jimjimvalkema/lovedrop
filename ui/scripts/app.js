@@ -329,7 +329,18 @@ async function toggleExclude(id, target) {
     document.getElementById("editFilter").innerHTML = fBuilder.getEditFilterUi()
 }
 
-async function displayNfts(currentPage, maxPerPage = 12) {
+function getImageWidth(availableWidth) {
+    const amountImages = Math.round(0.001829*screen.availWidth + 2.488)
+    const margin = 1//(availableWidth/amountImages)*0.001;
+    return (availableWidth/amountImages - margin)
+
+}
+
+function getRowSize(availableWidth) {
+    return Math.round(availableWidth/(getImageWidth(availableWidth)+1))
+}
+
+async function displayNfts(currentPage, maxPerPage = 12, availableWidth) {
     const ids = window.currentIdsDisplay;
     const URI = window.URI //TODO
     let images = ""
@@ -359,9 +370,10 @@ async function displayNfts(currentPage, maxPerPage = 12) {
         }
   
         url = await URI.getImage(id)
-        images += `<div id="NFT${id}" onclick="toggleExclude(${id}, [\'NOT\',\'idList\'] )" style="position: relative; margin: 2px; cursor:pointer; width: 10vw; display: inline-block;" >\n 
+        images += `<div id="NFT${id}" onclick="toggleExclude(${id}, [\'NOT\',\'idList\'] )" ; style="position: relative; margin: 2px; cursor:pointer; 
+                width: ${getImageWidth(availableWidth)}vw; display: inline-block;" >\n 
                 <img src="${url}" id="image${i}" style="max-width: 100%; max-height: 100%;">\n 
-                <div id="exlcudeStatusDiv${id}" style="float: right; position: absolute; left: 0px; bottom: 0px; z-index: 1; background-color: ${exlcudeStatusDivColor}; padding: 5px; color: #FFFFFF; font-weight: bold;">\n 
+                <div id="exlcudeStatusDiv${id}" style="font-size: 0.8em;float: right; position: absolute; left: 0px; bottom: 0px; z-index: 1; background-color: ${exlcudeStatusDivColor}; padding: 5px; color: #FFFFFF; font-weight: bold;">\n 
                 ${exlcudeStatusDivMsg}\n 
                 </div>\n 
             </div>\n `
@@ -369,11 +381,14 @@ async function displayNfts(currentPage, maxPerPage = 12) {
     //TODO make field for "go to page: x"
     const amountPages = Math.ceil(ids.length / maxPerPage - 1)
     pageSelecter = `
-        <button onclick="displayNfts(${Math.max(0, currentPage - 1)},${maxPerPage})">prev</button><button onclick="displayNfts(${Math.min(amountPages, currentPage + 1)},${maxPerPage})">next</button> <button onclick="displayNfts(0,${maxPerPage})">first</button><button onclick="displayNfts(${amountPages},${maxPerPage})">last</button>
+        <button onclick="displayNfts(${Math.max(0, currentPage - 1)},${maxPerPage}, ${availableWidth})">prev</button><button onclick="displayNfts(${Math.min(amountPages, currentPage + 1)},${maxPerPage}, ${availableWidth})">next</button> <button onclick="displayNfts(0,${maxPerPage}, ${availableWidth})">first</button><button onclick="displayNfts(${amountPages},${maxPerPage}, ${availableWidth})">last</button>
         page: ${currentPage + 1} of: ${amountPages + 1} pages \n`
     document.getElementById("nftImages").innerHTML = `${pageSelecter} </br> ${images} </br> ${pageSelecter}`
 }
 
+function getAmountOfRows(availWidth=screen.availWidth) {
+    return Math.abs(Math.ceil(-0.001948*availWidth + 6.701))
+} 
 
 
 async function runFilter(currentFilter=fBuilder.getCurrentFilter()) {
@@ -381,13 +396,32 @@ async function runFilter(currentFilter=fBuilder.getCurrentFilter()) {
     document.getElementById('nftImages').style.display = 'none' //TODO this applies only after the function is done
 
     window.currentIdsDisplay = [...structuredClone(await fBuilder.runFilter())]
-    console.log(window.currentIdsDisplay)
-    displayNfts(0, 24)
+
+    displayNfts(0, getRowSize(77)*getAmountOfRows(), 77) //3 rows
     document.getElementById('nftImages').style.display = 'initial'
 
     let timeTaken = Date.now() - start;   
-    console.log("Total time taken : " + timeTaken + " milliseconds");
+    console.log("running filter took: " + timeTaken + " milliseconds");
+    document.getElementById("message").innerHTML = `width:${screen.availWidth} height:${screen.availHeight}`
 }
+
+function hideDiv(id) {
+    document.getElementById(id).setAttribute("hidden", "hidden")
+}
+
+function showDiv(id) {
+    document.getElementById("message").removeAttribute("hidden")
+}
+
+function isPrivateIP(ip="") {
+    if (ip.startsWith("localhost")) {
+        return (true)
+    }
+    var parts = ip.split('.');
+    return parts[0] === '10' || 
+       (parts[0] === '172' && (parseInt(parts[1], 10) >= 16 && parseInt(parts[1], 10) <= 31)) || 
+       (parts[0] === '192' && parts[1] === '168') || (parts[0] === '127');
+ }
 
 async function test() {
     //let response = await fetch('./merkle_proofs/index.json')
@@ -397,47 +431,57 @@ async function test() {
 
 
 
-    window.u = await new uriHandler(nftContract, window.urlVars["ipfsApi"],true, "./scripts/extraUriMetaDataFile.json")
-    await u.fetchAllExtraMetaData()
+    window.URI = await new uriHandler(nftContract, window.urlVars["ipfsApi"],true, "./scripts/extraUriMetaDataFile.json")
+    window.baseURI = await window.URI.getBaseURI()
+    if (!(await window.URI.extraUriMetaData).everyAttributeCbor && (!localStorage.hasOwnProperty(window.URI.contractObj.address))) {
+        let comment = "note: fetching large amount of data from external providers can cause rate limiting"
+        if ((new URL(baseURI)).protocol ==="ipfs:") {
+            if (isPrivateIP(new URL(window.urlVars["ipfsApi"]).hostname)) {
+                comment = `you'r using a local ipfs node. Based :D`
+            }
+        }
+        showDiv("message")
+        document.getElementById("message").innerHTML = `
+        pre processed data for nft contract: ${window.URI.contractObj.address} is not found.</br>
+        Want to build it now? <button onclick='getFilterBuilderUi(window.URI)'>yes</button><button onclick='hideDiv("message")'>no</button></br>
+        </br>
+        Total supply is: ${await window.URI.getTotalSupply()}</br> 
+        metadata will be fetched from: ${await window.URI.getUrlByProtocol(window.baseURI,true)}</br>
+
+        This can take 1min to 10min</br>
+        <a style='font-size:0.4cm'>${comment}</a>
+        `
+    } else {
+        console.log("hiiiiiii")
+        getFilterBuilderUi(window.URI)
+
+    }
     
-    window.URI = u
-
-
-    window.fBuilder = await new FilterBuilder(window.URI, structuredClone([f1,f2]))
-    //fBuilder.displayFilter(0)
-    fBuilder.getUi();
-    fBuilder.currentFilterIndex=1;
-    
-    //fBuilder.displayFilter(11)
-    await runFilter()
-
-    console.log(window.currentIdsDisplay)
-    const td = new TextDecoder()
-    b58 = ethers.utils.base58.encode(
-        ethers.utils.toUtf8Bytes(
-                    JSON.stringify(fBuilder.getCurrentFilter())
-                ))
-    console.log(b58)
-    console.log(b58.length)
-    console.log(JSON.parse(td.decode(ethers.utils.base58.decode(b58).buffer)))
-    cb58 = ethers.utils.base58.encode(new Uint8Array(CBOR.encode(fBuilder.getCurrentFilter())))
-    console.log(cb58)
-    console.log(cb58.length)
-    console.log(CBOR.decode(ethers.utils.base58.decode(cb58).buffer))
-
-
-
-
-    
-    //console.log(html)
-
-    //displayNfts(0, 12)
-    //window.testHtml = fBuilder.getEditAttributesButton();
-
-    //document.getElementById("testHtml").innerHTML = window.testHtml
-
 
 };
+
+async function getFilterBuilderUi(URI) {
+    let start = Date.now();
+    document.getElementById("message").innerHTML = `this may take between 1min to 10min</br> fetching from ${await window.URI.getUrlByProtocol(window.baseURI,true)}
+    <div id='messageProgress'></div>`
+    await URI.fetchAllExtraMetaData()
+    window.fBuilder = await new FilterBuilder(window.URI, structuredClone([f1,f2,window.emptyFilter]))
+    //fBuilder.displayFilter(0)
+    fBuilder.currentFilterIndex=2;
+    
+
+    console.log(window.currentIdsDisplay)
+    if (window.urlVars["filter"]) {
+        fBuilder.importFilterBase58CBOR(window.urlVars["filter"])
+    } else {
+        fBuilder.getUi();
+    }
+    await runFilter()
+    let timeTaken = Date.now() - start;   
+    console.log("fetching metadata took: " + timeTaken + " milliseconds");
+    hideDiv("message")
+
+}
 
 window.onload = runOnLoad;
 
