@@ -40,22 +40,27 @@ class uriHandler {
     }
 
     async fetchAllExtraMetaData() {
-        //await this.syncUriCache();
-        await this.getEveryAttributeType();
-        if ("idStartsAt" in (await this.extraUriMetaData) && isInterger((await this.extraUriMetaData).idStartsAt)) {
-            this.idStartsAt = (await this.extraUriMetaData).idStartsAt
-        }
-
-        if ("type" in (await this.extraUriMetaData)) {
-            switch ((await this.extraUriMetaData).type) {
-                case "milady":
-                    this.totalSupply = 9999 //contract is bugged and gives a total supply that too large
-                    break;
-                default:
-                    break;
+        if  (localStorage.hasOwnProperty(await this.contractObj.address)) {
+            console.log(`${this.contractObj.address} extraMetaDataFile was found in local storage :D`)
+            const data = JSON.parse(localStorage.getItem(await this.contractObj.address));
+            this.everyAttribute = data.everyAttribute;
+            this.idStartsAt = data.idStartsAt;
+        } else {
+            await this.getEveryAttributeType();
+            if ("idStartsAt" in (await this.extraUriMetaData) && isInterger((await this.extraUriMetaData).idStartsAt)) {
+                this.idStartsAt = (await this.extraUriMetaData).idStartsAt
             }
+            if ("type" in (await this.extraUriMetaData)) {
+                switch ((await this.extraUriMetaData).type) {
+                    case "milady":
+                        this.totalSupply = 9999 //contract is bugged and gives a total supply that too large
+                        break;
+                    default:
+                        break;
+                }
+            }
+
         }
-        console.log(await this.extraUriMetaData)
     }
 
     async getImage(id) {
@@ -65,18 +70,13 @@ class uriHandler {
                 'Content-Type': '*'
             }
         }
-        //console.log(this.contractObj);
-        //console.log(this.uriType);
         if (this.useCustomCompressedImages && ((await this.extraUriMetaData).baseUriCompressed)) {
             return `${await this.getCompressedImages()}/${id}.jpg`;
         }
-
-        //console.log(await this.contractObj.tokenURI(id))
         
         let imgURL = "";
         switch ((await this.extraUriMetaData).type) {
             case "standard":
-                //console.log((await this.getTokenUri(id))["image"])
                 imgURL = (await this.getUrlByProtocol((await this.getTokenUri(id))["image"], true)) //(await fetch(await this.contractObj.tokenURI(id), reqObj))["image"];
                 break;
             case "milady":
@@ -93,10 +93,8 @@ class uriHandler {
 
     }
     async getTotalSupply(){
-        console.log("total supply")
         //TODO remove temp test value and add metadata to extraUriMetaDataFile to handle this and default to a better error handling when this value is incorrect
         if (this.totalSupply) {
-            console.log(this.totalSupply)
             return this.totalSupply
         } else {
             return (await this.contractObj.totalSupply()).toNumber()
@@ -141,7 +139,7 @@ class uriHandler {
             return extraUriMetaData[contractAddr]
         } else {
             console.log(`Nft contract: ${contractAddr} not found in extraUriMetaDataFile: ${extraUriMetaDataFile}, setting to default values`)
-            return { "type": "standard", "name": "standard", "ScrapedUriData": undefined, "baseUriCompressed":false }
+            return {"found":false}
         }
 
     }
@@ -156,6 +154,11 @@ class uriHandler {
             }
             for (let i = startId; i < endId; i++) {
                 let id = i
+                if (!(id%200)) {
+                    const m = `id:${id} out of:${await this.getTotalSupply()}`
+                    console.log(m)
+                    document.getElementById("messageProgress").innerHTML = m
+                }
                 uris.push(this.getTokenUriNoCache(id));
             }
 
@@ -186,8 +189,6 @@ class uriHandler {
                     endChunk = endId
                 }
                 let uris = await this.getUrisInBulk(startChunk, endChunk);
-                //console.log("sdf")
-                //console.log(uris)
                 allUris = [...allUris, ...uris];
 
                 startChunk += chunkSize
@@ -221,11 +222,13 @@ class uriHandler {
             case ("http:"):
                 newUrlString = urlString;
                 break
-            case ("https"):
+            case ("https:"):
                 newUrlString = urlString;
                 break
+            default:
+                newUrlString = urlString;
         }
-
+        //console.log(newUrlString)
         if (returnOnlyUrl===true) {
             return newUrlString
         } else {
@@ -244,7 +247,7 @@ class uriHandler {
             //this.uriCache = 
             this.uriCache = await this.syncUriCacheByScraping(startId, endId, chunkSize)
             let emptyIdFormat = {"name": "WhoopsDoesntexist:p","description": "WhoopsDoesntexist:p","image": "WhoopsDoesntexist:p","attributes":[]}
-            console.log(this.uriCache)
+
             this.uriCache = this.uriCache.map(function( element ) {
                 if( element === undefined) {
                     return emptyIdFormat
@@ -252,7 +255,6 @@ class uriHandler {
                     return element
                 }
             });
-            console.log(this.uriCache)
             //assumes that it starts either at 0 or 1 ofc
             if(this.uriCache[0].attributes.length === 0) {
                 this.idStartsAt=1
@@ -262,10 +264,15 @@ class uriHandler {
     }
 
     async getTokenUriNoCache(id) {
+        if (id < this.startId) {
+            throw Error(`id: ${id} doenst exist`)
+        }
+
         //const reqObj = {method: 'GET'}
         let retries = 0;
-        while (retries < 10) {
+        while (retries < 4) {
             try {
+                //await (await fetch("https://arweave.net/LGlMDKAWgcDyvYoft1YV6Y2pBBAwjWaFuZrDP9yD-RY/13.json")).json()
                 //console.log(`${await this.getBaseURI()}${id}${this.baseUriExtension}`)
                 const URI =  await (await this.getUrlByProtocol(`${await this.getBaseURI()}${id}${this.baseUriExtension}`)).json()
                 //await (await fetch(`${await this.getBaseURI()}${id}`)).json();
@@ -273,7 +280,7 @@ class uriHandler {
             } catch (error) {
                 console.log(`errored on id: ${id} re-tried ${retries} times`)
                 console.log(`error is: ${error}`);
-                await delay(500);
+                await delay(200);
             }
             retries += 1;
         }
@@ -300,7 +307,6 @@ class uriHandler {
             console.error(error);
             return false
         }
-        //console.log(tokenURI);
         for (let i = 0; i < this.attributeFormat.pathToAttributeList.length; i++) {
             tokenURI = tokenURI[this.attributeFormat.pathToAttributeList[i]]
         }
@@ -311,11 +317,7 @@ class uriHandler {
             let nftAttributeType = JSON.stringify(attributeList[i][this.attributeFormat.traitTypeKey]);
             let attributeValue = JSON.stringify(attribute[this.attributeFormat.valueKey]);
             let nftValue = JSON.stringify(attributeList[i][this.attributeFormat.valueKey]);
-            //console.log([attributeType, nftAttributeType, attributeValue, nftValue])
-            //console.log([attributeType == nftAttributeType, attributeValue === nftValue])
-            //console.log((attributeType === nftAttributeType) && (attributeValue === nftValue))
             if ((attributeType === nftAttributeType) && (attributeValue === nftValue)) {
-                //console.log("its trueeeee")
                 return true
             }
         }
@@ -369,7 +371,6 @@ class uriHandler {
      * @return {Set} matchingIds
      */
     async getIdsByAttribute(attribute, startId = 0, endId = null, idSet = null, excludeIdSet = new Set()) {
-        //console.log(attribute, startId = 0, endId = null, idSet = null, excludeIdSet = new Set())
         let matchingIds = new Set()
         if (!idSet || idSet.size === 0) {
             if (endId === null) {
@@ -469,7 +470,6 @@ class uriHandler {
      */
     async processAndCondition(condition) {
         const inputs = condition.inputs //TODO make cleaner
-        //console.log(inputs)
         //const inputTypesOrder = ["idList", "attributes", "conditions"]
         let excludeIdSet = new Set();
         let idSet = new Set(); //maybe const if u do if else TODO
@@ -481,20 +481,6 @@ class uriHandler {
         if ("idList" in inputs && typeof(inputs.idList) === "object" && Object.keys(inputs.idList).length) {
             idSet = new Set(inputs.idList) //idList = ids that we be checked if they have specified attributes and conditions
         }
-
-        // if ("attributes" in inputs && inputs.attributes)  {
-        //     console.log(inputs.attributes)
-        //     //prob better not to do parallelization
-        //     for (const attribute of inputs.attributes) {
-        //         //console.log(`${JSON.stringify(attribute)}, ${0}, ${null}, ${JSON.stringify(idSet)}, ${excludeIdSet}`);
-        //         const newIdSet = await this.getIdsByAttribute(attribute, 0, null, idSet, excludeIdSet) //excludeIdSet is passed to prevent unnecessarily checking ids
-        //         //console.log(attrIds)
-        //         idSet = newIdSet
-        //     }
-        // }
-
-        //TODO do it like in the OR,RANGE,NOT with paralelzation but do first itter in serial to drasticly reduce O(n) (becuase this is a AND)
-        //and dont flatten and do for loop with setIntersection
         if ("attributes" in inputs && typeof(inputs.attributes) === "object" && Object.keys(inputs.attributes).length)  {
             //do 1 attribute first to reduce the set of ids before parallelisation 
             const attributesCopy = [ ...inputs.attributes]
@@ -522,12 +508,6 @@ class uriHandler {
             const conditionsClone = structuredClone(inputs.conditions)
             let newIdSets = []
             for (const con of conditionsClone) {
-                // if (!"idList" in con.NOT || !con.NOT.idList) {
-                //     con.NOT.idList = []
-                // }
-                // console.log((await this.getTotalSupply()))
-                // let allIds = new Set([...Array(await this.getTotalSupply()).keys()].map(i => i + 0))
-                // con.NOT.idList = this.setComplement(allIds, idSet)  //[...new Set([...idSet, ...con.NOT.idList])] //prevents that condition from checking ids that are already checked
                 con.idSetFromAndParent = idSet
                 newIdSets.push(this.processCondition(con))
             }
@@ -543,20 +523,6 @@ class uriHandler {
 
             }
         }
-
-        // if ("conditions" in inputs && inputs.conditions) {
-        //     for (const con of inputs.conditions) {
-        //         if (!"idList" in con.NOT || !con.NOT.idList) {
-        //             con.NOT.idList = []
-        //         }
-        //         const newIdSet = await this.processCondition(con)
-        //         idSet = this.setIntersection(idSet, newIdSet);
-        //     }
-        // }
-
-        // if (excludeIdSet.size) {
-        //     idSet = this.setComplement(idSet, excludeIdSet);
-        // }
         idSet = this.setComplement(idSet, excludeIdSet)
         return idSet
     }
@@ -630,16 +596,12 @@ class uriHandler {
         if ("attributes" in inputs && typeof(inputs.attributes) === "object" && Object.keys(inputs.attributes).length)  {
             let newIdSets = []
             for (const attribute of inputs.attributes) {
-                console.log(newIdSets)
                 newIdSets.push(this.getIdsByAttribute(attribute, 0, null, null, idSet) ) //idSet excluded so theyre not processed (they're allready)
             } //TODO this one is O(n*totalsupply) n=attributes but runs paralel. in serial it can be O(n-newIdSet) where n reduces on every iter since the ids already found can be skipped since theyre already included
             //paralelization
             newIdSets = await Promise.all(newIdSets);
-            console.log(newIdSets)
             newIdSets = newIdSets.map((x) => [...x]);
-            console.log(newIdSets)
             idSet = new Set([...idSet, ...newIdSets.flat()])
-            console.log(idSet)
         }
         
         if ("conditions" in inputs && typeof(inputs.conditions) === "object" && Object.keys(inputs.conditions).length) {//TODO this can be a function?
@@ -663,21 +625,14 @@ class uriHandler {
     async processRangeCondition(condition) { //TODO idlist?
         const inputs = condition.inputs //TODO make cleaner
         let excludeIdSet = new Set();  
-        //console.log(inputs)
 
         if ((!("start" in inputs)) || !inputs.start) {
-            console.log(this.idStartsAt)
             inputs["start"] = this.idStartsAt
         }
-        console.log(inputs)
 
         if (!"stop" in inputs || !inputs.stop || inputs.stop === "totalSupply") {
-            inputs["stop"] = await this.getTotalSupply()
+            inputs["stop"] = (await this.getTotalSupply())+1
         }
-        //TODO inputs.stop-inputs.start
-        console.log("aaaaaaaaaaa")
-        console.log(inputs.stop,inputs.start)
-        console.log(inputs.stop-inputs.start)
         let idSet = new Set([...Array(inputs.stop-inputs.start).keys()].map(i => i + inputs.start)) //range(inputs.start, inputs.stop)
 
         if ("idList" in inputs && typeof(inputs.idList) === "object" && Object.keys(inputs.idList).length) {
@@ -685,9 +640,7 @@ class uriHandler {
         } 
 
         if ("NOT" in condition && condition.NOT) {
-            console.log(condition.NOT)
             excludeIdSet = await this.processNotCondition(condition.NOT)
-            console.log(excludeIdSet)
         }
 
         if ("conditions" in inputs && typeof(inputs.conditions) === "object" && Object.keys(inputs.conditions).length) {//TODO this can be a function?
@@ -707,9 +660,7 @@ class uriHandler {
 
         }
 
-        console.log(idSet, excludeIdSet)
         idSet = this.setComplement(idSet, excludeIdSet);
-        console.log(idSet)
         return idSet
         
 
@@ -745,96 +696,95 @@ class uriHandler {
         return this.processCondition(structuredClone(filterObj))
     }
 
+    async getEveryAttributeTypeFromUriCache(uriCache, keepIds=true) {
+        if (!uriCache || !uriCache.length) {
+            uriCache = await this.syncUriCache()
+        }  
+
+        let everyAttribute = {}
+        const uriKeys = Object.keys(uriCache).map(((x)=>parseInt(x)));
+
+        for (let id=0; id<uriCache.length; id++) {
+            const metaData = uriCache[id]
+            for (const attr of metaData.attributes) {
+                const traitType = attr[this.attributeFormat.traitTypeKey]
+                const value = attr[this.attributeFormat.valueKey]
+                
+                if (!(traitType in everyAttribute)) {
+                    const valueAsFloat = parseFloat(value)
+                    if (isNaN(valueAsFloat)) { //check if value is number
+                        everyAttribute[traitType] = {"dataType":"string", "attributes":{}}; 
+                    } else {
+                        everyAttribute[traitType] = {"dataType":"number","min":valueAsFloat, "max":valueAsFloat, "attributes":{}};
+                    }
+
+                    everyAttribute[traitType]["attributes"][value] = {"amount":1}
+                    if (keepIds) {
+                        everyAttribute[traitType]["attributes"][value]["ids"] = [id];
+                    }
+                } else {
+                    if (! (value in everyAttribute[traitType]["attributes"])) { //checks if value is in list
+                        if (everyAttribute[traitType]["dataType"] == "number") {
+                            const valueAsFloat = parseFloat(value)
+                            if (isNaN(valueAsFloat)) {
+                                everyAttribute[traitType]["dataType"] = "string";
+                                delete everyAttribute[traitType].min
+                                delete everyAttribute[traitType].max
+                            } else {
+                                everyAttribute[traitType].min = Math.min(everyAttribute[traitType].min, valueAsFloat);
+                                everyAttribute[traitType].max = Math.max(everyAttribute[traitType].max, valueAsFloat);
+                            }
+                        } 
+                        everyAttribute[traitType]["attributes"][value] = {"amount": 1};
+
+                        if (keepIds) {
+                            everyAttribute[traitType]["attributes"][value]["ids"] = [id];
+                        }
+                    } else {
+                        everyAttribute[traitType]["attributes"][value]["amount"] += 1;
+                        if (keepIds) {
+                            everyAttribute[traitType]["attributes"][value]["ids"].push(id);
+                        }
+
+                    }
+
+                }
+            }
+        }
+        return everyAttribute
+
+    }
+
 
     /**TODO handle when urichache possible to fetch
      * @returns {Object} attributes
      */
-    async getEveryAttributeType(forceResync=false,keepIds=true,uriCache=null) {
+    async getEveryAttributeType(forceResync=false,keepIds=true,uriCache=this.uriCache) {
         
 
         //TODO make format global var
 
         if (!forceResync && (await this.extraUriMetaData).everyAttribute) {
-            console.log(`found preprossed data for contract: ${this.contractObj.address}, at  ${(await this.extraUriMetaData).everyAttribute}`)
-            const r = await this.getUrlByProtocol((await this.extraUriMetaData).everyAttributeCbor)
-            this.everyAttribute = CBOR.decode(await r.arrayBuffer())
+            if ((await this.extraUriMetaData).everyAttribute) {
+                console.log(`found preprossed data for contract: ${this.contractObj.address}, at  ${(await this.extraUriMetaData).everyAttribute}`)
+                const r = await this.getUrlByProtocol((await this.extraUriMetaData).everyAttributeCbor)
+                this.everyAttribute = CBOR.decode(await r.arrayBuffer())
+            }
 
             //this.everyAttribute = await (await this.getUrlByProtocol((await this.extraUriMetaData).everyAttribute)).json()
         } else {
-            console.log(`no premade metadata found for ntf contract: ${await this.contractObj.address} :( collecting attribute manually!`)
-            if (!uriCache) {
-                uriCache = await this.syncUriCache()
-            }  
+            console.log(`no premade metadata found for ntf contract: ${await this.contractObj.address} :( collecting attributes manually!`)
+            this.everyAttribute = await this.getEveryAttributeTypeFromUriCache(uriCache, keepIds)
+            try {
+                localStorage.setItem(await this.contractObj.address, JSON.stringify({"idStartsAt":this.idStartsAt,"everyAttribute":this.everyAttribute}));
+            } catch (e) {
+                console.log("Couldnt save to local storage. Is it full?")
+                console.log(e)
 
-            let everyAttribute = {}
-            //console.log(uriCache)
-            const uriKeys = Object.keys(uriCache).map(((x)=>parseInt(x)));
-            //console.log(uriKeys)
-
-            for (let id=0; id<uriCache.length; id++) {
-                const metaData = uriCache[id]
-                for (const attr of metaData.attributes) {
-                    const traitType = attr[this.attributeFormat.traitTypeKey]
-                    const value = attr[this.attributeFormat.valueKey]
-                    
-                    if (!(traitType in everyAttribute)) {
-                        const valueAsFloat = parseFloat(value)
-                        if (isNaN(valueAsFloat)) { //check if value is number
-                            everyAttribute[traitType] = {"dataType":"string", "attributes":{}}; 
-                        } else {
-                            everyAttribute[traitType] = {"dataType":"number","min":valueAsFloat, "max":valueAsFloat, "attributes":{}};
-                        }
-
-                        everyAttribute[traitType]["attributes"][value] = {"amount":1}
-                        if (keepIds) {
-                            everyAttribute[traitType]["attributes"][value]["ids"] = [id];
-                        }
-                    } else {
-                        if (! (value in everyAttribute[traitType]["attributes"])) { //checks if value is in list
-                            if (everyAttribute[traitType]["dataType"] == "number") {
-                                const valueAsFloat = parseFloat(value)
-                                if (isNaN(valueAsFloat)) {
-                                    everyAttribute[traitType]["dataType"] = "string";
-                                    delete everyAttribute[traitType].min
-                                    delete everyAttribute[traitType].max
-                                } else {
-                                    everyAttribute[traitType].min = Math.min(everyAttribute[traitType].min, valueAsFloat);
-                                    everyAttribute[traitType].max = Math.max(everyAttribute[traitType].max, valueAsFloat);
-                                }
-                            } 
-                            everyAttribute[traitType]["attributes"][value] = {"amount": 1};
-
-                            if (keepIds) {
-                                everyAttribute[traitType]["attributes"][value]["ids"] = [id];
-                            }
-                        } else {
-                            everyAttribute[traitType]["attributes"][value]["amount"] += 1;
-                            if (keepIds) {
-                                everyAttribute[traitType]["attributes"][value]["ids"].push(id);
-                            }
-
-                        }
-
-                    }
-                }
             }
-            this.everyAttribute = everyAttribute
+            
         }
         return this.everyAttribute
     }
 
-    // /**
-    //  * 
-    //  * @param {Object} everyAttribute 
-    //  * @returns {Object} formattedEveryAttribute
-    //  */
-    // async getFormatEveryAttributeObject() {
-    //     formattedEveryAttribute = {}
-    //     everyAttribute = this.getEveryAttributeType()
-    //     for (let key of Object.keys(everyAttribute)) {
-    //         formattedEveryAttribute[key] = {"length":everyAttribute[key].length}
-    //         for (let item of everyAttribute[key])
-    //     }
-
-    // }
 }

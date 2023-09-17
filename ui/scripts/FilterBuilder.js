@@ -289,7 +289,7 @@ class FilterBuilder {
 
                 } else if (inputType === "conditions") {
                     if (filter.inputs[inputType].length < 2) {
-                        const firstTwoItems = filter.inputs[inputType].map((x) => ` F${x.filterIndex + 1}:${x.type}`);
+                        const firstTwoItems = filter.inputs[inputType].map((x) => ` F:${x.filterName}`);
                         inputInfoString += `${inputType}: ${firstTwoItems.toString()}, `
 
                     } else {
@@ -339,7 +339,7 @@ class FilterBuilder {
 
                     } else if (inputType === "conditions") {
                         if (filter.NOT[inputType].length < 2) {
-                            const firstTwoItems = filter.NOT[inputType].map((x) => ` F${x.filterIndex + 1}:${x.type}`);
+                            const firstTwoItems = filter.NOT[inputType].map((x) => ` F:${x.filterName}`);
                             inputInfoString += `${inputType}: ${firstTwoItems.toString()}, `
 
                         } else {
@@ -428,7 +428,7 @@ class FilterBuilder {
         }
 
         const html = `<div class="dropdown">\n
-            <button onclick="fBuilder.displayfilters()" class="dropbtn">select</button>\n
+            <button onclick="fBuilder.displayfilters()" class="dropbtn">select filter</button>\n
             <div id="allFiltersDropdown" class="dropdown-content" style='overflow:visible; z-index:100; max-height:fit-content;'>\n
                 ${this.filterSelecterUi(filters)}
                 <button class="dropbtn" onclick='fBuilder.createNewFilterUi()'>create new filter</button>
@@ -476,7 +476,7 @@ class FilterBuilder {
             const countId = `count:${JSON.stringify(target).replaceAll("\"", "")}`
             html += `${key}:<a id=${countId}>${inputTypes[key]}</a> items 
             <div class="dropdown">
-                <button onclick=\"fBuilder.displayEditItemsDropDown(\'${btnId}\')\" class="dropbtn">edit TODO</button>
+                <button onclick=\"fBuilder.displayEditItemsDropDown(\'${btnId}\')\" class="dropbtn">edit</button>
                 <div id='${btnId}' class="dropdown-content">${this.getEditItemsDropDown(fBuilder.getCurrentFilter(),target)}</div></br>
             </div>\n, `
         }
@@ -543,6 +543,7 @@ class FilterBuilder {
         <div>
             ${this.filtersDropDown()}
             <a id="filterName" onclick='fBuilder.editFilterName()' class='clickable'>Name: ${currenFilterName}</a>
+            <button onclick="runFilter()">go</button></br>
         
             Type: ${this.getCurrentFilter().type}${this.getTypeUi(filterIndex)},  
             ${this.getInputsUi(this.allFilters[filterIndex])}
@@ -943,18 +944,32 @@ class FilterBuilder {
         document.getElementById("allFiltersDropdown").classList.toggle("show");
     }
 
-    importFilter(base58CBOR) {
-        //decode(base58CBOR)
-        const filter = base58CBOR
-        window.currentFilterIndex = filter.filterIndex
-        this.currentFilterIndex = filter.filterIndex
+    encodeObjectToBase58CBOR(object) {
+        return ethers.utils.base58.encode(new Uint8Array(CBOR.encode(object)))
+    }
+
+    decodeBase58CBOR(base58CBOR) {
+        return CBOR.decode(ethers.utils.base58.decode(base58CBOR).buffer)
+    }
+
+    exportFilterAsBase58CBOR(filter=this.getCurrentFilter()) {
+        filter = this.removeEmptyKeys(structuredClone(filter))
+        return this.encodeObjectToBase58CBOR(filter)
+    }
+
+    importFilterBase58CBOR(base58CBOR) {
+        const filterObj = this.decodeBase58CBOR(base58CBOR)
+        this.importFilterObject(filterObj)
+    }
+
+    importFilterObject(filterObj) {
+        this.currentFilterIndex = filterObj.filterIndex
         this.allFilters = []
-        this.addFilter(filter)
+        this.addFilter(filterObj)
         this.getUi()
     }
 
     addFilter(filter) {
-        console.log(filter)
         if ("inputs" in filter && "conditions" in filter.inputs && filter.inputs.conditions.length) {
             for(let key in filter.inputs.conditions) {
                 this.addFilter(filter.inputs.conditions[key])
