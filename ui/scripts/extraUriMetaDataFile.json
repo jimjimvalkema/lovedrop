@@ -3,17 +3,17 @@
         "type": "milady",
         "name": "miladyTest",
         "correctedMetaDataSeparatedFiles":"bafybeiawqw7zaoliz2rjgiqwzyykwzjsmr24i3a6paazalmqijsldtfg7i",
-        "baseUriCompressed": "ipfs://bafybeiezitb4ewavoxz6tuzn5apatfh7yvq5k4g5rtmebjm757fnpyp4su",
+        "baseUriCompressed": "ipfs://bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a",
         "scrapedUriData" : "ipfs://bafybeibexus34rk6bt7psn7gly2sduq3xui4jzshoimmdvrw3otqzglp3y",
         "scrapedUriDataCbor": "ipfs://bafybeic7f5slx2tqmkt3uj6573cvdtfgwk3pg3xyuu2jra7klyohkh2sii",
         "everyAttribute": "ipfs://bafybeicgayygxqzdsz37hkn3shfpsxrbyyiemodpyrpkoazxbb3p5khc5m",
-        "everyAttributeCbor":"ipfs://bafybeigey4mq6pxl7zk77rwls7glb46pjzxhm5rf33eu6fbzfh4pwoktmy"
+        "everyAttributeCbor":"ipfs://bafybeigey4mq6pxl7zk77rwls7glb46pjzxhm5rf33eu6fbzfh4pwoktmy" 
     },
     "0x5af0d9827e0c53e4799bb226655a1de152a425a5" : {
         "type": "milady",
         "name": "miladyMainnet",
         "correctedMetaDataSeparatedFiles":"bafybeiawqw7zaoliz2rjgiqwzyykwzjsmr24i3a6paazalmqijsldtfg7i",
-        "baseUriCompressed": "ipfs://bafybeiezitb4ewavoxz6tuzn5apatfh7yvq5k4g5rtmebjm757fnpyp4su",
+        "baseUriCompressed": "ipfs://bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a",
         "scrapedUriData" : "ipfs://bafybeibexus34rk6bt7psn7gly2sduq3xui4jzshoimmdvrw3otqzglp3y",
         "scrapedUriDataCbor": "ipfs://bafybeic7f5slx2tqmkt3uj6573cvdtfgwk3pg3xyuu2jra7klyohkh2sii",
         "everyAttribute": "ipfs://bafybeicgayygxqzdsz37hkn3shfpsxrbyyiemodpyrpkoazxbb3p5khc5m",
