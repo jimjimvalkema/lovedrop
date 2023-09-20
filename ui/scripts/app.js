@@ -1,3 +1,5 @@
+import { uriHandler } from "./uriHandler.js";
+
 let provider;
 if (window.ethereum) {
     provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -63,15 +65,18 @@ async function connectSigner() {
         await refreshDeployedContractsUi();
         provider.on(
             miladyDropFactoryContract.filters.CreateNewDrop(await window.signer.getAddress()), (log, event) => {
-                deployedDropAddress = ethers.utils.defaultAbiCoder.decode(["address"], log.data)[0]
+                window.deployedDropAddress = ethers.utils.defaultAbiCoder.decode(["address"], log.data)[0]
                 refreshDeployedContractsUi();
-                message(`confirmed at: ${log.transactionHash} ,deployed at: ${deployedDropAddress} `);
+                message(`confirmed at: ${log.transactionHash} ,deployed at: ${window.deployedDropAddress} `);
                 // Emitted whenever a contract from the user is deploye
             }
         )
         return [provider, signer];
     }
+
 }
+//TODO do event listeners
+window.connectSigner = connectSigner
 
 async function getMiladyDropContract(provider, urlVars) {
     mildayDropAddress = urlVars["mildayDropAddress"]
@@ -80,9 +85,11 @@ async function getMiladyDropContract(provider, urlVars) {
     mildayDropContract = new ethers.Contract(mildayDropAddress, mildayDropAbi, provider);
     return mildayDropContract;
 }
+//TODO do event listeners
+window.getMiladyDropContract = getMiladyDropContract
 
 async function getMiladyDropFactoryContract(provider, mildayDropFactoryAddress, mildayDropFactoryAbi = window.mildayDropFactoryAbi) {
-    mildayDropFactoryContract = new ethers.Contract(mildayDropFactoryAddress, mildayDropFactoryAbi, provider);
+    window.mildayDropFactoryContract = new ethers.Contract(mildayDropFactoryAddress, mildayDropFactoryAbi, provider);
     return mildayDropFactoryContract;
 }
 
@@ -94,23 +101,27 @@ async function getAirdropTokenContract(provider, nftAddress) {
     const airdropTokenContract = new ethers.Contract(airDropTokenAddress, ERC20ABI, provider);
     return airdropTokenContract;
 }
+//TODO do event listeners
+window.getAirdropTokenContract = getAirdropTokenContract
 
 async function getNftContract(provider, nftContractAddress) {
     // The Contract object
-    nftContract = new ethers.Contract(nftContractAddress, ERC721ABI, provider);
+    window.nftContract = new ethers.Contract(nftContractAddress, ERC721ABI, provider);
     return nftContract;
 
 }
 
 async function getUserNftIds(userAddress) {
     var ids = [];
-    let userBalance = (await nftContract.balanceOf(userAddress)).toNumber();
+    let userBalance = (await window.nftContract.balanceOf(userAddress)).toNumber();
     for (let i = 0; i < userBalance; i++) {
-        ids.push((await nftContract.tokenOfOwnerByIndex(userAddress, i)).toNumber());
+        ids.push((await window.nftContract.tokenOfOwnerByIndex(userAddress, i)).toNumber());
 
     }
     return ids;
 }
+//TODO do event listeners
+window.getUserNftIds = getUserNftIds
 
 async function getUrlVars() {
     var vars = {};
@@ -138,7 +149,7 @@ function readFile(input) {
     let result = ""
 
     let reader = new FileReader();
-    currenFileName = file["name"];
+    window.currenFileName = file["name"];
 
 
     reader.readAsText(file);
@@ -150,6 +161,8 @@ function readFile(input) {
         window.currentFileString = result;
     }
 };
+//TODO do event listeners
+window.readFile = readFile
 
 function isInterger(string) {
 
@@ -163,9 +176,9 @@ function isInterger(string) {
 function formatBalanceMap(balanceMap) {
     let formatedBalanceMap = {}
     for (var i = 0; i < balanceMap.length; i++) {
-        line = balanceMap[i];
-        address = line[0];
-        amount = line[1];
+        const line = balanceMap[i];
+        const address = line[0];
+        const amount = line[1];
         if (ethers.utils.isAddress(address) && isInterger(amount)) {
             formatedBalanceMap[balanceMap[i][0]] = balanceMap[i][1];
 
@@ -176,6 +189,8 @@ function formatBalanceMap(balanceMap) {
     };
     return (formatedBalanceMap);
 };
+//TODO do event listeners
+window.toggleExclude = toggleExclude
 
 function downloadString(text, fileType, fileName) {
     var blob = new Blob([text], { type: fileType });
@@ -190,13 +205,15 @@ function downloadString(text, fileType, fileName) {
     document.body.removeChild(a);
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
 }
+//TODO do event listeners
+window.toggleExclude = toggleExclude
 
 function formatBalanceMapIds(balanceMap) {
     let formatedBalanceMap = {}
     for (var i = 0; i < balanceMap.length; i++) {
-        line = balanceMap[i];
-        id = line[0];
-        amount = line[1];
+        const line = balanceMap[i];
+        const id = line[0];
+        const amount = line[1];
         if (isInterger(id) && isInterger(amount)) {
             formatedBalanceMap[balanceMap[i][0]] = balanceMap[i][1]
 
@@ -224,16 +241,20 @@ function goToclaim() {
     //TODO set address
     location.replace(`/?mildayDropAddress=${window.deployedDropAddress}&ipfsApi=${x.ipfsApi.value}&projectId=${x.projectId.value}&projectSecret=${x.keySecret.value}`)
 }
+//TODO do event listeners
+window.goToclaim = goToclaim
 
 async function claimIndexIpfsFromCsv(csvString = window.currentFileString) {
-    merkle = await csvToBalanceMapJSON(csvString);
+    const merkle = await csvToBalanceMapJSON(csvString);
     message(`created merkle tree with merkle root: ${merkle['merkleRoot']}`)
-    window.dropsRootHash = await window.ipfsIndex.createIpfsIndex(merkle, splitSize = 780, metaData = { "merkleRoot": merkle['merkleRoot'] });
+    window.dropsRootHash = await window.ipfsIndex.createIpfsIndex(merkle, 780, { "merkleRoot": merkle['merkleRoot'] });
 
 }
+//TODO do event listeners
+window.claimIndexIpfsFromCsv = claimIndexIpfsFromCsv
 
 //TODO remove default value
-async function deployDropContract(requiredNFTAddress = "0xbAa9CBDAc7A1E3f376192dFAC0d41FcE4FC4a564", airDropTokenAddress = "0xaf98D8B8C7611F68cf630A43b117A0e1f666d2EA", ipfsIndex = window.ipfsIndex) {
+async function deployDropContract(requiredNFTAddress = "0xbaa9cbdac7a1e3f376192dfac0d41fce4fc4a564", airDropTokenAddress = "0xaf98D8B8C7611F68cf630A43b117A0e1f666d2EA", ipfsIndex = window.ipfsIndex) {
     const merkleRoot = ipfsIndex.metaData.merkleRoot;
     const claimDataIpfs = ipfsIndex.dropsRootHash;
 
@@ -243,7 +264,7 @@ async function deployDropContract(requiredNFTAddress = "0xbAa9CBDAc7A1E3f376192d
         window.tx = window.miladyDropFactoryContractWithSigner.createNewDrop(requiredNFTAddress, airDropTokenAddress, merkleRoot, claimDataIpfs);
     }
     message(`submitted transaction at: ${(await tx).hash}`);
-    confirmedTX = (await (await (await tx).wait(1)).transactionHash);
+    const confirmedTX = (await (await (await tx).wait(1)).transactionHash);
     window.reciept = (await provider.getTransactionReceipt(confirmedTX));
     window.deployedDropAddress = await ethers.utils.defaultAbiCoder.decode(["address"], reciept.logs[0].data)[0];
     message(`confirmed transaction at: ${(await tx).hash}, deployed at: ${window.deployedDropAddress}`);
@@ -252,13 +273,17 @@ async function deployDropContract(requiredNFTAddress = "0xbAa9CBDAc7A1E3f376192d
     return 0;
 
 }
+//TODO do event listeners
+window.deployDropContract = deployDropContract
 
 async function getDeployedContractsFromUser(userAddress = window.signer.getAddress()) {
     let contractAddresses = [];
-    for (i = 0; i < 1000000; i++) {
+
+    for (let i = 0; i < 1000000; i++) {
         try {
             let drop = await miladyDropFactoryContract.DeployedDrops(i);
-            if (drop["deployer"] === await userAddress) {
+            console.log(drop)
+            if (drop["deployerAddress"] === await userAddress) {
                 contractAddresses.push(await drop["dropAddress"])
             }
         }
@@ -266,7 +291,7 @@ async function getDeployedContractsFromUser(userAddress = window.signer.getAddre
             break
         }
     }
-    //document.getElementById("deployedDropsList").innerHTML = JSON.stringify(contractAddresses, 2);
+    document.getElementById("deployedDropsList").innerHTML = JSON.stringify(contractAddresses, 2);
     return contractAddresses
 
 }
@@ -282,11 +307,13 @@ function copyClaimUrl(index) {
     // Copy the text inside the text field
     navigator.clipboard.writeText(url);
 }
+//TODO do event listeners
+window.copyClaimUrl = copyClaimUrl
 
 async function displayDeployedContracts(contractAddresses) {
     window.claimUrls = []
-    html = ""
-    for (i = 0; i < contractAddresses.length; i++) {
+    let html = ""
+    for (let i = 0; i < contractAddresses.length; i++) {
         window.claimUrls.push(`${new URL(window.location.href).origin}/claim/?mildayDropAddress=${contractAddresses[i]}`)
         html += `
         <div class="tooltip" onclick="copyClaimUrl(${i})"> \n 
@@ -297,6 +324,7 @@ async function displayDeployedContracts(contractAddresses) {
         `
         //`<p onclick="copyClaimUrl(${i})"> ${window.claimUrls[i]}</p><br> \n`
     }
+    console.log(`${html}`)
     document.getElementById("deployedDropsList").innerHTML = `${html}`;
 
 }
@@ -328,6 +356,8 @@ async function toggleExclude(id, target) {
     //await fBuilder.displayFilter(fBuilder.currentFilterIndex)
     document.getElementById("editFilter").innerHTML = fBuilder.getEditFilterUi()
 }
+//TODO do event listeners
+window.toggleExclude = toggleExclude
 
 function getImageWidth(availableWidth) {
     const amountImages = Math.round(0.001829*screen.availWidth + 2.488)
@@ -369,7 +399,7 @@ async function displayNfts(currentPage, maxPerPage = 12, availableWidth) {
             
         }
   
-        url = await URI.getImage(id)
+        const url = await URI.getImage(id)
         images += `<div id="NFT${id}" onclick="toggleExclude(${id}, [\'NOT\',\'idList\'] )" ; style="position: relative; margin: 2px; cursor:pointer; 
                 width: ${getImageWidth(availableWidth)}vw; display: inline-block;" >\n 
                 <img src="${url}" id="image${i}" style="max-width: 100%; max-height: 100%;">\n 
@@ -380,7 +410,7 @@ async function displayNfts(currentPage, maxPerPage = 12, availableWidth) {
     }
     //TODO make field for "go to page: x"
     const amountPages = Math.ceil(ids.length / maxPerPage - 1)
-    pageSelecter = `
+    const pageSelecter = `
         <button onclick="displayNfts(${Math.max(0, currentPage - 1)},${maxPerPage}, ${availableWidth})">prev</button><button onclick="displayNfts(${Math.min(amountPages, currentPage + 1)},${maxPerPage}, ${availableWidth})">next</button> <button onclick="displayNfts(0,${maxPerPage}, ${availableWidth})">first</button><button onclick="displayNfts(${amountPages},${maxPerPage}, ${availableWidth})">last</button>
         page: ${currentPage + 1} of: ${amountPages + 1} pages \n`
     document.getElementById("nftImages").innerHTML = `${pageSelecter} </br> ${images} </br> ${pageSelecter}`
@@ -390,6 +420,7 @@ function getAmountOfRows(availWidth=screen.availWidth) {
     return Math.abs(Math.ceil(-0.001948*availWidth + 6.701))
 } 
 
+window.displayNfts = displayNfts
 
 async function runFilter(currentFilter=fBuilder.getCurrentFilter()) {
     let start = Date.now();
@@ -404,6 +435,7 @@ async function runFilter(currentFilter=fBuilder.getCurrentFilter()) {
     console.log("running filter took: " + timeTaken + " milliseconds");
     document.getElementById("message").innerHTML = `width:${screen.availWidth} height:${screen.availHeight}`
 }
+window.runFilter = runFilter
 
 function hideDiv(id) {
     document.getElementById(id).setAttribute("hidden", "hidden")
@@ -431,12 +463,18 @@ async function test() {
 
 
 
-    window.URI = await new uriHandler(nftContract, window.urlVars["ipfsApi"],true, "./scripts/extraUriMetaDataFile.json")
+    window.URI = await new uriHandler(nftContract, window.urlVars["ipfsGateway"],true, "./scripts/extraUriMetaDataFile.json")
     window.baseURI = await window.URI.getBaseURI()
+    let fullUrl = "nonstandard tokenURI function TODO"
     if (!(await window.URI.extraUriMetaData).everyAttributeCbor && (!localStorage.hasOwnProperty(window.URI.contractObj.address))) {
+        
         let comment = "note: fetching large amount of data from external providers can cause rate limiting"
-        if ((new URL(baseURI)).protocol ==="ipfs:") {
-            if (isPrivateIP(new URL(window.urlVars["ipfsApi"]).hostname)) {
+        if(window.baseURI !== undefined) {
+            fullUrl = await window.URI.getUrlByProtocol(window.baseURI,true)
+
+        }
+        if ((window.baseURI !== undefined) && (new URL(window.baseURI)).protocol ==="ipfs:") {
+            if (isPrivateIP(new URL(window.urlVars["ipfsGateway"]).hostname)) {
                 comment = `you'r using a local ipfs node. Based :D`
             }
         }
@@ -446,23 +484,23 @@ async function test() {
         Want to build it now? <button onclick='getFilterBuilderUi(window.URI)'>yes</button><button onclick='hideDiv("message")'>no</button></br>
         </br>
         Total supply is: ${await window.URI.getTotalSupply()}</br> 
-        metadata will be fetched from: ${await window.URI.getUrlByProtocol(window.baseURI,true)}</br>
+        metadata will be fetched from: ${fullUrl}</br>
 
         This can take 1min to 10min</br>
         <a style='font-size:0.4cm'>${comment}</a>
         `
     } else {
         console.log("hiiiiiii")
-        getFilterBuilderUi(window.URI)
+        getFilterBuilderUi(window.URI,fullUrl)
 
     }
     
 
 };
 
-async function getFilterBuilderUi(URI) {
+async function getFilterBuilderUi(URI,fullUrl="") {
     let start = Date.now();
-    document.getElementById("message").innerHTML = `this may take between 1min to 10min</br> fetching from ${await window.URI.getUrlByProtocol(window.baseURI,true)}
+    document.getElementById("message").innerHTML = `this may take between 1min to 10min</br> fetching from ${fullUrl}
     <div id='messageProgress'></div>`
     await URI.fetchAllExtraMetaData()
     window.fBuilder = await new FilterBuilder(window.URI, structuredClone([f1,f2,window.emptyFilter]))
@@ -482,6 +520,7 @@ async function getFilterBuilderUi(URI) {
     hideDiv("message")
 
 }
+window.getFilterBuilderUi = getFilterBuilderUi
 
 window.onload = runOnLoad;
 
@@ -491,13 +530,15 @@ async function runOnLoad() {
     // u = new URL(window.location.href)
     // base = u.host+u.pathname
     window.mildayDropFactoryAbiFile = await fetch('./abi/mildayDropFactoryAbi.json');
+    console.log(await (await fetch('./abi/mildayDropAbi.json')).json())
+    console.log(window)
     window.mildayDropAbiFile = await fetch('./abi/mildayDropAbi.json');
     let ERC721ABIFile = await fetch('./abi/ERC721ABI.json');
     let ERC20ABIFile = await fetch('./abi/ERC20ABI.json');
-    mildayDropAbi = await window.mildayDropAbiFile.json();
-    mildayDropFactoryAbi = await window.mildayDropFactoryAbiFile.json();
-    ERC721ABI = await ERC721ABIFile.json();
-    ERC20ABI = await ERC20ABIFile.json();
+    //mildayDropAbi = await window.mildayDropAbiFile.json();
+    window.mildayDropFactoryAbi = await window.mildayDropFactoryAbiFile.json();
+    window.ERC721ABI = await ERC721ABIFile.json();
+    window.ERC20ABI = await ERC20ABIFile.json();
 
     //TODO make function to connect ipfs indexer and option for is gateway in ui
     //TODO test if can connect 
@@ -513,7 +554,7 @@ async function runOnLoad() {
         window.auth = null
     }
     console.log(window.auth)
-    window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth, isGateway = false);
+    window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth, false);
 
     await loadAllContracts()
     test()
@@ -534,3 +575,4 @@ async function loadAllContracts() {
     //window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth , isGateway=false);
     //await window.ipfsIndex.loadIndex(claimDataIpfsHash);
 }
+window.loadAllContracts = loadAllContracts

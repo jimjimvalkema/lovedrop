@@ -1,14 +1,15 @@
-//const { error } = require("console");
 
+//const { error } = require("console");
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 //TODO maybe attibute finder is better name? or maybe split classes
-class uriHandler {
+export class uriHandler {
     contractObj = undefined;
 
     extraUriMetaData = undefined;
 
     uriCache = []
+    baseUriIsNonStandard = undefined;
     totalSupply = undefined
     baseURICache = undefined;
     ipfsGateway = undefined;
@@ -40,14 +41,18 @@ class uriHandler {
     }
 
     async fetchAllExtraMetaData() {
-        if  (localStorage.hasOwnProperty(await this.contractObj.address)) {
+        if  (!(typeof(localStorage)==="undefined") && localStorage.hasOwnProperty(await this.contractObj.address)) {
             console.log(`${this.contractObj.address} extraMetaDataFile was found in local storage :D`)
             const data = JSON.parse(localStorage.getItem(await this.contractObj.address));
             this.everyAttribute = data.everyAttribute;
             this.idStartsAt = data.idStartsAt;
+            if ("totalsupply" in data ) {
+                this.totalSupply = parseInt(data.totalsupply)
+
+            }
         } else {
             await this.getEveryAttributeType();
-            if ("idStartsAt" in (await this.extraUriMetaData) && isInterger((await this.extraUriMetaData).idStartsAt)) {
+            if ("idStartsAt" in (await this.extraUriMetaData) && Number.isInteger((await this.extraUriMetaData).idStartsAt)) {
                 this.idStartsAt = (await this.extraUriMetaData).idStartsAt
             }
             if ("type" in (await this.extraUriMetaData)) {
@@ -93,8 +98,11 @@ class uriHandler {
 
     }
     async getTotalSupply(){
+        //TOD assumption totalsupply staysthesame
         //TODO remove temp test value and add metadata to extraUriMetaDataFile to handle this and default to a better error handling when this value is incorrect
+        
         if (this.totalSupply) {
+            console.log(this.totalSupply)
             return this.totalSupply
         } else {
             return (await this.contractObj.totalSupply()).toNumber()
@@ -102,37 +110,55 @@ class uriHandler {
     }
 
     async getBaseURI() {
+        let baseUri = undefined;
         //TODO test
         //TODO IPFS
         //TODO get base uri by striping result .getTokenUri() becuase scatter doesnt have baseURI exposed :(
         if (this.baseURICache == null) {
             if ("type" in (await this.extraUriMetaData) && ((await this.extraUriMetaData).type === "milady")) {
-                this.baseURICache = this.getUrlByProtocol("ipfs://bafybeiawqw7zaoliz2rjgiqwzyykwzjsmr24i3a6paazalmqijsldtfg7i/",true)
+                baseUri= this.getUrlByProtocol("ipfs://bafybeiawqw7zaoliz2rjgiqwzyykwzjsmr24i3a6paazalmqijsldtfg7i/",true)
 
             } else {
                 try {
-                    this.baseURICache = (await this.contractObj.baseURI());
+                    baseUri = (await this.contractObj.baseURI());
+                    // base uri is always standard :)
                 } catch {
-                
-                    let s = (await nftContract.tokenURI(1))
-                    if (s.endsWith("1")) {
-                        this.baseURICache = s.slice(0, -1);
-                    } else if (s.endsWith("1.json")) {
-                        this.baseURICache = s.slice(0, -6)
-                        this.baseUriExtension = ".json"
-                    } else {
-                        throw new Error(`NFT contract does not have baseURI() function and it's tokenURI() function return a non standard string: \n ${s}`)
+                    let s;
+                    try {
+                        const i = 1
+                        s = (await this.contractObj.tokenURI(i))
+
+                        //TODO do a series of checks 
+                        if (s.endsWith(`${i}`)) {
+                            baseUri = s.slice(0, -1);
+                        } else if (s.endsWith(`${i}.json`)) {
+                            baseUri = s.slice(0, -6)
+                            this.baseUriExtension = ".json"
+                        } else {
+                            console.warn(`NFT contract does not have baseURI() function and it's tokenURI() function return a non standard string: \n ${s}\n rolling with expensive rpc calls for now`)
+                            this.baseUriIsNonStandard = true
+                            baseUri = s
+                        }
+                    } catch (error) {
+                        console.warn(`NFT contract does not have baseURI() function and it's tokenURI() function return a non standard string: \n ${s}\n rolling with expensive rpc calls for now`)
+                        this.baseUriIsNonStandard = true
+                        baseUri = s
+                        
                     }
-                }
             }
+            }
+        } else {
+            return this.baseURICache
         }
-        return this.baseURICache;
+        this.baseURICache=baseUri
+        return baseUri;
     }
 
     async getExtraUriMetaData(contractObj, extraUriMetaDataFile) {
+        console.log(extraUriMetaDataFile)
         let extraUriMetaData = await (await fetch(extraUriMetaDataFile)).json();
         const contractAddr = (await contractObj.address).toLowerCase()
-        console.log(contractAddr)
+        console.log(contractAddr, extraUriMetaData)
         
         if (contractAddr in extraUriMetaData) {
             console.log(extraUriMetaData[contractAddr])
@@ -157,7 +183,10 @@ class uriHandler {
                 if (!(id%200)) {
                     const m = `id:${id} out of:${await this.getTotalSupply()}`
                     console.log(m)
-                    document.getElementById("messageProgress").innerHTML = m
+                    if (!(typeof(document) === "undefined")) {
+                        document.getElementById("messageProgress").innerHTML = m
+
+                    }
                 }
                 uris.push(this.getTokenUriNoCache(id));
             }
@@ -206,6 +235,7 @@ class uriHandler {
     }
 
     async getUrlByProtocol(urlString, returnOnlyUrl=false) {
+        //console.log(urlString)
         let reqObj = {
             method: 'POST',
             // headers: {
@@ -215,9 +245,11 @@ class uriHandler {
         }
         let newUrlString = "";
         let urlObj = new URL(urlString)
+        //console.log(urlObj)
+        //console.log(`urlObj.pathname: ${urlObj.pathname}`)
         switch (urlObj.protocol) {
             case ("ipfs:"):
-                newUrlString = `${this.ipfsGateway}/ipfs/${urlObj.pathname.slice(2)}`;
+                newUrlString = `${this.ipfsGateway}/ipfs/${urlString.slice(7)}`//`${this.ipfsGateway}/ipfs/${urlObj.pathname.slice(2)}`;
                 break
             case ("http:"):
                 newUrlString = urlString;
@@ -230,6 +262,7 @@ class uriHandler {
         }
         //console.log(newUrlString)
         if (returnOnlyUrl===true) {
+            
             return newUrlString
         } else {
             return await fetch(newUrlString);
@@ -270,16 +303,36 @@ class uriHandler {
 
         //const reqObj = {method: 'GET'}
         let retries = 0;
+        //console.log(await this.getBaseURI())
+        //console.log((await this.getUrlByProtocol(`${await this.getBaseURI()}${id}${this.baseUriExtension}`, true)))
+        //console.log((await this.getUrlByProtocol(`${await this.getBaseURI()}${id}${this.baseUriExtension}`)))
+        let uriString = ""
+        if(this.baseUriIsNonStandard) {
+            try {
+                uriString =  (await this.contractObj.tokenURI(id))
+                
+            } catch (error) {
+                console.log(`whoops errored on getting tokeUri from contract at id: ${id} it probably hasn't minted yet :(`)
+                return undefined
+                
+            }
+    
+        }else {
+            uriString = `${await this.getBaseURI()}${id}${this.baseUriExtension}`
+        }
+        
+        //const URI =  await (await this.getUrlByProtocol()).json()
         while (retries < 4) {
             try {
                 //await (await fetch("https://arweave.net/LGlMDKAWgcDyvYoft1YV6Y2pBBAwjWaFuZrDP9yD-RY/13.json")).json()
                 //console.log(`${await this.getBaseURI()}${id}${this.baseUriExtension}`)
-                const URI =  await (await this.getUrlByProtocol(`${await this.getBaseURI()}${id}${this.baseUriExtension}`)).json()
+                const URI =  await (await this.getUrlByProtocol(uriString)).json()
                 //await (await fetch(`${await this.getBaseURI()}${id}`)).json();
                 return URI
             } catch (error) {
                 console.log(`errored on id: ${id} re-tried ${retries} times`)
                 console.log(`error is: ${error}`);
+                console.log(error)
                 await delay(200);
             }
             retries += 1;
@@ -697,58 +750,76 @@ class uriHandler {
     }
 
     async getEveryAttributeTypeFromUriCache(uriCache, keepIds=true) {
+    
         if (!uriCache || !uriCache.length) {
             uriCache = await this.syncUriCache()
         }  
+        this.totalSupply = uriCache.length-1
 
         let everyAttribute = {}
         const uriKeys = Object.keys(uriCache).map(((x)=>parseInt(x)));
 
         for (let id=0; id<uriCache.length; id++) {
             const metaData = uriCache[id]
-            for (const attr of metaData.attributes) {
-                const traitType = attr[this.attributeFormat.traitTypeKey]
-                const value = attr[this.attributeFormat.valueKey]
-                
-                if (!(traitType in everyAttribute)) {
-                    const valueAsFloat = parseFloat(value)
-                    if (isNaN(valueAsFloat)) { //check if value is number
-                        everyAttribute[traitType] = {"dataType":"string", "attributes":{}}; 
-                    } else {
-                        everyAttribute[traitType] = {"dataType":"number","min":valueAsFloat, "max":valueAsFloat, "attributes":{}};
-                    }
+            if("attributes" in metaData) {//uricache somtimes gets empty results from nft with broken max supplies like jay peg automart smh
+                for (const attr of metaData.attributes) {
+                    const traitType = attr[this.attributeFormat.traitTypeKey]
+                    const value = attr[this.attributeFormat.valueKey]
+                    
+                    if (!(traitType in everyAttribute)) {
+                        const valueAsFloat = parseFloat(value)
+                        if (isNaN(valueAsFloat)) { //check if value is number
+                            everyAttribute[traitType] = {"dataType":"string", "attributes":{}}; 
+                        } else {
+                            everyAttribute[traitType] = {"dataType":"number","min":valueAsFloat, "max":valueAsFloat, "attributes":{}};
+                        }
 
-                    everyAttribute[traitType]["attributes"][value] = {"amount":1}
-                    if (keepIds) {
-                        everyAttribute[traitType]["attributes"][value]["ids"] = [id];
-                    }
-                } else {
-                    if (! (value in everyAttribute[traitType]["attributes"])) { //checks if value is in list
-                        if (everyAttribute[traitType]["dataType"] == "number") {
-                            const valueAsFloat = parseFloat(value)
-                            if (isNaN(valueAsFloat)) {
-                                everyAttribute[traitType]["dataType"] = "string";
-                                delete everyAttribute[traitType].min
-                                delete everyAttribute[traitType].max
-                            } else {
-                                everyAttribute[traitType].min = Math.min(everyAttribute[traitType].min, valueAsFloat);
-                                everyAttribute[traitType].max = Math.max(everyAttribute[traitType].max, valueAsFloat);
-                            }
-                        } 
-                        everyAttribute[traitType]["attributes"][value] = {"amount": 1};
-
+                        everyAttribute[traitType]["attributes"][value] = {"amount":1}
                         if (keepIds) {
                             everyAttribute[traitType]["attributes"][value]["ids"] = [id];
                         }
                     } else {
-                        everyAttribute[traitType]["attributes"][value]["amount"] += 1;
-                        if (keepIds) {
-                            everyAttribute[traitType]["attributes"][value]["ids"].push(id);
+                        if (! (value in everyAttribute[traitType]["attributes"])) { //checks if value is in list
+                            if (everyAttribute[traitType]["dataType"] == "number") {
+                                const valueAsFloat = parseFloat(value)
+                                if (isNaN(valueAsFloat)) {
+                                    everyAttribute[traitType]["dataType"] = "string";
+                                    delete everyAttribute[traitType].min
+                                    delete everyAttribute[traitType].max
+                                } else {
+                                    everyAttribute[traitType].min = Math.min(everyAttribute[traitType].min, valueAsFloat);
+                                    everyAttribute[traitType].max = Math.max(everyAttribute[traitType].max, valueAsFloat);
+                                }
+                            } 
+                            everyAttribute[traitType]["attributes"][value] = {"amount": 1};
+
+                            if (keepIds) {
+                                everyAttribute[traitType]["attributes"][value]["ids"] = [id];
+                            }
+                        } else {
+                            everyAttribute[traitType]["attributes"][value]["amount"] += 1;
+                            if (keepIds) {
+                                everyAttribute[traitType]["attributes"][value]["ids"].push(id);
+                            }
+
                         }
 
                     }
-
                 }
+            } else {
+                if (!("noAttributes" in everyAttribute)) {
+                    everyAttribute["noAttributes"] = {"attributes":{"nothing":{"ids":[id]}}} 
+                    everyAttribute["noAttributes"]["attributes"]["nothing"]["amount"] = 1
+                    everyAttribute["noAttributes"]["dataType"] = "string"
+                } else {
+                    everyAttribute.noAttributes.attributes.nothing.ids.push(id)
+                    everyAttribute["noAttributes"]["attributes"]["nothing"]["amount"] += 1
+                }
+
+            }
+            if(uriCache[id] === undefined) { //if undefined means totalsupply on contract is wrong
+
+                this.totalSupply = id-1
             }
         }
         return everyAttribute
@@ -764,9 +835,9 @@ class uriHandler {
 
         //TODO make format global var
 
-        if (!forceResync && (await this.extraUriMetaData).everyAttribute) {
-            if ((await this.extraUriMetaData).everyAttribute) {
-                console.log(`found preprossed data for contract: ${this.contractObj.address}, at  ${(await this.extraUriMetaData).everyAttribute}`)
+        if (!forceResync && (await this.extraUriMetaData).everyAttributeCbor) {
+            if ((await this.extraUriMetaData).everyAttributeCbor) {
+                console.log(`found preprossed data for contract: ${this.contractObj.address}, at  ${(await this.extraUriMetaData).everyAttributeCbor}`)
                 const r = await this.getUrlByProtocol((await this.extraUriMetaData).everyAttributeCbor)
                 this.everyAttribute = CBOR.decode(await r.arrayBuffer())
             }
@@ -776,7 +847,11 @@ class uriHandler {
             console.log(`no premade metadata found for ntf contract: ${await this.contractObj.address} :( collecting attributes manually!`)
             this.everyAttribute = await this.getEveryAttributeTypeFromUriCache(uriCache, keepIds)
             try {
-                localStorage.setItem(await this.contractObj.address, JSON.stringify({"idStartsAt":this.idStartsAt,"everyAttribute":this.everyAttribute}));
+                if (!(typeof(localStorage)==="undefined")) {
+                    localStorage.setItem(await this.contractObj.address, JSON.stringify({"idStartsAt":this.idStartsAt,"totalsupply":(await this.getTotalSupply()),"everyAttribute":this.everyAttribute}));
+
+                }
+
             } catch (e) {
                 console.log("Couldnt save to local storage. Is it full?")
                 console.log(e)
