@@ -31,6 +31,15 @@
         "everyAttributeCbor":"ipfs://bafkreidwkpbcw2gzxufhnjyamfkl3izdkfzwugzlerzrodr5xldr6ikwwq"
     },
 
+    "0xb6a37b5d14d502c3ab0ae6f3a0e058bc9517786e" : {
+        "comment":"alternative images need to be made on ipfs becuase Azukis cors policy is restrictive",
+        "type": "standard",
+        "name": "Azuki Elementals",
+        "idStartsAt":0,
+        "totalSupply":13627,
+        "everyAttributeCbor": "ipfs://QmV9xUDfvCcXUd2CD4CnBzWB4DpShhofsnyH1GfvrM724G"
+    },
+
     "oldMiladyDataWithout9999": {
         "scrapedUriData" : "ipfs://bafybeigkwunx3qniepqbw6axe3xbylhvnmqwuklgphqfh6i2k47fe37ylu",
         "scrapedUriDataCbor": "ipfs://bafybeiew5nk2a37qfdthij7dtqjilwd37mrtj4bam2svbkuggsfc6oeiiu",
@@ -38,4 +47,6 @@
         "everyAttributeCbor":"ipfs://bafybeichhvd4y4uyh6z7macd56xh4dk6bzfd5ckzninqbywc56up22kaom",
         "baseUriCompressed": "ipfs://bafybeiezitb4ewavoxz6tuzn5apatfh7yvq5k4g5rtmebjm757fnpyp4su"
     }
+
+
 }

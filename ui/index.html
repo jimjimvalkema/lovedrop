@@ -96,8 +96,7 @@
     <button onclick="connectSigner()">connect</button>
     <input onchange="readFile(this)" type="file">
     <button onclick="claimIndexIpfsFromCsv()">generate</button>
-    <button onclick="deployDropContract()">deploy</button>
-    <button onclick="runFilter()">go</button>
+    <button onclick="deployDropContract()">deploy</button></br>
     <div id="deployedDropsList"></div></br>
     <div id="FilterBuilder"></div></br>
     <div id="editFilter" ></div>
@@ -127,9 +126,9 @@
         type="application/javascript"></script>
     <script src="./scripts/ipfsIndexer.js"  
         type="application/javascript"></script>
-    <script src="./scripts/uriHandler.js"  
+    <script type="module" src="./scripts/uriHandler.js"  
         type="application/javascript"></script>
         <script src="./scripts/FilterBuilder.js"  
         type="application/javascript"></script>
-    <script src="./scripts/app.js"  
+    <script type="module" src="./scripts/app.js"  
         type="application/javascript"></script>
