@@ -33,7 +33,7 @@
 			{
 				"indexed": true,
 				"internalType": "address",
-				"name": "deployer",
+				"name": "deployerAddress",
 				"type": "address"
 			},
 			{
@@ -58,12 +58,12 @@
 		"outputs": [
 			{
 				"internalType": "address",
-				"name": "dropAddress",
+				"name": "deployerAddress",
 				"type": "address"
 			},
 			{
 				"internalType": "address",
-				"name": "deployer",
+				"name": "dropAddress",
 				"type": "address"
 			}
 		],

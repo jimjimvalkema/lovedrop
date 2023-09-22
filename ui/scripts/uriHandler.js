@@ -15,7 +15,7 @@ export class uriHandler {
     ipfsGateway = undefined;
     everyAttribute = undefined;
     useCustomCompressedImages;
-    idStartsAt = 0;
+    idStartsAt = undefined;
     baseUriExtension="";
     attributeFormat = {
         pathToAttributeList: ["attributes"],
@@ -31,6 +31,24 @@ export class uriHandler {
             this.extraUriMetaData = this.getExtraUriMetaData(contractObj, _extraUriMetaDataFile)
         } else {
             this.extraUriMetaData = _extraUriMetaData
+        }
+        
+    }
+
+
+    async getIdStartsAt() {
+        //cheeky way to check for off by one errors :p
+        if (this.idStartsAt === undefined) {
+            try {
+                await this.contractObj.ownerOf(0)
+            } catch (error) {
+                this.idStartsAt=1
+                return 1
+            }
+            this.idStartsAt=0
+            return 0
+        } else {
+            return this.idStartsAt
         }
         
     }
@@ -100,12 +118,27 @@ export class uriHandler {
     async getTotalSupply(){
         //TOD assumption totalsupply staysthesame
         //TODO remove temp test value and add metadata to extraUriMetaDataFile to handle this and default to a better error handling when this value is incorrect
+        console.log("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
+        console.log(this.totalSupply)
+        if (this.totalSupply!==undefined) {
         
-        if (this.totalSupply) {
-            console.log(this.totalSupply)
             return this.totalSupply
         } else {
-            return (await this.contractObj.totalSupply()).toNumber()
+            let id = 0;
+            id = (await this.contractObj.totalSupply()).toNumber()
+            console.log(id)
+            //of by 100 error fix :P
+            for(let tries=0;tries<100;tries++)
+                try {
+                    (await this.contractObj.ownerOf(id))
+                    break
+                } catch (error) {
+                    id-=1
+                    console.warn(`bro what is the real last id lmao. am at ${id}`)
+                }
+                
+            this.totalSupply = id
+            return id
         }
     }
 

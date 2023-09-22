@@ -1,5 +1,6 @@
 
 
+const delay = ms => new Promise(res => setTimeout(res, ms));
 
 //TODO better naming
 class FilterBuilder {
@@ -8,8 +9,11 @@ class FilterBuilder {
     allFilters = []
     uriHandler = undefined;
     currentFilterIndex = 0;
+    rawListingsOpenSea = []
+    formattedListings = []
     constructor(uriHandler, filters = []) {
         this.uriHandler = uriHandler;
+        this.nftAddr = this.uriHandler.contractObj.address
         //TODO needs deep copy?
 
         for (let i = 0; i < filters.length; i++) {
@@ -245,10 +249,35 @@ class FilterBuilder {
         //document.getElementById("fullFilterJson").innerHTML = JSON.stringify(this.getCurrentFilter())
     }
 
-    async runFilter(filter=this.getCurrentFilter()) {
+    sortIdsByPrice(a, b){
+        if (a in this.formattedListings) {
+            a = this.formattedListings[a][0].value
+        } else {
+            a = Infinity
+        }
+        if (b in this.formattedListings) {
+            b = this.formattedListings[b][0].value
+        } else {
+            b=Infinity
+        }
+        return a-b
+    }
+
+
+    async runFilter(sortOrder,filter=this.getCurrentFilter()) {
         //this.displayFilter()
         document.getElementById("editFilter").innerHTML = this.getEditFilterUi(this.currentFilterIndex)
-        return await this.uriHandler.processFilter(filter)
+        let ids= [...(await this.uriHandler.processFilter(filter))]
+        ids.sort((a,b)=>a-b)
+        switch (sortOrder) {
+            case "asc":
+                ids.sort((a,b)=>this.sortIdsByPrice(a,b))
+                break;
+        
+            default:
+                break;
+        }
+        return ids
         
     }
 
@@ -983,9 +1012,179 @@ class FilterBuilder {
         this.allFilters[filter.filterIndex] = (this.formatNewFilter(filter, filter.filterIndex))
     }
 
+    async retrieveListingsOpensea({ids=[],order="asc",apiKey=window.urlVars["OpenSeaKey"],contractAddr=this.nftAddr}={}) {
+        const idsString = ids.join("&token_ids=")
+        const options = {
+            method: 'GET',
+            headers: {accept: 'application/json', 'X-API-KEY': apiKey}
+          };
+        let tries = 0;
+        let r={}
+        while (tries<10) {
+            try {
+                r = await fetch(`https://api.opensea.io/v2/orders/ethereum/seaport/listings?asset_contract_address=${contractAddr}&limit=${ids.length}&token_ids=${idsString}&order_by=eth_price&order_direction=${order}`, options)   
+                if ("status" in r && r.status === 429) {
+                    console.log(`getting rate limited tried ${tries+1} times :(`)
+                    await delay(2000)
+                    tries += 1
+                    continue
+                } else {
+                    return r.json()
+                }
+            
+            } catch (error) {
+                tries += 3
+                await delay(2000)
+            }
+        } 
+
+        return 0
+
+    }
+
+    async getPriceOpenSea(id=1,order="asc",apiKey=window.urlVars["OpenSeaKey"],contractAddr=this.nftAddr) {
+        const r= (await this.retrieveListingsOpensea({ids:[id],order:order,apiKey:apiKey,contractAddr:contractAddr}))
+        if ( r!==0 && "orders" in r && r.orders.length) {
+            return {"id":id,"price":{[r.orders[0].current_price]:r.orders[0].taker_asset_bundle.assets[0].asset_contract.name}}
+        } else {
+            return {"id":id,[-1]:"NotListed"}
+        }
+    }
+
+    async getPricesOpenSea(ids,order="asc",apiKey=window.urlVars["OpenSeaKey"]) {
+        let l = []
+        for (const id of ids) {
+            l.push(this.getPriceOpenSea(id,order,apiKey))
+            await delay(100)
+            //await delay(1000)
+            //await delay(1)
+        }
+
+        return Promise.all(l)
+
+    }
+
+    async getPricesOpenSeaInBatches(ids,batchSize=4,order="asc",apiKey=window.urlVars["OpenSeaKey"]) {
+        let l=[]
+        for (let i = 0; i < ids.length; i += batchSize) {
+            const idBatch = ids.slice(i, i + batchSize);
+            l.push(await this.getPricesOpenSea(idBatch,order="asc",apiKey=window.urlVars["OpenSeaKey"]))
+            await delay(1000)
+        }
+        return l
+    }
+
+    async getSlugStringOpenSea(contractAddr) {
+        const options = {
+            method: 'GET',
+            headers: {accept: 'application/json', 'X-API-KEY': '509e9dd467ef484abab2c5f90fa53d9a'}
+          };
+
+        let tries = 0;
+        let r={}
+        while (tries<10) {
+            try {
+                const r = await fetch(`https://api.opensea.io/v2/chain/ethereum/contract/${contractAddr}/nfts?limit=1`, options)
+                if ("status" in r && r.status === 429) {
+                    console.log(`getting rate limited tried ${tries+1} times :(`)
+                    await delay(200)
+                    tries += 1
+                    continue
+                } else {
+                    return  (await r.json()).nfts[0].collection
+                }
+            } catch (error) {
+                console.log(error)
+
+            }
+        }
+          
+    
+    }
+
+    async getAllListingsOpenSea(page="", slugString, listings=[]) {
+        const options = {
+            method: 'GET',
+            headers: {accept: 'application/json', 'X-API-KEY': window.urlVars["OpenSeaKey"]}
+          };
+        let next=""
+        if(page) {
+            next = `?next=${page}`  
+        }
+
+        let r;
+        let tries = 0
+        while (tries<5) {
+            try {
+                r = (await fetch(`https://api.opensea.io/v2/listings/collection/${slugString}/all${next}`, options))  
+                if ("status" in r && r.status === 429) {
+                    console.log(`getting rate limited tried ${tries+1} times :(`)
+                    await delay(200)
+                    tries += 1
+                    continue
+                } else {
+                    break
+                }
+            
+            } catch (error) {
+                console.log(error)
+                tries += 3
+                await delay(200)
+            }
+        } 
+        r = await r.json()
+
+    
+        listings = [...listings, ...Object.values(r.listings)]
+        
+        if ("next" in r && r.next) {
+            //await delay(1)
+            listings = await this.getAllListingsOpenSea(r.next, slugString,listings) 
+        }  
+        return listings
+    }
+
+    async getAllListingsOpenSeaByContract(contractAddr=this.nftAddr) {
+        const slugString = await this.getSlugStringOpenSea(contractAddr)
+        console.log(slugString)
+        //await delay(5)
+        return this.getAllListingsOpenSea("",slugString)
+
+    }
+
+    //TODO breaks if currency is different
+    sortFormattedLisings(formattedListings) {
+        for (const id in formattedListings) {
+            formattedListings[id].sort((a, b) => a.value - b.value)
+        }
+        return formattedListings
+    }
+    
+
+    formatListingsFromOpenSea(listings=this.rawListingsOpenSea) {
+        let formattedListings = {}
+        for (const i in listings) {
+            const listing = listings[i]
+            const id = listing.protocol_data.parameters.offer[0].identifierOrCriteria
+            if (!(id in formattedListings)) {
+                formattedListings[id] =[{["value"]:listing.price.current.value,["currency"]:listing.price.current.currency,["source"]:"OpenSea", ["rawListingsIndexOpenSea"]:i}]
+            } else {
+                formattedListings[id].push({["value"]:listing.price.current.value,["currency"]:listing.price.current.currency, ["source"]:"OpenSea",["rawListingsIndexOpenSea"]:i})
+            }
+        }
+        return this.sortFormattedLisings(formattedListings)
+    }
+
+    async syncListings(contractAddr=this.nftAddr) {
+        this.rawListingsOpenSea = await this.getAllListingsOpenSeaByContract(contractAddr)
+        this.formattedListings = await this.formatListingsFromOpenSea(this.rawListingsOpenSea)
+        console.log(this.formattedListings)
+        return this.formattedListings
+    }
+
+
 
 }
-
 // Close the dropdown if the user clicks outside of it
 window.onclick = function (event) { //TODO  dropbtn class unique for each dropdown to make sure other dropdowns close when new one apears
     if (!event.target.matches('.dropbtn')) {
