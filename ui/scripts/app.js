@@ -2,10 +2,17 @@ import { uriHandler } from "./uriHandler.js";
 
 let provider;
 if (window.ethereum) {
+<<<<<<< HEAD
     window.provider = new ethers.providers.Web3Provider(window.ethereum);
 } else {
     console.log("couldn't connect to inject ethereum provide, connecting to external provicer")
     window.provider = new ethers.providers.JsonRpcProvider('https://eth.llamarpc.com');
+=======
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+} else {
+    console.log("couldn't connect to inject ethereum provide, connecting to external provicer")
+    provider = new ethers.providers.JsonRpcProvider('https://eth.llamarpc.com');
+>>>>>>> 0bc37d9fa994a5eb6a5d61f27eaa985d86314249
 }
 
 //TODO remove
@@ -370,9 +377,15 @@ function getRowSize(availableWidth) {
     return Math.round(availableWidth/(getImageWidth(availableWidth)+1))
 }
 
+<<<<<<< HEAD
 async function displayNfts(currentPage, maxPerPage = 12, availableWidth,sort="id") {
     const URI = window.URI //TODO
     const ids = window.currentIdsDisplay;
+=======
+async function displayNfts(currentPage, maxPerPage = 12, availableWidth) {
+    const ids = window.currentIdsDisplay;
+    const URI = window.URI //TODO
+>>>>>>> 0bc37d9fa994a5eb6a5d61f27eaa985d86314249
     let images = ""
     for (let i = 0; i < maxPerPage; i++) {
         if ((currentPage * maxPerPage + i) > (ids.length - 1)) {
@@ -400,6 +413,7 @@ async function displayNfts(currentPage, maxPerPage = 12, availableWidth,sort="id
         }
   
         const url = await URI.getImage(id)
+<<<<<<< HEAD
         let priceDiv =""
         if (id in window.fBuilder.formattedListings) {
             const price = `${window.fBuilder.formattedListings[id][0].value/10**18} ${window.fBuilder.formattedListings[id][0].currency}`
@@ -415,6 +429,14 @@ async function displayNfts(currentPage, maxPerPage = 12, availableWidth,sort="id
                 ${exlcudeStatusDivMsg}\n 
                 </div>
                 ${priceDiv}
+=======
+        images += `<div id="NFT${id}" onclick="toggleExclude(${id}, [\'NOT\',\'idList\'] )" ; style="position: relative; margin: 2px; cursor:pointer; 
+                width: ${getImageWidth(availableWidth)}vw; display: inline-block;" >\n 
+                <img src="${url}" id="image${i}" style="max-width: 100%; max-height: 100%;">\n 
+                <div id="exlcudeStatusDiv${id}" style="font-size: 0.8em;float: right; position: absolute; left: 0px; bottom: 0px; z-index: 1; background-color: ${exlcudeStatusDivColor}; padding: 5px; color: #FFFFFF; font-weight: bold;">\n 
+                ${exlcudeStatusDivMsg}\n 
+                </div>\n 
+>>>>>>> 0bc37d9fa994a5eb6a5d61f27eaa985d86314249
             </div>\n `
     }
     //TODO make field for "go to page: x"
@@ -429,16 +451,23 @@ function getAmountOfRows(availWidth=screen.availWidth) {
     return Math.abs(Math.ceil(-0.001948*availWidth + 6.701))
 } 
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 0bc37d9fa994a5eb6a5d61f27eaa985d86314249
 window.displayNfts = displayNfts
 
 async function runFilter(currentFilter=fBuilder.getCurrentFilter()) {
     let start = Date.now();
     document.getElementById('nftImages').style.display = 'none' //TODO this applies only after the function is done
 
+<<<<<<< HEAD
     window.currentIdsDisplay = [...structuredClone(await fBuilder.runFilter("asc"))]
     //window.currentIdsDisplay.sort(())
+=======
+    window.currentIdsDisplay = [...structuredClone(await fBuilder.runFilter())]
+>>>>>>> 0bc37d9fa994a5eb6a5d61f27eaa985d86314249
 
     displayNfts(0, getRowSize(77)*getAmountOfRows(), 77) //3 rows
     document.getElementById('nftImages').style.display = 'initial'
@@ -515,9 +544,15 @@ async function getFilterBuilderUi(URI,fullUrl="") {
     document.getElementById("message").innerHTML = `this may take between 1min to 10min</br> fetching from ${fullUrl}
     <div id='messageProgress'></div>`
     await URI.fetchAllExtraMetaData()
+<<<<<<< HEAD
     window.fBuilder = await new FilterBuilder(window.URI, structuredClone([f1,f2,window.emptyFilter, window.BlueHair, window.BlueEyesAndHair]))
     //fBuilder.displayFilter(0)
     fBuilder.currentFilterIndex=4;
+=======
+    window.fBuilder = await new FilterBuilder(window.URI, structuredClone([f1,f2,window.emptyFilter]))
+    //fBuilder.displayFilter(0)
+    fBuilder.currentFilterIndex=2;
+>>>>>>> 0bc37d9fa994a5eb6a5d61f27eaa985d86314249
     
 
     console.log(window.currentIdsDisplay)
@@ -526,7 +561,10 @@ async function getFilterBuilderUi(URI,fullUrl="") {
     } else {
         fBuilder.getUi();
     }
+<<<<<<< HEAD
     await fBuilder.syncListings()
+=======
+>>>>>>> 0bc37d9fa994a5eb6a5d61f27eaa985d86314249
     await runFilter()
     let timeTaken = Date.now() - start;   
     console.log("fetching metadata took: " + timeTaken + " milliseconds");

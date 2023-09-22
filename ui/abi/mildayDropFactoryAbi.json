@@ -33,7 +33,11 @@
 			{
 				"indexed": true,
 				"internalType": "address",
+<<<<<<< HEAD
 				"name": "deployerAddress",
+=======
+				"name": "deployer",
+>>>>>>> 0bc37d9fa994a5eb6a5d61f27eaa985d86314249
 				"type": "address"
 			},
 			{
@@ -58,12 +62,20 @@
 		"outputs": [
 			{
 				"internalType": "address",
+<<<<<<< HEAD
 				"name": "deployerAddress",
+=======
+				"name": "dropAddress",
+>>>>>>> 0bc37d9fa994a5eb6a5d61f27eaa985d86314249
 				"type": "address"
 			},
 			{
 				"internalType": "address",
+<<<<<<< HEAD
 				"name": "dropAddress",
+=======
+				"name": "deployer",
+>>>>>>> 0bc37d9fa994a5eb6a5d61f27eaa985d86314249
 				"type": "address"
 			}
 		],

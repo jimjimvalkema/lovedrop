@@ -1,6 +1,9 @@
 
 
+<<<<<<< HEAD
 const delay = ms => new Promise(res => setTimeout(res, ms));
+=======
+>>>>>>> 0bc37d9fa994a5eb6a5d61f27eaa985d86314249
 
 //TODO better naming
 class FilterBuilder {
@@ -9,11 +12,16 @@ class FilterBuilder {
     allFilters = []
     uriHandler = undefined;
     currentFilterIndex = 0;
+<<<<<<< HEAD
     rawListingsOpenSea = []
     formattedListings = []
     constructor(uriHandler, filters = []) {
         this.uriHandler = uriHandler;
         this.nftAddr = this.uriHandler.contractObj.address
+=======
+    constructor(uriHandler, filters = []) {
+        this.uriHandler = uriHandler;
+>>>>>>> 0bc37d9fa994a5eb6a5d61f27eaa985d86314249
         //TODO needs deep copy?
 
         for (let i = 0; i < filters.length; i++) {
@@ -249,6 +257,7 @@ class FilterBuilder {
         //document.getElementById("fullFilterJson").innerHTML = JSON.stringify(this.getCurrentFilter())
     }
 
+<<<<<<< HEAD
     sortIdsByPrice(a, b){
         if (a in this.formattedListings) {
             a = this.formattedListings[a][0].value
@@ -278,6 +287,12 @@ class FilterBuilder {
                 break;
         }
         return ids
+=======
+    async runFilter(filter=this.getCurrentFilter()) {
+        //this.displayFilter()
+        document.getElementById("editFilter").innerHTML = this.getEditFilterUi(this.currentFilterIndex)
+        return await this.uriHandler.processFilter(filter)
+>>>>>>> 0bc37d9fa994a5eb6a5d61f27eaa985d86314249
         
     }
 
@@ -1012,6 +1027,7 @@ class FilterBuilder {
         this.allFilters[filter.filterIndex] = (this.formatNewFilter(filter, filter.filterIndex))
     }
 
+<<<<<<< HEAD
     async retrieveListingsOpensea({ids=[],order="asc",apiKey=window.urlVars["OpenSeaKey"],contractAddr=this.nftAddr}={}) {
         const idsString = ids.join("&token_ids=")
         const options = {
@@ -1185,6 +1201,11 @@ class FilterBuilder {
 
 
 }
+=======
+
+}
+
+>>>>>>> 0bc37d9fa994a5eb6a5d61f27eaa985d86314249
 // Close the dropdown if the user clicks outside of it
 window.onclick = function (event) { //TODO  dropbtn class unique for each dropdown to make sure other dropdowns close when new one apears
     if (!event.target.matches('.dropbtn')) {
