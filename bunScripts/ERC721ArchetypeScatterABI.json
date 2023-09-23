@@ -21,6 +21,11 @@
     },
     {
         "inputs": [],
+        "name": "InvalidQueryRange",
+        "type": "error"
+    },
+    {
+        "inputs": [],
         "name": "LockedForever",
         "type": "error"
     },
@@ -46,12 +51,12 @@
     },
     {
         "inputs": [],
-        "name": "NotPlatform",
+        "name": "NotOwner",
         "type": "error"
     },
     {
         "inputs": [],
-        "name": "NotTokenOwner",
+        "name": "NotPlatform",
         "type": "error"
     },
     {
@@ -442,6 +447,11 @@
                 "type": "address"
             },
             {
+                "internalType": "address",
+                "name": "burnAddress",
+                "type": "address"
+            },
+            {
                 "internalType": "bool",
                 "name": "enabled",
                 "type": "bool"
@@ -481,6 +491,35 @@
         "name": "burnToMint",
         "outputs": [],
         "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "bytes32",
+                "name": "key",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "uint256",
+                "name": "quantity",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "affiliateUsed",
+                "type": "bool"
+            }
+        ],
+        "name": "computePrice",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
         "type": "function"
     },
     {
@@ -587,6 +626,11 @@
                 "type": "address"
             },
             {
+                "internalType": "address",
+                "name": "burnAddress",
+                "type": "address"
+            },
+            {
                 "internalType": "bool",
                 "name": "reversed",
                 "type": "bool"
@@ -627,12 +671,75 @@
                 "type": "uint256"
             }
         ],
-        "name": "getApproved",
+        "name": "explicitOwnershipOf",
         "outputs": [
             {
-                "internalType": "address",
+                "components": [
+                    {
+                        "internalType": "address",
+                        "name": "addr",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "startTimestamp",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "burned",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "extraData",
+                        "type": "uint24"
+                    }
+                ],
+                "internalType": "struct IERC721AUpgradeable.TokenOwnership",
                 "name": "",
-                "type": "address"
+                "type": "tuple"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256[]",
+                "name": "tokenIds",
+                "type": "uint256[]"
+            }
+        ],
+        "name": "explicitOwnershipsOf",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "address",
+                        "name": "addr",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint64",
+                        "name": "startTimestamp",
+                        "type": "uint64"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "burned",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "extraData",
+                        "type": "uint24"
+                    }
+                ],
+                "internalType": "struct IERC721AUpgradeable.TokenOwnership[]",
+                "name": "",
+                "type": "tuple[]"
             }
         ],
         "stateMutability": "view",
@@ -646,12 +753,12 @@
                 "type": "uint256"
             }
         ],
-        "name": "getTokenMsg",
+        "name": "getApproved",
         "outputs": [
             {
-                "internalType": "string",
+                "internalType": "address",
                 "name": "",
-                "type": "string"
+                "type": "address"
             }
         ],
         "stateMutability": "view",
@@ -928,19 +1035,6 @@
                 "type": "string"
             }
         ],
-        "name": "lockProvenanceHash",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "string",
-                "name": "password",
-                "type": "string"
-            }
-        ],
         "name": "lockRoyaltyEnforcement",
         "outputs": [],
         "stateMutability": "nonpayable",
@@ -1119,11 +1213,6 @@
                 "internalType": "bool",
                 "name": "royaltyEnforcementLocked",
                 "type": "bool"
-            },
-            {
-                "internalType": "bool",
-                "name": "provenanceHashLocked",
-                "type": "bool"
             }
         ],
         "stateMutability": "view",
@@ -1228,19 +1317,6 @@
             }
         ],
         "stateMutability": "pure",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "provenance",
-        "outputs": [
-            {
-                "internalType": "string",
-                "name": "",
-                "type": "string"
-            }
-        ],
-        "stateMutability": "view",
         "type": "function"
     },
     {
@@ -1611,43 +1687,12 @@
     {
         "inputs": [
             {
-                "internalType": "string",
-                "name": "provenanceHash",
-                "type": "string"
-            }
-        ],
-        "name": "setProvenanceHash",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
                 "internalType": "address",
                 "name": "superAffiliatePayout",
                 "type": "address"
             }
         ],
         "name": "setSuperAffiliatePayout",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "uint256",
-                "name": "tokenId",
-                "type": "uint256"
-            },
-            {
-                "internalType": "string",
-                "name": "message",
-                "type": "string"
-            }
-        ],
-        "name": "setTokenMsg",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -1698,6 +1743,54 @@
                 "internalType": "string",
                 "name": "",
                 "type": "string"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "owner",
+                "type": "address"
+            }
+        ],
+        "name": "tokensOfOwner",
+        "outputs": [
+            {
+                "internalType": "uint256[]",
+                "name": "",
+                "type": "uint256[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "owner",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "start",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "stop",
+                "type": "uint256"
+            }
+        ],
+        "name": "tokensOfOwnerIn",
+        "outputs": [
+            {
+                "internalType": "uint256[]",
+                "name": "",
+                "type": "uint256[]"
             }
         ],
         "stateMutability": "view",
