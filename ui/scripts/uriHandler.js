@@ -1,5 +1,6 @@
 
 //const { error } = require("console");
+import {ethers} from "../scripts/ethers-5.2.umd.min.js"
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 //TODO maybe attibute finder is better name? or maybe split classes
@@ -16,6 +17,7 @@ export class uriHandler {
     everyAttribute = undefined;
     useCustomCompressedImages;
     idStartsAt = undefined;
+    ERC721ArchetypeScatterABI = undefined;
     baseUriExtension="";
     attributeFormat = {
         pathToAttributeList: ["attributes"],
@@ -886,13 +888,88 @@ export class uriHandler {
                 }
 
             } catch (e) {
-                console.log("Couldnt save to local storage. Is it full?")
+                console.warn("Couldnt save to local storage. Is it full?")
                 console.log(e)
-
             }
             
         }
         return this.everyAttribute
+    }
+
+    async getIdsOfownerByEventScanning(ownerAddres, startBlockEventScan, nftContrObj=this.contractObj) {
+        const toOwnerEventFilter = nftContrObj.filters.Transfer(null,ownerAddres)
+        const fromOwnerEventFilter = nftContrObj.filters.Transfer(ownerAddres,null)
+        const toOwnerEvents =  await nftContrObj.queryFilter(toOwnerEventFilter, startBlockEventScan)
+        const fromOwnerEvents =  await nftContrObj.queryFilter(fromOwnerEventFilter, startBlockEventScan)
+        let idTransferCount ={}
+        for (const id of toOwnerEvents.map((x)=> Number(x.args[2]))) {
+            if (idTransferCount[id]) {
+                idTransferCount[id] += 1
+            } else {
+                idTransferCount[id] = 1
+            }
+        }
+        for (const id of fromOwnerEvents.map((x)=> Number(x.args[2]))) {
+            if (idTransferCount[id]) {
+                idTransferCount[id] -= 1
+            } else {
+                //prob cant happen but who knows
+                console.warn(`id: ${id} was send from ${ownerAddres} without recieving it first`)
+                idTransferCount[id] = -1
+            }
+        }
+        const foundIds = Object.keys(idTransferCount).filter((x)=>idTransferCount[x]>0)
+        return foundIds
+    }
+
+    async getIdsOfownerWithOwnerByindex(ownerAddres, nftContrObj=this.contractObj) {
+        let foundIds=[]
+        const balance  = await nftContrObj.balanceOf(ownerAddres);
+        for (let i = 0; i<balance; i++) {
+            foundIds.push(this.contractObj.tokenOfOwnerByindex(i))
+        }
+        if (foundIds.length < balance) {throw Error(`balance is smaller then id found (${foundIds.length}). contract porbably doesnt support tokenOfOwnerByindex()`)}
+        return Promise.all(foundIds)
+    }
+
+    async getIdsOfownerWithTokensOfOwner(ownerAddres, nftContrObj=this.contractObj) {
+        const foundIds = (await nftContrObj.tokensOfOwner(ownerAddres)).map((x)=>x.toNumber())
+        return foundIds
+    }
+
+    //search id is only there to save on rpc calls when contract doesnt have tokenOfOwnerByindex 
+    //17309202 = deployment block sudoswap2Factory
+    async getIdsOfowner(ownerAddres , startBlockEventScan=0 ,nftContrObj=this.contractObj) {
+        ownerAddres = await ethers.utils.getAddress(ownerAddres)
+        console.log(ownerAddres , startBlockEventScan ,await nftContrObj.name())
+        let foundIds=[]
+        const nftAddr = await this.contractObj.address
+        let tokenOfOwnerByindexFailed = false;
+        //TODO do try catch becuase mfrs be deploying proxys 
+        //if ((await contractHasFunction(nftAddr,"tokenOfOwnerByIndex(address,uint256)","../ui/abi/ERC721ABI.json", provider ))) {//wil just return empty array id tokenOfOwnerByindex doesnt exist :(
+        try {
+            foundIds = await this.getIdsOfownerWithOwnerByindex(ownerAddres, nftContrObj)
+        } catch (error) {
+            console.log(`OfownerWithOwnerByindex failed trying TokensOfOwner`)
+            tokenOfOwnerByindexFailed=true
+        }
+
+        let idsOfownerWithTokensOfOwnerFailed= false;
+        if(tokenOfOwnerByindexFailed) {// scatter does proxis smh if(await contractHasFunction(nftAddr,"ownerBalanceToken(address)","./ERC721ArchetypeScatterABI.json", provider )) {
+            try {   
+                //TODO getContractObj, ERC721ArchetypeScatterABI
+                foundIds = await this.getIdsOfownerWithTokensOfOwner(ownerAddres, nftContrObj)
+
+            } catch (error) {
+                idsOfownerWithTokensOfOwnerFailed =true
+            }
+        }
+        
+        if (idsOfownerWithTokensOfOwnerFailed) {
+            console.warn(`nft: ${nftAddr} doesnt have ownerBalanceToken or tokenOfOwnerByIndex we need to scan transfer events now wich might take a while `)
+            foundIds = await this.getIdsOfownerByEventScanning(ownerAddres,startBlockEventScan,nftContrObj)
+        }
+        return foundIds
     }
 
 }
