@@ -4,7 +4,7 @@ import {uriHandler} from "../ui/scripts/uriHandler.js";
 
 //import {ethers} from "ethers"
 
-import { ethers } from "./ethers-5.2.umd.min.js"
+import { ethers } from "../ui/scripts/ethers-5.2.umd.min.js"
 //const { ethers } = require("ethers");
 function getWorkingDir() {
     const scriptFilePath = structuredClone(Bun.argv[1])
@@ -39,8 +39,7 @@ async function getContractObj(address="",abiFile,provider) {
 }
 
 
-async function getAllPools(sudoswapPairFactory, provider) {
-    let startScanAtBlock = 17309202;
+async function getAllPools(sudoswapPairFactory, provider,  startBlockEvenScan=17309202) {
     let poolPerNft={};
     let preSyncFile = undefined;
 
@@ -48,17 +47,17 @@ async function getAllPools(sudoswapPairFactory, provider) {
     
     if (preSyncFile.size) {
         const preSyncJson = await preSyncFile.json()
-        startScanAtBlock = preSyncJson.block
+        startBlockEvenScan = preSyncJson.block
         poolPerNft =preSyncJson.poolPerNft;
     } else {
-        console.warn(`./output/allPoolFromSudoswapV2.json is empty or doesn exist. scanning for sudoswap pool from block ${startScanAtBlock} now`)
+        console.warn(`./output/allPoolFromSudoswapV2.json is empty or doesn exist. scanning for sudoswap pool from block ${startBlockEvenScan} now`)
     }
 
 
     const blockNumber =(await provider.getBlock("latest")).number;
     //console.log(blockNumber)
     let eventFilter = sudoswapPairFactory.filters.NewERC721Pair()
-    let events = await sudoswapPairFactory.queryFilter(eventFilter, startScanAtBlock)
+    let events = await sudoswapPairFactory.queryFilter(eventFilter, startBlockEvenScan)
     for (const event of events) {
         const pairAddres = event.args[0]
         const pairContractObj = await getContractObj(pairAddres, `./sudoSwapERC721ABIOnlyNft.json`, provider)
@@ -73,42 +72,6 @@ async function getAllPools(sudoswapPairFactory, provider) {
     const data = JSON.stringify(({["block"]:blockNumber,["poolPerNft"]:poolPerNft}))
     await Bun.write("./output/allPoolFromSudoswapV2.json", data);
     return poolPerNft
-}
-
-//because even in 2023 some retards are still deploying contracts without tokenOfOwnerByindex
-async function getOwnerOfIds(URIHandler,ids) {
-    
-
-
-
-    if (!ids) {
-        const totalSupply =await URIHandler.getTotalSupply()
-        const firstId = await URIHandler.getIdStartsAt()
-        console.log(totalSupply)
-        console.log(firstId)
-        ids = [...Array(totalSupply-firstId).keys()].map(i => i + firstId) //await URIHandler.getTotalSupply()
-    }
-    let r =[]
-    for(const id of ids) {
-        //console.log(id)
-        try {
-            r[id] = await URIHandler.contractObj.ownerOf(id)
-        } catch (error) {
-            
-        }
-    }
-    await Promise.all(r)
-
-    let ownerIds = {}
-    for (const id in r) {
-        const addr = r[id]
-        if (addr in ownerIds) {
-            ownerIds[addr].push(id);
-        } else {
-            ownerIds[addr] = [id]
-        }
-    }
-    return ownerIds
 }
 
 async function contractHasFunction(contractAddr,methodString,abiFile,provider) {
@@ -134,94 +97,16 @@ async function contractHasFunction(contractAddr,methodString,abiFile,provider) {
 
 
 //TODO put this into URIHandler
-//search id is only there to save on rpc calls when contract doesnt have tokenOfOwnerByindex 
-async function getIdsOfowner(ownerAddres , URIHandler, provider, searchIds=undefined, startBlockEventScan=17309202) {
-    let startTime = Date.now();
-    ownerAddres = ethers.utils.getAddress(ownerAddres)
-    let foundIds=[]
-    const nftAddr = await URIHandler.contractObj.address
-    //TODO do try catch becuase mfrs be deploying proxys 
-    if ((await contractHasFunction(nftAddr,"tokenOfOwnerByIndex(address,uint256)","../ui/abi/ERC721ABI.json", provider ))) {//wil just return empty array id tokenOfOwnerByindex doesnt exist :(
-        const balance  = URIHandler.contractObj.balanceOf(ownerAddres);
-        for (let i = 0; i<balance; i++) {
-            foundIds.push(await URIHandler.contractObj.tokenOfOwnerByindex(i))
-        }
-        let timeTaken = Date.now() - startTime;   
-        console.log("ids with tokenOfOwnerByindex of owner took: " + timeTaken + " milliseconds");
-        console.log(foundIds)
-        return foundIds
-    } else {// scatter does proxis smh if(await contractHasFunction(nftAddr,"ownerBalanceToken(address)","./ERC721ArchetypeScatterABI.json", provider )) {
-        try {
-            const scatterNFTContObj = await getContractObj(nftAddr, "./ERC721ArchetypeScatterABI.json",provider)
-            foundIds = (await scatterNFTContObj.tokensOfOwner(ownerAddres)).map((x)=>x.toNumber())
 
-            let timeTaken = Date.now() - startTime;   
-            console.log("ids with tokensOfOwner of owner took: " + timeTaken + " milliseconds");
-        } catch (error) {
-            console.warn(`nft: ${nftAddr} doesnt have ownerBalanceToken or tokenOfOwnerByIndex we need to scan transfer events now wich might take a while `)
-            //maybe with events its faster
-            if (true) {
-                const toOwnerEventFilter = URIHandler.contractObj.filters.Transfer(null,ownerAddres)
-                const fromOwnerEventFilter = URIHandler.contractObj.filters.Transfer(ownerAddres,null)
-                const toOwnerEvents =  await URIHandler.contractObj.queryFilter(toOwnerEventFilter, startBlockEventScan)
-                const fromOwnerEvents =  await URIHandler.contractObj.queryFilter(fromOwnerEventFilter, startBlockEventScan)
-                let idTransferCount ={}
-                for (const id of toOwnerEvents.map((x)=> Number(x.args[2]))) {
-                    if (idTransferCount[id]) {
-                        idTransferCount[id] += 1
-
-                    } else {
-                        idTransferCount[id] = 1
-                    }
-                }
-                for (const id of fromOwnerEvents.map((x)=> Number(x.args[2]))) {
-                    if (idTransferCount[id]) {
-                        idTransferCount[id] -= 1
-
-                    } else {
-                        //prob cant happen but who knows
-                        console.warn(`id: ${id} was send from ${ownerAddres} without recieving it first`)
-                        idTransferCount[id] = -1
-                    }
-                }
-                //console.log(idTransferCount)
-                foundIds = Object.keys(idTransferCount).filter((x)=>idTransferCount[x]>0)
-                let timeTaken = Date.now() - startTime;   
-                console.log("ids with by scanning all event of a address took: " + timeTaken + " milliseconds");
-                return foundIds
-                
-            }else {
-                //takes forever on lamarpc lol
-                const idsAndOwners = await getOwnerOfIds( URIHandler, searchIds)
-                if (ownerAddres in idsAndOwners) {
-                    let timeTaken = Date.now() - startTime;   
-                    console.log("ids with by iter of whole ass supply of owner took: " + timeTaken + " milliseconds");
-                    //38980 milliseconds
-                    return idsAndOwners[ownerAddres]
-                } else {
-                    console.log("they dont have any :(")
-                    return []
-                }
-                
-            }
-
-            
-        }
-        return foundIds
-
-    }  
-
-
-}
-
-async function getPricesFromSudoSwapPools(poolAddrs,URIHandler, provider,ids=undefined) {
+async function getPricesFromSudoSwapPools(poolAddrs,URIHandler, provider,ids=undefined, startBlockEvenScan=17309202) {
     //const nftContrObj = await getContractObj(nftAddr, `../ui/abi/ERC721ABI.json`, provider)
     const sudoSwapRouterAddr = "0x090C236B62317db226e6ae6CD4c0Fd25b7028b65";
     const routerObj = await getContractObj(sudoSwapRouterAddr, `./sudoSwap2RouterABI.json`, provider)
     let prices = {}
     for (const pairAddres of poolAddrs) {
         let price = Number(await routerObj.getNFTQuoteForBuyOrderWithPartialFill(pairAddres,1,0,0))//numnft 1, and rest can be 0 i hope :p
-        const matchingIdsInPool = (await getIdsOfowner(pairAddres,URIHandler,provider, ids))
+        const matchingIdsInPool = (await URIHandler.getIdsOfowner(pairAddres, startBlockEvenScan))
+        console.log(matchingIdsInPool)
         for (const id of matchingIdsInPool) {
             if (id in prices) {
 
@@ -245,7 +130,9 @@ async function main() {
     const nftContrObj = await getContractObj("0x3Fc3a022EB15352D3f5E4e6D6f02BBfC57D9C159", `../ui/abi/ERC721ABI.json`, provider)
 
     //const uriHandlerModule = require('../../ui/scripts/uriHandler.js');
-    let URI =  new uriHandler(nftContrObj, "http://127.0.0.1:8080",true, null, {})
+    const workingDir = import.meta.url.split("/").slice(null,-1).join("/")
+    console.log(`${workingDir}/../ui/scripts/extraUriMetaDataFile.json`)
+    let URI =  await new uriHandler(nftContrObj, "http://127.0.0.1:8080",true, `${workingDir}/../ui/scripts/extraUriMetaDataFile.json`, provider)
 
     // const sudoSwapRouterAddr = "0x090C236B62317db226e6ae6CD4c0Fd25b7028b65";
     // const routerObj = await getContractObj(sudoSwapRouterAddr, `./sudoSwap2RouterABI.json`, provider)
@@ -256,16 +143,13 @@ async function main() {
 ;
 
     console.log(latestBlock.number)
-    //console.log(await URI.contractObj.tokenOfOwnerByindex(1))
-    //console.log((await contractHasFunction("0x47957Cf51808f0B0F5C5B953A2A2B6b2B228CA33","ownerBalanceToken(address)","./ERC721ArchetypeScatterABI.json", provider )))
-    const poolAddrs = await getAllPools(sudoswapPairFactory,provider)
-    console.log(`found these pool address:`)
-    console.log(poolAddrs)
-    //console.log(await getIdsOfowner("0x3029Ab8F76cabf6Be5C976452897254532695E78", URI, provider))
-    console.log(`found these prices for ${URI.contractObj.name}, ${URI.contractObj.address}`)
-    console.log(await getPricesFromSudoSwapPools(poolAddrs[URI.contractObj.address],URI, provider))
-    let timeTaken = Date.now() - startTime;   
-    console.log("script ran for: " + timeTaken + " milliseconds");
+    // const poolAddrs = await getAllPools(sudoswapPairFactory,provider)
+    // console.log(`found these pool address:`)
+    // console.log(poolAddrs)
+    // console.log(`found these prices for ${await URI.contractObj.name()}, ${URI.contractObj.address}`)
+    // console.log(await getPricesFromSudoSwapPools(poolAddrs[URI.contractObj.address],URI, provider))
+  
+    await URI.getOwnerOfIdsWithOwnerOf(undefined, `./output/allBalancesOfOwners-${nftContrObj.address}.json`)
 
     //TODO speed improvements
     //we can speed things up by making getIdsOfowner and getAllPools keep results and then scan events after the last scanned block
@@ -279,6 +163,8 @@ async function main() {
     //current stat on molady: 24277 ms llamarpc (6234 ms with cached sudo swap pools :D)
     //current stat on molady: 66397 ms infura (5692 ms with cached sudo swap pools :D)
     //current stat on molady: 96136 ms local full node (92333 ms with cached sudo swap pools :/) (http://geth.dappnode:8545)
+    let timeTaken = Date.now() - startTime;   
+    console.log("script ran for: " + timeTaken + " milliseconds");
 }
 
 

@@ -1,12 +1,12 @@
 
 //const { error } = require("console");
-import {ethers} from "../scripts/ethers-5.2.umd.min.js"
+import { ethers } from "../scripts/ethers-5.2.umd.min.js"
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 //TODO maybe attibute finder is better name? or maybe split classes
 export class uriHandler {
     contractObj = undefined;
-
+    provider = undefined
     extraUriMetaData = undefined;
 
     uriCache = []
@@ -18,23 +18,24 @@ export class uriHandler {
     useCustomCompressedImages;
     idStartsAt = undefined;
     ERC721ArchetypeScatterABI = undefined;
-    baseUriExtension="";
+    baseUriExtension = "";
     attributeFormat = {
         pathToAttributeList: ["attributes"],
         traitTypeKey: "trait_type",
         valueKey: "value"
     } //TODO make this customizable with extraUriMetaDataFile
     //TODO fix naming
-    constructor(contractObj, _ipfsGateway = "http://localhost:48084",_customCompressedImages=true, _extraUriMetaDataFile = "./extraUriMetaDataFile.json", _extraUriMetaData = undefined) {
+    constructor(contractObj, _ipfsGateway = "http://localhost:48084", _customCompressedImages = true, _extraUriMetaDataFile = "./extraUriMetaDataFile.json", _provider, _extraUriMetaData = undefined) {
         this.contractObj = contractObj;
         this.ipfsGateway = _ipfsGateway;
         this.useCustomCompressedImages = _customCompressedImages;
+        this.provider = _provider
         if (_extraUriMetaDataFile) {
             this.extraUriMetaData = this.getExtraUriMetaData(contractObj, _extraUriMetaDataFile)
         } else {
             this.extraUriMetaData = _extraUriMetaData
         }
-        
+
     }
 
 
@@ -44,15 +45,15 @@ export class uriHandler {
             try {
                 await this.contractObj.ownerOf(0)
             } catch (error) {
-                this.idStartsAt=1
+                this.idStartsAt = 1
                 return 1
             }
-            this.idStartsAt=0
+            this.idStartsAt = 0
             return 0
         } else {
             return this.idStartsAt
         }
-        
+
     }
 
     async getCompressedImages() {
@@ -61,12 +62,12 @@ export class uriHandler {
     }
 
     async fetchAllExtraMetaData() {
-        if  (!(typeof(localStorage)==="undefined") && localStorage.hasOwnProperty(await this.contractObj.address)) {
+        if (!(typeof (localStorage) === "undefined") && localStorage.hasOwnProperty(await this.contractObj.address)) {
             console.log(`${this.contractObj.address} extraMetaDataFile was found in local storage :D`)
             const data = JSON.parse(localStorage.getItem(await this.contractObj.address));
             this.everyAttribute = data.everyAttribute;
             this.idStartsAt = data.idStartsAt;
-            if ("totalsupply" in data ) {
+            if ("totalsupply" in data) {
                 this.totalSupply = parseInt(data.totalsupply)
 
             }
@@ -98,7 +99,7 @@ export class uriHandler {
         if (this.useCustomCompressedImages && ((await this.extraUriMetaData).baseUriCompressed)) {
             return `${await this.getCompressedImages()}/${id}.jpg`;
         }
-        
+
         let imgURL = "";
         switch ((await this.extraUriMetaData).type) {
             case "standard":
@@ -117,28 +118,28 @@ export class uriHandler {
 
 
     }
-    async getTotalSupply(){
+    async getTotalSupply() {
         //TOD assumption totalsupply staysthesame
         //TODO remove temp test value and add metadata to extraUriMetaDataFile to handle this and default to a better error handling when this value is incorrect
         console.log("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
         console.log(this.totalSupply)
-        if (this.totalSupply!==undefined) {
-        
+        if (this.totalSupply !== undefined) {
+
             return this.totalSupply
         } else {
             let id = 0;
             id = (await this.contractObj.totalSupply()).toNumber()
             console.log(id)
             //of by 100 error fix :P
-            for(let tries=0;tries<100;tries++)
+            for (let tries = 0; tries < 100; tries++)
                 try {
                     (await this.contractObj.ownerOf(id))
                     break
                 } catch (error) {
-                    id-=1
+                    id -= 1
                     console.warn(`bro what is the real last id lmao. am at ${id}`)
                 }
-                
+
             this.totalSupply = id
             return id
         }
@@ -151,7 +152,7 @@ export class uriHandler {
         //TODO get base uri by striping result .getTokenUri() becuase scatter doesnt have baseURI exposed :(
         if (this.baseURICache == null) {
             if ("type" in (await this.extraUriMetaData) && ((await this.extraUriMetaData).type === "milady")) {
-                baseUri= this.getUrlByProtocol("ipfs://bafybeiawqw7zaoliz2rjgiqwzyykwzjsmr24i3a6paazalmqijsldtfg7i/",true)
+                baseUri = this.getUrlByProtocol("ipfs://bafybeiawqw7zaoliz2rjgiqwzyykwzjsmr24i3a6paazalmqijsldtfg7i/", true)
 
             } else {
                 try {
@@ -178,14 +179,14 @@ export class uriHandler {
                         console.warn(`NFT contract does not have baseURI() function and it's tokenURI() function return a non standard string: \n ${s}\n rolling with expensive rpc calls for now`)
                         this.baseUriIsNonStandard = true
                         baseUri = s
-                        
+
                     }
-            }
+                }
             }
         } else {
             return this.baseURICache
         }
-        this.baseURICache=baseUri
+        this.baseURICache = baseUri
         return baseUri;
     }
 
@@ -194,13 +195,13 @@ export class uriHandler {
         let extraUriMetaData = await (await fetch(extraUriMetaDataFile)).json();
         const contractAddr = (await contractObj.address).toLowerCase()
         console.log(contractAddr, extraUriMetaData)
-        
+
         if (contractAddr in extraUriMetaData) {
             console.log(extraUriMetaData[contractAddr])
             return extraUriMetaData[contractAddr]
         } else {
             console.log(`Nft contract: ${contractAddr} not found in extraUriMetaDataFile: ${extraUriMetaDataFile}, setting to default values`)
-            return {"found":false}
+            return { "found": false }
         }
 
     }
@@ -215,10 +216,10 @@ export class uriHandler {
             }
             for (let i = startId; i < endId; i++) {
                 let id = i
-                if (!(id%200)) {
+                if (!(id % 200)) {
                     const m = `id:${id} out of:${await this.getTotalSupply()}`
                     console.log(m)
-                    if (!(typeof(document) === "undefined")) {
+                    if (!(typeof (document) === "undefined")) {
                         document.getElementById("messageProgress").innerHTML = m
 
                     }
@@ -269,7 +270,7 @@ export class uriHandler {
         return allUris
     }
 
-    async getUrlByProtocol(urlString, returnOnlyUrl=false) {
+    async getUrlByProtocol(urlString, returnOnlyUrl = false) {
         //console.log(urlString)
         let reqObj = {
             method: 'POST',
@@ -296,8 +297,8 @@ export class uriHandler {
                 newUrlString = urlString;
         }
         //console.log(newUrlString)
-        if (returnOnlyUrl===true) {
-            
+        if (returnOnlyUrl === true) {
+
             return newUrlString
         } else {
             return await fetch(newUrlString);
@@ -314,18 +315,18 @@ export class uriHandler {
             //syncUriCacheByScraping already
             //this.uriCache = 
             this.uriCache = await this.syncUriCacheByScraping(startId, endId, chunkSize)
-            let emptyIdFormat = {"name": "WhoopsDoesntexist:p","description": "WhoopsDoesntexist:p","image": "WhoopsDoesntexist:p","attributes":[]}
+            let emptyIdFormat = { "name": "WhoopsDoesntexist:p", "description": "WhoopsDoesntexist:p", "image": "WhoopsDoesntexist:p", "attributes": [] }
 
-            this.uriCache = this.uriCache.map(function( element ) {
-                if( element === undefined) {
+            this.uriCache = this.uriCache.map(function (element) {
+                if (element === undefined) {
                     return emptyIdFormat
                 } else {
                     return element
                 }
             });
             //assumes that it starts either at 0 or 1 ofc
-            if(this.uriCache[0].attributes.length === 0) {
-                this.idStartsAt=1
+            if (this.uriCache[0].attributes.length === 0) {
+                this.idStartsAt = 1
             }
         }
         return this.uriCache
@@ -342,26 +343,26 @@ export class uriHandler {
         //console.log((await this.getUrlByProtocol(`${await this.getBaseURI()}${id}${this.baseUriExtension}`, true)))
         //console.log((await this.getUrlByProtocol(`${await this.getBaseURI()}${id}${this.baseUriExtension}`)))
         let uriString = ""
-        if(this.baseUriIsNonStandard) {
+        if (this.baseUriIsNonStandard) {
             try {
-                uriString =  (await this.contractObj.tokenURI(id))
-                
+                uriString = (await this.contractObj.tokenURI(id))
+
             } catch (error) {
                 console.log(`whoops errored on getting tokeUri from contract at id: ${id} it probably hasn't minted yet :(`)
                 return undefined
-                
+
             }
-    
-        }else {
+
+        } else {
             uriString = `${await this.getBaseURI()}${id}${this.baseUriExtension}`
         }
-        
+
         //const URI =  await (await this.getUrlByProtocol()).json()
         while (retries < 4) {
             try {
                 //await (await fetch("https://arweave.net/LGlMDKAWgcDyvYoft1YV6Y2pBBAwjWaFuZrDP9yD-RY/13.json")).json()
                 //console.log(`${await this.getBaseURI()}${id}${this.baseUriExtension}`)
-                const URI =  await (await this.getUrlByProtocol(uriString)).json()
+                const URI = await (await this.getUrlByProtocol(uriString)).json()
                 //await (await fetch(`${await this.getBaseURI()}${id}`)).json();
                 return URI
             } catch (error) {
@@ -412,7 +413,7 @@ export class uriHandler {
         return false
     }
 
-    hasAttributeWithEveryAttribute(id,attribute) {
+    hasAttributeWithEveryAttribute(id, attribute) {
         const traitTypeKey = this.attributeFormat.traitTypeKey;
         const valueKey = this.attributeFormat.valueKey;
         const traitType = attribute[traitTypeKey]
@@ -424,14 +425,14 @@ export class uriHandler {
 
     async hasAttribute(id, attribute) {
         if (this.everyAttribute) {
-            return this.hasAttributeWithEveryAttribute(id,attribute)
+            return this.hasAttributeWithEveryAttribute(id, attribute)
         } else {
-            return await this.hasAttributeWithTokenUri(id,attribute)
+            return await this.hasAttributeWithTokenUri(id, attribute)
         }
     }
 
     getIdsWithEveryAtrribureObj(attribute) {
-        if(!this.everyAttribute) {
+        if (!this.everyAttribute) {
             throw Error(`everyAttribute is: ${this.everyAttribute}`)
         } else {
             return this.everyAttribute[attribute[this.attributeFormat.traitTypeKey]].attributes[attribute[this.attributeFormat.valueKey]].ids
@@ -439,14 +440,14 @@ export class uriHandler {
     }
 
 
-    getNumberWithinRange(arr,start,stop) {
+    getNumberWithinRange(arr, start, stop) {
         //TODO can we assume it sorted?
         // arr.sort(function(a, b) {
         //     return a - b;
         //   });
-        return arr.filter(function( x ) {
-            return (x>start&&x<stop);
-         });
+        return arr.filter(function (x) {
+            return (x > start && x < stop);
+        });
     }
 
     /**
@@ -465,9 +466,9 @@ export class uriHandler {
                 endId = await this.getTotalSupply()
             }
 
-            if(this.everyAttribute) {
+            if (this.everyAttribute) {
                 let allIds = this.getIdsWithEveryAtrribureObj(attribute)
-                if (startId===0 && endId===await this.getTotalSupply()) {
+                if (startId === 0 && endId === await this.getTotalSupply()) {
                     matchingIds = new Set([...allIds])
                 } else {
                     matchingIds = new Set([...this.getNumberWithinRange(allIds, startId, endId)])
@@ -481,9 +482,9 @@ export class uriHandler {
                 }
             }
         } else {
-            if(this.everyAttribute) {
+            if (this.everyAttribute) {
                 let allIds = this.getIdsWithEveryAtrribureObj(attribute)
-                matchingIds = this.setIntersection(idSet,new Set([...allIds]))
+                matchingIds = this.setIntersection(idSet, new Set([...allIds]))
 
             } else {
                 for (const id of idSet) {
@@ -537,7 +538,7 @@ export class uriHandler {
         window.setA = setA
         window.setB = setB
         let intersectionSet = new Set();
-    
+
         for (let i of setB) {
             if (setA.has(i)) {
                 intersectionSet.add(i);
@@ -566,33 +567,33 @@ export class uriHandler {
             excludeIdSet = await this.processNotCondition(condition.NOT)
         }
 
-        if ("idList" in inputs && typeof(inputs.idList) === "object" && Object.keys(inputs.idList).length) {
+        if ("idList" in inputs && typeof (inputs.idList) === "object" && Object.keys(inputs.idList).length) {
             idSet = new Set(inputs.idList) //idList = ids that we be checked if they have specified attributes and conditions
         }
-        if ("attributes" in inputs && typeof(inputs.attributes) === "object" && Object.keys(inputs.attributes).length)  {
+        if ("attributes" in inputs && typeof (inputs.attributes) === "object" && Object.keys(inputs.attributes).length) {
             //do 1 attribute first to reduce the set of ids before parallelisation 
-            const attributesCopy = [ ...inputs.attributes]
+            const attributesCopy = [...inputs.attributes]
             const firstAttr = attributesCopy.shift()
             const firstAttrSet = (await this.getIdsByAttribute(firstAttr, 0, null, idSet, excludeIdSet))
             if (idSet.size) {
-                idSet= this.setIntersection(idSet, firstAttrSet)
+                idSet = this.setIntersection(idSet, firstAttrSet)
             } else {
                 idSet = firstAttrSet
             }
 
             let newIdSets = []
             for (const attribute of attributesCopy) {
-                newIdSets.push(this.getIdsByAttribute(attribute, 0, null, idSet, excludeIdSet) ) //idSet excluded so theyre not processed (they're allready)
+                newIdSets.push(this.getIdsByAttribute(attribute, 0, null, idSet, excludeIdSet)) //idSet excluded so theyre not processed (they're allready)
             }
             if (newIdSets.length) {
                 for (const newIdSet of (await Promise.all(newIdSets))) {
-                    idSet= this.setIntersection(idSet, newIdSet)
+                    idSet = this.setIntersection(idSet, newIdSet)
                 }
             }
         }
 
 
-        if ("conditions" in inputs && typeof(inputs.conditions) === "object" && Object.keys(inputs.conditions).length) {//TODO this can be a function?
+        if ("conditions" in inputs && typeof (inputs.conditions) === "object" && Object.keys(inputs.conditions).length) {//TODO this can be a function?
             const conditionsClone = structuredClone(inputs.conditions)
             let newIdSets = []
             for (const con of conditionsClone) {
@@ -606,7 +607,7 @@ export class uriHandler {
             //const resolvedNewIdSets = newIdSets.map((x) => [...x]);
             if (resolvedNewIdSets.length) {
                 for (const newIdSet of resolvedNewIdSets) {
-                    idSet= this.setIntersection(await idSet, await newIdSet)
+                    idSet = this.setIntersection(await idSet, await newIdSet)
                 }
 
             }
@@ -616,35 +617,35 @@ export class uriHandler {
     }
 
 
-     /**
-     * 
-     * @param {Object} inputs 
-     * @return {Object} idSet
-     */
+    /**
+    * 
+    * @param {Object} inputs 
+    * @return {Object} idSet
+    */
     async processOrCondition(condition) {
         const inputs = condition.inputs //TODO make cleaner
         //const inputTypesOrder = ["idList", "attributes", "conditions"]
-        let excludeIdSet = new Set();        ;
+        let excludeIdSet = new Set();;
         let idSet = new Set();
 
         if ("NOT" in condition && condition.NOT) {
             excludeIdSet = await this.processNotCondition(condition.NOT)
         }
 
-        if ("idList" in inputs && typeof(inputs.idList) === "object" && Object.keys(inputs.idList).length) {
+        if ("idList" in inputs && typeof (inputs.idList) === "object" && Object.keys(inputs.idList).length) {
             idSet = new Set(inputs.idList) //idList = ids that we add to everything else
-        } 
+        }
 
-        if ("attributes" in inputs && typeof(inputs.attributes) === "object" && Object.keys(inputs.attributes).length)  {
+        if ("attributes" in inputs && typeof (inputs.attributes) === "object" && Object.keys(inputs.attributes).length) {
             let newIdSets = []
             for (const attribute of inputs.attributes) {
                 if ("idSetFromAndParent" in condition) {
-                    newIdSets.push(this.getIdsByAttribute(attribute, 0, null,condition.idSetFromAndParent, new Set([...excludeIdSet, ...idSet])) ) //idSet excluded so theyre not processed (they're allready)
+                    newIdSets.push(this.getIdsByAttribute(attribute, 0, null, condition.idSetFromAndParent, new Set([...excludeIdSet, ...idSet]))) //idSet excluded so theyre not processed (they're allready)
 
                 } else {
-                    newIdSets.push(this.getIdsByAttribute(attribute, 0, null, null, new Set([...excludeIdSet, ...idSet])) ) //idSet excluded so theyre not processed (they're allready)
+                    newIdSets.push(this.getIdsByAttribute(attribute, 0, null, null, new Set([...excludeIdSet, ...idSet]))) //idSet excluded so theyre not processed (they're allready)
                 }
-                
+
             }
             //paralelization
             newIdSets = await Promise.all(newIdSets);
@@ -652,7 +653,7 @@ export class uriHandler {
             idSet = new Set([...idSet, ...newIdSets.flat()])
         }
 
-        if ("conditions" in inputs && typeof(inputs.conditions) === "object" && Object.keys(inputs.conditions).length) {//TODO this can be a function?
+        if ("conditions" in inputs && typeof (inputs.conditions) === "object" && Object.keys(inputs.conditions).length) {//TODO this can be a function?
             let newIdSets = []
             for (const con of inputs.conditions) {
                 if (!"idList" in con.NOT || !con.NOT.idList) {
@@ -677,22 +678,22 @@ export class uriHandler {
     async processNotCondition(condition) {
         const inputs = condition //TODO make cleaner
         let idSet = new Set();
-        if ("idList" in inputs && typeof(inputs.idList) === "object" && Object.keys(inputs.idList).length) {
-            idSet = new Set(inputs.idList.map((x)=> parseInt(x)))
-        } 
+        if ("idList" in inputs && typeof (inputs.idList) === "object" && Object.keys(inputs.idList).length) {
+            idSet = new Set(inputs.idList.map((x) => parseInt(x)))
+        }
         //if ("attributes" in inputs && inputs.attributes)  {
-        if ("attributes" in inputs && typeof(inputs.attributes) === "object" && Object.keys(inputs.attributes).length)  {
+        if ("attributes" in inputs && typeof (inputs.attributes) === "object" && Object.keys(inputs.attributes).length) {
             let newIdSets = []
             for (const attribute of inputs.attributes) {
-                newIdSets.push(this.getIdsByAttribute(attribute, 0, null, null, idSet) ) //idSet excluded so theyre not processed (they're allready)
+                newIdSets.push(this.getIdsByAttribute(attribute, 0, null, null, idSet)) //idSet excluded so theyre not processed (they're allready)
             } //TODO this one is O(n*totalsupply) n=attributes but runs paralel. in serial it can be O(n-newIdSet) where n reduces on every iter since the ids already found can be skipped since theyre already included
             //paralelization
             newIdSets = await Promise.all(newIdSets);
             newIdSets = newIdSets.map((x) => [...x]);
             idSet = new Set([...idSet, ...newIdSets.flat()])
         }
-        
-        if ("conditions" in inputs && typeof(inputs.conditions) === "object" && Object.keys(inputs.conditions).length) {//TODO this can be a function?
+
+        if ("conditions" in inputs && typeof (inputs.conditions) === "object" && Object.keys(inputs.conditions).length) {//TODO this can be a function?
             let newIdSets = []
             for (const con of inputs.conditions) {
                 if (!"idList" in con.NOT || !con.NOT.idList) {
@@ -712,26 +713,26 @@ export class uriHandler {
 
     async processRangeCondition(condition) { //TODO idlist?
         const inputs = condition.inputs //TODO make cleaner
-        let excludeIdSet = new Set();  
+        let excludeIdSet = new Set();
 
         if ((!("start" in inputs)) || !inputs.start) {
             inputs["start"] = this.idStartsAt
         }
 
         if (!"stop" in inputs || !inputs.stop || inputs.stop === "totalSupply") {
-            inputs["stop"] = (await this.getTotalSupply())+1
+            inputs["stop"] = (await this.getTotalSupply()) + 1
         }
-        let idSet = new Set([...Array(inputs.stop-inputs.start).keys()].map(i => i + inputs.start)) //range(inputs.start, inputs.stop)
+        let idSet = new Set([...Array(inputs.stop - inputs.start).keys()].map(i => i + inputs.start)) //range(inputs.start, inputs.stop)
 
-        if ("idList" in inputs && typeof(inputs.idList) === "object" && Object.keys(inputs.idList).length) {
+        if ("idList" in inputs && typeof (inputs.idList) === "object" && Object.keys(inputs.idList).length) {
             idSet = new Set([...idSet, ...inputs.idList])
-        } 
+        }
 
         if ("NOT" in condition && condition.NOT) {
             excludeIdSet = await this.processNotCondition(condition.NOT)
         }
 
-        if ("conditions" in inputs && typeof(inputs.conditions) === "object" && Object.keys(inputs.conditions).length) {//TODO this can be a function?
+        if ("conditions" in inputs && typeof (inputs.conditions) === "object" && Object.keys(inputs.conditions).length) {//TODO this can be a function?
             let newIdSets = []
             //conditionsCopy = structuredClone(inputs.conditions)
             for (const con of inputs.conditions) {
@@ -750,7 +751,7 @@ export class uriHandler {
 
         idSet = this.setComplement(idSet, excludeIdSet);
         return idSet
-        
+
 
     }
 
@@ -762,7 +763,7 @@ export class uriHandler {
     async processCondition(condition) {
         let idSet;
         //{"type":"OR", "input":{"idList":[]],"conditions":[], "attributes":[]}, "NOT":{"idList":[]],"conditions":[],"attributes":[]]}}
-        switch (condition.type){
+        switch (condition.type) {
             case ("AND"):
                 idSet = await this.processAndCondition(condition)
                 break
@@ -784,37 +785,37 @@ export class uriHandler {
         return this.processCondition(structuredClone(filterObj))
     }
 
-    async getEveryAttributeTypeFromUriCache(uriCache, keepIds=true) {
-    
+    async getEveryAttributeTypeFromUriCache(uriCache, keepIds = true) {
+
         if (!uriCache || !uriCache.length) {
             uriCache = await this.syncUriCache()
-        }  
-        this.totalSupply = uriCache.length-1
+        }
+        this.totalSupply = uriCache.length - 1
 
         let everyAttribute = {}
-        const uriKeys = Object.keys(uriCache).map(((x)=>parseInt(x)));
+        const uriKeys = Object.keys(uriCache).map(((x) => parseInt(x)));
 
-        for (let id=0; id<uriCache.length; id++) {
+        for (let id = 0; id < uriCache.length; id++) {
             const metaData = uriCache[id]
-            if("attributes" in metaData) {//uricache somtimes gets empty results from nft with broken max supplies like jay peg automart smh
+            if ("attributes" in metaData) {//uricache somtimes gets empty results from nft with broken max supplies like jay peg automart smh
                 for (const attr of metaData.attributes) {
                     const traitType = attr[this.attributeFormat.traitTypeKey]
                     const value = attr[this.attributeFormat.valueKey]
-                    
+
                     if (!(traitType in everyAttribute)) {
                         const valueAsFloat = parseFloat(value)
                         if (isNaN(valueAsFloat)) { //check if value is number
-                            everyAttribute[traitType] = {"dataType":"string", "attributes":{}}; 
+                            everyAttribute[traitType] = { "dataType": "string", "attributes": {} };
                         } else {
-                            everyAttribute[traitType] = {"dataType":"number","min":valueAsFloat, "max":valueAsFloat, "attributes":{}};
+                            everyAttribute[traitType] = { "dataType": "number", "min": valueAsFloat, "max": valueAsFloat, "attributes": {} };
                         }
 
-                        everyAttribute[traitType]["attributes"][value] = {"amount":1}
+                        everyAttribute[traitType]["attributes"][value] = { "amount": 1 }
                         if (keepIds) {
                             everyAttribute[traitType]["attributes"][value]["ids"] = [id];
                         }
                     } else {
-                        if (! (value in everyAttribute[traitType]["attributes"])) { //checks if value is in list
+                        if (!(value in everyAttribute[traitType]["attributes"])) { //checks if value is in list
                             if (everyAttribute[traitType]["dataType"] == "number") {
                                 const valueAsFloat = parseFloat(value)
                                 if (isNaN(valueAsFloat)) {
@@ -825,8 +826,8 @@ export class uriHandler {
                                     everyAttribute[traitType].min = Math.min(everyAttribute[traitType].min, valueAsFloat);
                                     everyAttribute[traitType].max = Math.max(everyAttribute[traitType].max, valueAsFloat);
                                 }
-                            } 
-                            everyAttribute[traitType]["attributes"][value] = {"amount": 1};
+                            }
+                            everyAttribute[traitType]["attributes"][value] = { "amount": 1 };
 
                             if (keepIds) {
                                 everyAttribute[traitType]["attributes"][value]["ids"] = [id];
@@ -843,7 +844,7 @@ export class uriHandler {
                 }
             } else {
                 if (!("noAttributes" in everyAttribute)) {
-                    everyAttribute["noAttributes"] = {"attributes":{"nothing":{"ids":[id]}}} 
+                    everyAttribute["noAttributes"] = { "attributes": { "nothing": { "ids": [id] } } }
                     everyAttribute["noAttributes"]["attributes"]["nothing"]["amount"] = 1
                     everyAttribute["noAttributes"]["dataType"] = "string"
                 } else {
@@ -852,9 +853,9 @@ export class uriHandler {
                 }
 
             }
-            if(uriCache[id] === undefined) { //if undefined means totalsupply on contract is wrong
+            if (uriCache[id] === undefined) { //if undefined means totalsupply on contract is wrong
 
-                this.totalSupply = id-1
+                this.totalSupply = id - 1
             }
         }
         return everyAttribute
@@ -865,8 +866,8 @@ export class uriHandler {
     /**TODO handle when urichache possible to fetch
      * @returns {Object} attributes
      */
-    async getEveryAttributeType(forceResync=false,keepIds=true,uriCache=this.uriCache) {
-        
+    async getEveryAttributeType(forceResync = false, keepIds = true, uriCache = this.uriCache) {
+
 
         //TODO make format global var
 
@@ -882,8 +883,8 @@ export class uriHandler {
             console.log(`no premade metadata found for ntf contract: ${await this.contractObj.address} :( collecting attributes manually!`)
             this.everyAttribute = await this.getEveryAttributeTypeFromUriCache(uriCache, keepIds)
             try {
-                if (!(typeof(localStorage)==="undefined")) {
-                    localStorage.setItem(await this.contractObj.address, JSON.stringify({"idStartsAt":this.idStartsAt,"totalsupply":(await this.getTotalSupply()),"everyAttribute":this.everyAttribute}));
+                if (!(typeof (localStorage) === "undefined")) {
+                    localStorage.setItem(await this.contractObj.address, JSON.stringify({ "idStartsAt": this.idStartsAt, "totalsupply": (await this.getTotalSupply()), "everyAttribute": this.everyAttribute }));
 
                 }
 
@@ -891,25 +892,25 @@ export class uriHandler {
                 console.warn("Couldnt save to local storage. Is it full?")
                 console.log(e)
             }
-            
+
         }
         return this.everyAttribute
     }
 
-    async getIdsOfownerByEventScanning(ownerAddres, startBlockEventScan, nftContrObj=this.contractObj) {
-        const toOwnerEventFilter = nftContrObj.filters.Transfer(null,ownerAddres)
-        const fromOwnerEventFilter = nftContrObj.filters.Transfer(ownerAddres,null)
-        const toOwnerEvents =  await nftContrObj.queryFilter(toOwnerEventFilter, startBlockEventScan)
-        const fromOwnerEvents =  await nftContrObj.queryFilter(fromOwnerEventFilter, startBlockEventScan)
-        let idTransferCount ={}
-        for (const id of toOwnerEvents.map((x)=> Number(x.args[2]))) {
+    async getIdsOfownerByEventScanning(ownerAddres, startBlockEventScan, nftContrObj = this.contractObj) {
+        const toOwnerEventFilter = nftContrObj.filters.Transfer(null, ownerAddres)
+        const fromOwnerEventFilter = nftContrObj.filters.Transfer(ownerAddres, null)
+        const toOwnerEvents = await nftContrObj.queryFilter(toOwnerEventFilter, startBlockEventScan)
+        const fromOwnerEvents = await nftContrObj.queryFilter(fromOwnerEventFilter, startBlockEventScan)
+        let idTransferCount = {}
+        for (const id of toOwnerEvents.map((x) => Number(x.args[2]))) {
             if (idTransferCount[id]) {
                 idTransferCount[id] += 1
             } else {
                 idTransferCount[id] = 1
             }
         }
-        for (const id of fromOwnerEvents.map((x)=> Number(x.args[2]))) {
+        for (const id of fromOwnerEvents.map((x) => Number(x.args[2]))) {
             if (idTransferCount[id]) {
                 idTransferCount[id] -= 1
             } else {
@@ -918,31 +919,31 @@ export class uriHandler {
                 idTransferCount[id] = -1
             }
         }
-        const foundIds = Object.keys(idTransferCount).filter((x)=>idTransferCount[x]>0)
+        const foundIds = Object.keys(idTransferCount).filter((x) => idTransferCount[x] > 0)
         return foundIds
     }
 
-    async getIdsOfownerWithOwnerByindex(ownerAddres, nftContrObj=this.contractObj) {
-        let foundIds=[]
-        const balance  = await nftContrObj.balanceOf(ownerAddres);
-        for (let i = 0; i<balance; i++) {
+    async getIdsOfownerWithOwnerByindex(ownerAddres, nftContrObj = this.contractObj) {
+        let foundIds = []
+        const balance = await nftContrObj.balanceOf(ownerAddres);
+        for (let i = 0; i < balance; i++) {
             foundIds.push(this.contractObj.tokenOfOwnerByindex(i))
         }
-        if (foundIds.length < balance) {throw Error(`balance is smaller then id found (${foundIds.length}). contract porbably doesnt support tokenOfOwnerByindex()`)}
+        if (foundIds.length < balance) { throw Error(`balance is smaller then id found (${foundIds.length}). contract porbably doesnt support tokenOfOwnerByindex()`) }
         return Promise.all(foundIds)
     }
 
-    async getIdsOfownerWithTokensOfOwner(ownerAddres, nftContrObj=this.contractObj) {
-        const foundIds = (await nftContrObj.tokensOfOwner(ownerAddres)).map((x)=>x.toNumber())
+    async getIdsOfownerWithTokensOfOwner(ownerAddres, nftContrObj = this.contractObj) {
+        const foundIds = (await nftContrObj.tokensOfOwner(ownerAddres)).map((x) => x.toNumber())
         return foundIds
     }
 
     //search id is only there to save on rpc calls when contract doesnt have tokenOfOwnerByindex 
     //17309202 = deployment block sudoswap2Factory
-    async getIdsOfowner(ownerAddres , startBlockEventScan=0 ,nftContrObj=this.contractObj) {
+    async getIdsOfowner(ownerAddres, startBlockEventScan = 0, nftContrObj = this.contractObj) {
         ownerAddres = await ethers.utils.getAddress(ownerAddres)
-        console.log(ownerAddres , startBlockEventScan ,await nftContrObj.name())
-        let foundIds=[]
+        console.log(ownerAddres, startBlockEventScan, await nftContrObj.name())
+        let foundIds = []
         const nftAddr = await this.contractObj.address
         let tokenOfOwnerByindexFailed = false;
         //TODO do try catch becuase mfrs be deploying proxys 
@@ -951,25 +952,88 @@ export class uriHandler {
             foundIds = await this.getIdsOfownerWithOwnerByindex(ownerAddres, nftContrObj)
         } catch (error) {
             console.log(`OfownerWithOwnerByindex failed trying TokensOfOwner`)
-            tokenOfOwnerByindexFailed=true
+            tokenOfOwnerByindexFailed = true
         }
 
-        let idsOfownerWithTokensOfOwnerFailed= false;
-        if(tokenOfOwnerByindexFailed) {// scatter does proxis smh if(await contractHasFunction(nftAddr,"ownerBalanceToken(address)","./ERC721ArchetypeScatterABI.json", provider )) {
-            try {   
+        let idsOfownerWithTokensOfOwnerFailed = false;
+        if (tokenOfOwnerByindexFailed) {// scatter does proxis smh if(await contractHasFunction(nftAddr,"ownerBalanceToken(address)","./ERC721ArchetypeScatterABI.json", provider )) {
+            try {
                 //TODO getContractObj, ERC721ArchetypeScatterABI
                 foundIds = await this.getIdsOfownerWithTokensOfOwner(ownerAddres, nftContrObj)
 
             } catch (error) {
-                idsOfownerWithTokensOfOwnerFailed =true
+                idsOfownerWithTokensOfOwnerFailed = true
             }
         }
-        
+
         if (idsOfownerWithTokensOfOwnerFailed) {
             console.warn(`nft: ${nftAddr} doesnt have ownerBalanceToken or tokenOfOwnerByIndex we need to scan transfer events now wich might take a while `)
-            foundIds = await this.getIdsOfownerByEventScanning(ownerAddres,startBlockEventScan,nftContrObj)
+            foundIds = await this.getIdsOfownerByEventScanning(ownerAddres, startBlockEventScan, nftContrObj)
         }
         return foundIds
     }
+
+    //might be faster then event scanning but can also be innaccurate becuase not every ownerOf() call is in the same block
+    async getOwnerOfIdsWithOwnerOf(ids = undefined, outputFilePath = undefined) {
+        if (!ids) {
+            const totalSupply = await this.getTotalSupply()
+            const firstId = await this.getIdStartsAt()
+            console.log(totalSupply)
+            console.log(firstId)
+            ids = [...Array(totalSupply - firstId).keys()].map(i => i + firstId) //await URIHandler.getTotalSupply()
+        }
+        let r = []
+        for (const id of ids) {
+            //console.log(id)
+            try {
+                r[id] = await this.contractObj.ownerOf(id)
+            } catch (error) {
+
+            }
+        }
+        await Promise.all(r)
+
+        let ownerIds = {}
+        for (const id in r) {
+            const addr = r[id]
+            if (addr in ownerIds) {
+                ownerIds[addr].push(id);
+            } else {
+                ownerIds[addr] = [id]
+            }
+        }
+
+        try {
+            if (!(typeof (localStorage) === "undefined")) {
+                localStorage.setItem(`balancesOf-${await this.contractObj.address}`, JSON.stringify({
+                    ["block"]: this.provider.getBlock("latest"),
+                    ["ownerIds"]: ownerIds
+                }));
+            } else {
+                if (outputFilePath) {
+                    try {
+                        console.log(`writing to ${outputFilePath}`)
+                        await Bun.write(outputFilePath, JSON.stringify({
+                            ["endBlock"]: (await this.provider.getBlock("latest")).number,
+                            ["startBlock"]: 0,
+                            ["ownerIds"]: ownerIds
+                        }));
+
+                    } catch (error) {
+                        console.log("failed to write")
+                        console.log(error)
+
+
+                    }
+                }
+            }
+
+        } catch (e) {
+            console.warn("Couldnt save to local storage. Is it full?")
+            console.log(e)
+        }
+        return ownerIds
+    }
+
 
 }
