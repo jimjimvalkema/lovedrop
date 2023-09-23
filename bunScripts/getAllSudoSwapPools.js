@@ -40,20 +40,38 @@ async function getContractObj(address="",abiFile,provider) {
 
 
 async function getAllPools(sudoswapPairFactory, provider) {
-    const factoryDeployementBlock = 17309202;
+    let startScanAtBlock = 17309202;
+    let poolPerNft={};
+    let preSyncFile = undefined;
+
+    preSyncFile = Bun.file("./output/allPoolFromSudoswapV2.json")
+    
+    if (preSyncFile.size) {
+        const preSyncJson = await preSyncFile.json()
+        startScanAtBlock = preSyncJson.block
+        poolPerNft =preSyncJson.poolPerNft;
+    } else {
+        console.warn(`./output/allPoolFromSudoswapV2.json is empty or doesn exist. scanning for sudoswap pool from block ${startScanAtBlock} now`)
+    }
+
+
+    const blockNumber =(await provider.getBlock("latest")).number;
+    //console.log(blockNumber)
     let eventFilter = sudoswapPairFactory.filters.NewERC721Pair()
-    let events = await sudoswapPairFactory.queryFilter(eventFilter, factoryDeployementBlock)
-    let poolPerNft = {};
+    let events = await sudoswapPairFactory.queryFilter(eventFilter, startScanAtBlock)
     for (const event of events) {
         const pairAddres = event.args[0]
         const pairContractObj = await getContractObj(pairAddres, `./sudoSwapERC721ABIOnlyNft.json`, provider)
         const nftAddr = (await pairContractObj.nft())
         if (nftAddr in poolPerNft) {
-            poolPerNft[nftAddr].push(pairAddres)
+            poolPerNft[nftAddr].push(pairAddres)//TODO deployent block
         } else {
             poolPerNft[nftAddr] = [pairAddres]
         }
     }
+
+    const data = JSON.stringify(({["block"]:blockNumber,["poolPerNft"]:poolPerNft}))
+    await Bun.write("./output/allPoolFromSudoswapV2.json", data);
     return poolPerNft
 }
 
@@ -235,6 +253,8 @@ async function main() {
     // console.log(price)
     // console.log(Number(price))
 
+;
+
     console.log(latestBlock.number)
     //console.log(await URI.contractObj.tokenOfOwnerByindex(1))
     //console.log((await contractHasFunction("0x47957Cf51808f0B0F5C5B953A2A2B6b2B228CA33","ownerBalanceToken(address)","./ERC721ArchetypeScatterABI.json", provider )))
@@ -256,9 +276,9 @@ async function main() {
     //
     //if a nft collection has a lot of pools doing a iter over a 10k collection with ownerOf might be faster then scanning events
     //
-    //current stat on molady: 24277 ms llamarpc
-    //current stat on molady: 66397 ms infura
-    //current stat on molady: 96136 ms local full node (http://geth.dappnode:8545)
+    //current stat on molady: 24277 ms llamarpc (6234 ms with cached sudo swap pools :D)
+    //current stat on molady: 66397 ms infura (5692 ms with cached sudo swap pools :D)
+    //current stat on molady: 96136 ms local full node (92333 ms with cached sudo swap pools :/) (http://geth.dappnode:8545)
 }
 
 
