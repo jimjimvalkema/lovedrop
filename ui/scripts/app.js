@@ -1,6 +1,6 @@
 import { uriHandler } from "./uriHandler.js";
+import  {ethers} from "../scripts/ethers-5.2.esm.min.js"
 
-let provider;
 if (window.ethereum) {
     window.provider = new ethers.providers.Web3Provider(window.ethereum);
 } else {
@@ -57,13 +57,13 @@ function message(message) {
 
 async function connectSigner() {
     // MetaMask requires requesting permission to connect users accounts
-    await provider.send("eth_requestAccounts", []);
-    window.signer = await provider.getSigner();
+    await window.provider.send("eth_requestAccounts", []);
+    window.signer = await window.provider.getSigner();
     if (isWalletConnected()) {
         //TODO make run on connect function
         await loadAllContracts()
         await refreshDeployedContractsUi();
-        provider.on(
+        window.provider.on(
             miladyDropFactoryContract.filters.CreateNewDrop(await window.signer.getAddress()), (log, event) => {
                 window.deployedDropAddress = ethers.utils.defaultAbiCoder.decode(["address"], log.data)[0]
                 refreshDeployedContractsUi();
@@ -82,14 +82,14 @@ async function getMiladyDropContract(provider, urlVars) {
     mildayDropAddress = urlVars["mildayDropAddress"]
     //const mildayDropAbi = 
     // The Contract object
-    mildayDropContract = new ethers.Contract(mildayDropAddress, mildayDropAbi, provider);
+    mildayDropContract = new ethers.Contract(mildayDropAddress, mildayDropAbi,window.provider);
     return mildayDropContract;
 }
 //TODO do event listeners
 window.getMiladyDropContract = getMiladyDropContract
 
 async function getMiladyDropFactoryContract(provider, mildayDropFactoryAddress, mildayDropFactoryAbi = window.mildayDropFactoryAbi) {
-    window.mildayDropFactoryContract = new ethers.Contract(mildayDropFactoryAddress, mildayDropFactoryAbi, provider);
+    window.mildayDropFactoryContract = new ethers.Contract(mildayDropFactoryAddress, mildayDropFactoryAbi,window.provider);
     return mildayDropFactoryContract;
 }
 
@@ -98,7 +98,7 @@ async function getAirdropTokenContract(provider, nftAddress) {
     // The ERC-20 Contract ABI, which is a common contract interface
     // for tokens (this is the Human-Readable ABI format)
     // The Contract object
-    const airdropTokenContract = new ethers.Contract(airDropTokenAddress, ERC20ABI, provider);
+    const airdropTokenContract = new ethers.Contract(airDropTokenAddress, ERC20ABI,window.provider);
     return airdropTokenContract;
 }
 //TODO do event listeners
@@ -106,7 +106,7 @@ window.getAirdropTokenContract = getAirdropTokenContract
 
 async function getNftContract(provider, nftContractAddress) {
     // The Contract object
-    window.nftContract = new ethers.Contract(nftContractAddress, ERC721ABI, provider);
+    window.nftContract = new ethers.Contract(nftContractAddress, ERC721ABI,window.provider);
     return nftContract;
 
 }
@@ -265,7 +265,7 @@ async function deployDropContract(requiredNFTAddress = "0xbaa9cbdac7a1e3f376192d
     }
     message(`submitted transaction at: ${(await tx).hash}`);
     const confirmedTX = (await (await (await tx).wait(1)).transactionHash);
-    window.reciept = (await provider.getTransactionReceipt(confirmedTX));
+    window.reciept = (awaitwindow.provider.getTransactionReceipt(confirmedTX));
     window.deployedDropAddress = await ethers.utils.defaultAbiCoder.decode(["address"], reciept.logs[0].data)[0];
     message(`confirmed transaction at: ${(await tx).hash}, deployed at: ${window.deployedDropAddress}`);
 
