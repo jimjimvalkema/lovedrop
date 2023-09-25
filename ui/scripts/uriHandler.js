@@ -1,6 +1,8 @@
 
 //const { error } = require("console");
-import { ethers } from "../scripts/ethers-5.2.umd.min.js"
+
+//import  {ethers} from "../scripts/ethers-5.2.esm.min.js"
+
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 //TODO maybe attibute finder is better name? or maybe split classes
@@ -17,6 +19,7 @@ export class uriHandler {
     everyAttribute = undefined;
     useCustomCompressedImages;
     idStartsAt = undefined;
+    idsOfOwnerCache = {};
     ERC721ArchetypeScatterABI = undefined;
     baseUriExtension = "";
     attributeFormat = {
@@ -61,7 +64,10 @@ export class uriHandler {
 
     }
 
-    async fetchAllExtraMetaData() {
+    async fetchAllExtraMetaData(buildMissingData = true, extraUriMetaData = this.extraUriMetaData) {
+        this.extraUriMetaData = await extraUriMetaData
+        this.idsOfOwnerCache = await this.getCachedIdsOfOwner()
+        console.log( this.idsOfOwnerCache)
         if (!(typeof (localStorage) === "undefined") && localStorage.hasOwnProperty(await this.contractObj.address)) {
             console.log(`${this.contractObj.address} extraMetaDataFile was found in local storage :D`)
             const data = JSON.parse(localStorage.getItem(await this.contractObj.address));
@@ -71,7 +77,7 @@ export class uriHandler {
                 this.totalSupply = parseInt(data.totalsupply)
 
             }
-        } else {
+        } else if (buildMissingData) {
             await this.getEveryAttributeType();
             if ("idStartsAt" in (await this.extraUriMetaData) && Number.isInteger((await this.extraUriMetaData).idStartsAt)) {
                 this.idStartsAt = (await this.extraUriMetaData).idStartsAt
@@ -121,15 +127,12 @@ export class uriHandler {
     async getTotalSupply() {
         //TOD assumption totalsupply staysthesame
         //TODO remove temp test value and add metadata to extraUriMetaDataFile to handle this and default to a better error handling when this value is incorrect
-        console.log("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
-        console.log(this.totalSupply)
         if (this.totalSupply !== undefined) {
 
             return this.totalSupply
         } else {
             let id = 0;
             id = (await this.contractObj.totalSupply()).toNumber()
-            console.log(id)
             //of by 100 error fix :P
             for (let tries = 0; tries < 100; tries++)
                 try {
@@ -191,13 +194,11 @@ export class uriHandler {
     }
 
     async getExtraUriMetaData(contractObj, extraUriMetaDataFile) {
-        console.log(extraUriMetaDataFile)
         let extraUriMetaData = await (await fetch(extraUriMetaDataFile)).json();
         const contractAddr = (await contractObj.address).toLowerCase()
-        console.log(contractAddr, extraUriMetaData)
+        console.log(contractAddr, extraUriMetaData[contractAddr])
 
         if (contractAddr in extraUriMetaData) {
-            console.log(extraUriMetaData[contractAddr])
             return extraUriMetaData[contractAddr]
         } else {
             console.log(`Nft contract: ${contractAddr} not found in extraUriMetaDataFile: ${extraUriMetaDataFile}, setting to default values`)
@@ -898,11 +899,30 @@ export class uriHandler {
     }
 
     async getIdsOfownerByEventScanning(ownerAddres, startBlockEventScan, nftContrObj = this.contractObj) {
+        //ownerAddres = await ethers.utils.getAddress(ownerAddres)
+        console.log(startBlockEventScan)
+        let idTransferCount = {}
+        let startBlockOfResults = startBlockEventScan
+        if (
+            this.idsOfOwnerCache &&
+            (ownerAddres in this.idsOfOwnerCache) &&
+            (this.idsOfOwnerCache[ownerAddres].startBlock <= startBlockEventScan)
+            
+        ) {
+            startBlockEventScan = this.idsOfOwnerCache[ownerAddres].endBlock
+            startBlockOfResults = this.idsOfOwnerCache[ownerAddres].startBlock
+            const ids = this.idsOfOwnerCache[ownerAddres].ids
+            idTransferCount = Object.fromEntries(ids.map(key => [key, 1])); //set all founds ids to initial value of 1
+
+        }   
+
+        // to keep results consistent both to and from end scan at the same block
+        const endBlock = (await this.provider.getBlock("latest")).number
+        console.log(`scanning for transfer event from nft: ${await nftContrObj.name()} starting from block: ${startBlockEventScan} till ${endBlock}`)
         const toOwnerEventFilter = nftContrObj.filters.Transfer(null, ownerAddres)
         const fromOwnerEventFilter = nftContrObj.filters.Transfer(ownerAddres, null)
-        const toOwnerEvents = await nftContrObj.queryFilter(toOwnerEventFilter, startBlockEventScan)
-        const fromOwnerEvents = await nftContrObj.queryFilter(fromOwnerEventFilter, startBlockEventScan)
-        let idTransferCount = {}
+        const toOwnerEvents = await nftContrObj.queryFilter(toOwnerEventFilter, startBlockEventScan, endBlock)
+        const fromOwnerEvents = await nftContrObj.queryFilter(fromOwnerEventFilter, startBlockEventScan, endBlock)
         for (const id of toOwnerEvents.map((x) => Number(x.args[2]))) {
             if (idTransferCount[id]) {
                 idTransferCount[id] += 1
@@ -920,6 +940,8 @@ export class uriHandler {
             }
         }
         const foundIds = Object.keys(idTransferCount).filter((x) => idTransferCount[x] > 0)
+        this.idsOfOwnerCache[ownerAddres] = {["startBlock"]: startBlockOfResults,["endBlock"]:endBlock, ["ids"]:foundIds}
+        //this.saveOwnerIdsCacheToStorage()
         return foundIds
     }
 
@@ -941,7 +963,7 @@ export class uriHandler {
     //search id is only there to save on rpc calls when contract doesnt have tokenOfOwnerByindex 
     //17309202 = deployment block sudoswap2Factory
     async getIdsOfowner(ownerAddres, startBlockEventScan = 0, nftContrObj = this.contractObj) {
-        ownerAddres = await ethers.utils.getAddress(ownerAddres)
+        //ownerAddres = await ethers.utils.getAddress(ownerAddres)
         console.log(ownerAddres, startBlockEventScan, await nftContrObj.name())
         let foundIds = []
         const nftAddr = await this.contractObj.address
@@ -973,9 +995,26 @@ export class uriHandler {
         return foundIds
     }
 
+
+    async getCachedIdsOfOwner(source = this.extraUriMetaData.idsOfOwner) {
+        console.log(`fetching id from ${source}`)
+        if (Object.keys(this.idsOfOwnerCache).length) {
+            return this.idsOfOwnerCache
+        }
+        if (source) {
+    
+            this.idsOfOwnerCache = await (await this.getUrlByProtocol(source)).json()
+            console.log(this.idsOfOwnerCache)
+            return this.idsOfOwnerCache
+        } else {
+            return {}
+        }
+    }
+
+
     //might be faster then event scanning but can also be innaccurate becuase not every ownerOf() call is in the same block
-    async getOwnerOfIdsWithOwnerOf(ids = undefined, outputFilePath = undefined) {
-        if (!ids) {
+    async getOwnerOfIdsWithOwnerOf(ids = undefined) {
+        if (!ids || ids.length === 0) {
             const totalSupply = await this.getTotalSupply()
             const firstId = await this.getIdStartsAt()
             console.log(totalSupply)
@@ -992,48 +1031,51 @@ export class uriHandler {
             }
         }
         await Promise.all(r)
-
+        const endBlock = (await this.provider.getBlock("latest")).number
         let ownerIds = {}
         for (const id in r) {
             const addr = r[id]
             if (addr in ownerIds) {
-                ownerIds[addr].push(id);
+                ownerIds[addr]["ids"].push(id);
             } else {
-                ownerIds[addr] = [id]
+                ownerIds[addr] = {
+                    ["endBlock"]: endBlock,
+                    ["startBlock"]: 0,
+                    ["ids"]: [id]
+                }
             }
         }
 
+        this.idsOfOwnerCache = ownerIds
+        this.saveOwnerIdsCacheToStorage()
+
+        return ownerIds
+    }
+
+    async saveOwnerIdsCacheToStorage(outputFilePath=undefined) {
+        //TODO cleanup
         try {
             if (!(typeof (localStorage) === "undefined")) {
-                localStorage.setItem(`balancesOf-${await this.contractObj.address}`, JSON.stringify({
-                    ["block"]: this.provider.getBlock("latest"),
-                    ["ownerIds"]: ownerIds
-                }));
-            } else {
-                if (outputFilePath) {
-                    try {
-                        console.log(`writing to ${outputFilePath}`)
-                        await Bun.write(outputFilePath, JSON.stringify({
-                            ["endBlock"]: (await this.provider.getBlock("latest")).number,
-                            ["startBlock"]: 0,
-                            ["ownerIds"]: ownerIds
-                        }));
+                localStorage.setItem(`balancesOf-${await this.contractObj.address}`, JSON.stringify(this.idsOfOwnerCache));
+            }
+            if (outputFilePath) {
+                try {
+                    console.log(`writing to ${outputFilePath}`)
+                    await Bun.write(outputFilePath, JSON.stringify(this.idsOfOwnerCache,null,2));
 
-                    } catch (error) {
-                        console.log("failed to write")
-                        console.log(error)
-
-
-                    }
+                } catch (error) {
+                    console.log("failed to write")
+                    console.log(error)
                 }
             }
+
 
         } catch (e) {
             console.warn("Couldnt save to local storage. Is it full?")
             console.log(e)
         }
-        return ownerIds
     }
+
 
 
 }
