@@ -370,9 +370,9 @@ function getRowSize(availableWidth) {
     return Math.round(availableWidth/(getImageWidth(availableWidth)+1))
 }
 
-async function displayNfts(currentPage, maxPerPage = 12, availableWidth,sort="id") {
+async function displayNfts(currentPage, maxPerPage = 12, availableWidth, ids = window.currentIdsDisplay) {
+    window.displayNftSettings ={["currentPage"]:currentPage, ["maxPerPage"]:maxPerPage, ["availableWidth"]:availableWidth}
     const URI = window.URI //TODO
-    const ids = window.currentIdsDisplay;
     let images = ""
     for (let i = 0; i < maxPerPage; i++) {
         if ((currentPage * maxPerPage + i) > (ids.length - 1)) {
@@ -401,17 +401,23 @@ async function displayNfts(currentPage, maxPerPage = 12, availableWidth,sort="id
   
         const url = await URI.getImage(id)
         let priceDiv =""
-        if (id in window.fBuilder.formattedListings) {
-            const price = `${window.fBuilder.formattedListings[id][0].value/10**18} ${window.fBuilder.formattedListings[id][0].currency}`
-            priceDiv = `<div id="price${id}"            style="font-size: 0.6em;float: right; position: absolute; right: 0px; top: 0px; z-index: 1; background-color: rgba(140, 140, 140, 0.8); padding: 5px; color: #FFFFFF; font-weight: bold;">\n 
-            ${price}\n 
-            </div>\n `
+        if (id in window.fBuilder.globalListings) {
+            const priceRounded = Math.round(window.fBuilder.globalListings[id][0].value/10**16)/10**2
+            const priceString = `${priceRounded} ${window.fBuilder.globalListings[id][0].currency} `
+            priceDiv = `<div id="price${id}"            style="font-size: 0.9em;float: right; position: absolute; right: 0px; top: 0px; z-index: 2; background-color: rgba(140, 140, 140, 0.8); padding: 5px; color: #FFFFFF; font-weight: bold;">\n 
+            ${priceString} </br>\n
+            </div>\n 
+            <div id="price${id}"            style="font-size: 0.6em;float: right; position: absolute; margin: 0px;padding: 0px; left: 0px; top: 0px; z-index: 1; background-color: rgba(69, 60, 60, 0.65); padding: 5px; color: #FFFFFF; font-weight: bold;">\n 
+            ${window.fBuilder.globalListings[id][0].source}\n </br>\n
+            </div>\n 
+    
+            `
 
         }
         images += `<div id="NFT${id}" onclick="toggleExclude(${id}, [\'NOT\',\'idList\'] )" ; style="position: relative; margin: 2px; cursor:pointer; 
                 width: ${getImageWidth(availableWidth)}vw; display: inline-block;" >\n 
                 <img src="${url}" id="image${i}" style="max-width: 100%; max-height: 100%;">\n 
-                <div id="exlcudeStatusDiv${id}" style="font-size: 0.6em;float: right; position: absolute; left: 0px; bottom: 2px; z-index: 1; background-color: ${exlcudeStatusDivColor}; padding: 5px; color: #FFFFFF; font-weight: bold;">\n 
+                <div id="exlcudeStatusDiv${id}" style="font-size: 0.9em;float: right; position: absolute; left: 0px; bottom: 2px; z-index: 1; background-color: ${exlcudeStatusDivColor}; padding: 5px; color: #FFFFFF; font-weight: bold;">\n 
                 ${exlcudeStatusDivMsg}\n 
                 </div>
                 ${priceDiv}
@@ -437,7 +443,7 @@ async function runFilter(currentFilter=fBuilder.getCurrentFilter()) {
     let start = Date.now();
     document.getElementById('nftImages').style.display = 'none' //TODO this applies only after the function is done
 
-    window.currentIdsDisplay = [...structuredClone(await fBuilder.runFilter("asc"))]
+    window.currentIdsDisplay = [...structuredClone(await fBuilder.runFilter())]
     //window.currentIdsDisplay.sort(())
 
     displayNfts(0, getRowSize(77)*getAmountOfRows(), 77) //3 rows
@@ -510,6 +516,20 @@ async function test() {
 
 };
 
+async function displayPrices() {
+    fBuilder.syncListingsOpenSea().then(
+        (ids) => {
+            window.currentIdsDisplay =  window.fBuilder.sortIds("asc")
+            displayNfts(
+                window.displayNftSettings.currentPage,
+                window.displayNftSettings.maxPerPage,
+                window.displayNftSettings.availableWidth,
+                window.currentIdsDisplay
+            )
+        }
+    )
+}
+
 async function getFilterBuilderUi(URI,fullUrl="") {
     let start = Date.now();
     document.getElementById("message").innerHTML = `this may take between 1min to 10min</br> fetching from ${fullUrl}
@@ -526,8 +546,9 @@ async function getFilterBuilderUi(URI,fullUrl="") {
     } else {
         fBuilder.getUi();
     }
-    await fBuilder.syncListings()
     await runFilter()
+    displayPrices()
+
     let timeTaken = Date.now() - start;   
     console.log("fetching metadata took: " + timeTaken + " milliseconds");
     hideDiv("message")

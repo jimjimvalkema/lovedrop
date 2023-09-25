@@ -9,8 +9,9 @@ class FilterBuilder {
     allFilters = []
     uriHandler = undefined;
     currentFilterIndex = 0;
+    currentIds = []
     rawListingsOpenSea = []
-    formattedListings = []
+    globalListings = []
     constructor(uriHandler, filters = []) {
         this.uriHandler = uriHandler;
         this.nftAddr = this.uriHandler.contractObj.address
@@ -250,13 +251,13 @@ class FilterBuilder {
     }
 
     sortIdsByPrice(a, b){
-        if (a in this.formattedListings) {
-            a = this.formattedListings[a][0].value
+        if (a in this.globalListings) {
+            a = this.globalListings[a][0].value
         } else {
             a = Infinity
         }
-        if (b in this.formattedListings) {
-            b = this.formattedListings[b][0].value
+        if (b in this.globalListings) {
+            b = this.globalListings[b][0].value
         } else {
             b=Infinity
         }
@@ -264,20 +265,11 @@ class FilterBuilder {
     }
 
 
-    async runFilter(sortOrder,filter=this.getCurrentFilter()) {
+    async runFilter(filter=this.getCurrentFilter()) {
         //this.displayFilter()
         document.getElementById("editFilter").innerHTML = this.getEditFilterUi(this.currentFilterIndex)
-        let ids= [...(await this.uriHandler.processFilter(filter))]
-        ids.sort((a,b)=>a-b)
-        switch (sortOrder) {
-            case "asc":
-                ids.sort((a,b)=>this.sortIdsByPrice(a,b))
-                break;
-        
-            default:
-                break;
-        }
-        return ids
+        this.currentIds = [...(await this.uriHandler.processFilter(filter))]
+        return  this.currentIds 
         
     }
 
@@ -1175,15 +1167,37 @@ class FilterBuilder {
         return this.sortFormattedLisings(formattedListings)
     }
 
-    async syncListings(contractAddr=this.nftAddr) {
-        this.rawListingsOpenSea = await this.getAllListingsOpenSeaByContract(contractAddr)
-        this.formattedListings = await this.formatListingsFromOpenSea(this.rawListingsOpenSea)
-        console.log(this.formattedListings)
-        return this.formattedListings
+    addListings(formattedListings) {
+        const idsInGlobalListings = Object.keys(this.globalListings)
+        for (id of idsInGlobalListings) {
+            if (id in formattedListings) {
+                this.idsInGlobalListings[id] = [...this.idsInGlobalListings[id], ...formattedListings[id]]
+                this.idsInGlobalListings[id].sort((a,b) => a-b)
+                delete formattedListings[id]
+            }
+        }
+        this.globalListings = {...this.globalListings, ...formattedListings}
+        return this.globalListings
     }
 
+    async syncListingsOpenSea(contractAddr=this.nftAddr) {
+        this.rawListingsOpenSea = await this.getAllListingsOpenSeaByContract(contractAddr)
+        const formattedListingsOpenSea = await this.formatListingsFromOpenSea(this.rawListingsOpenSea)
+        this.addListings(formattedListingsOpenSea)
+    }
 
-
+    sortIds(order="asc") {
+        switch (order) {
+            case "asc":
+                this.currentIds.sort((a,b)=>this.sortIdsByPrice(a,b))
+                
+                break;
+        
+            default:
+                break;
+        }
+        return this.currentIds
+    }
 }
 // Close the dropdown if the user clicks outside of it
 window.onclick = function (event) { //TODO  dropbtn class unique for each dropdown to make sure other dropdowns close when new one apears
