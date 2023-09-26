@@ -12,6 +12,7 @@ class FilterBuilder {
     currentIds = []
     rawListingsOpenSea = []
     globalListings = []
+    timeSyncListing = {}
     constructor(uriHandler, filters = []) {
         this.uriHandler = uriHandler;
         this.nftAddr = this.uriHandler.contractObj.address
@@ -1017,7 +1018,7 @@ class FilterBuilder {
                 r = await fetch(`https://api.opensea.io/v2/orders/ethereum/seaport/listings?asset_contract_address=${contractAddr}&limit=${ids.length}&token_ids=${idsString}&order_by=eth_price&order_direction=${order}`, options)   
                 if ("status" in r && r.status === 429) {
                     console.log(`getting rate limited tried ${tries+1} times :(`)
-                    await delay(2000)
+                    await delay(1000)
                     tries += 1
                     continue
                 } else {
@@ -1184,6 +1185,7 @@ class FilterBuilder {
         this.rawListingsOpenSea = await this.getAllListingsOpenSeaByContract(contractAddr)
         const formattedListingsOpenSea = await this.formatListingsFromOpenSea(this.rawListingsOpenSea)
         this.addListings(formattedListingsOpenSea)
+        this.timeSyncListing["OpenSea"] = Date.now()
     }
 
     sortIds(order="asc") {

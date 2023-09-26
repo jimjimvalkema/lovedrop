@@ -448,6 +448,7 @@ async function runFilter(currentFilter=fBuilder.getCurrentFilter()) {
 
     displayNfts(0, getRowSize(77)*getAmountOfRows(), 77) //3 rows
     document.getElementById('nftImages').style.display = 'initial'
+    displayPrices()
 
     let timeTaken = Date.now() - start;   
     console.log("running filter took: " + timeTaken + " milliseconds");
@@ -517,17 +518,28 @@ async function test() {
 };
 
 async function displayPrices() {
-    fBuilder.syncListingsOpenSea().then(
-        (ids) => {
-            window.currentIdsDisplay =  window.fBuilder.sortIds("asc")
-            displayNfts(
-                window.displayNftSettings.currentPage,
-                window.displayNftSettings.maxPerPage,
-                window.displayNftSettings.availableWidth,
-                window.currentIdsDisplay
-            )
-        }
+    if (!fBuilder.timeSyncListing["OpenSea"] || (Date.now() - fBuilder.timeSyncListing["OpenSea"]) > 60000) {
+        fBuilder.syncListingsOpenSea().then(
+            (ids) => {
+                window.currentIdsDisplay =  window.fBuilder.sortIds("asc")
+                displayNfts(
+                    window.displayNftSettings.currentPage,
+                    window.displayNftSettings.maxPerPage,
+                    window.displayNftSettings.availableWidth,
+                    window.currentIdsDisplay
+                )
+            }
+        )
+    }
+
+    window.currentIdsDisplay =  window.fBuilder.sortIds("asc")
+    displayNfts(
+        window.displayNftSettings.currentPage,
+        window.displayNftSettings.maxPerPage,
+        window.displayNftSettings.availableWidth,
+        window.currentIdsDisplay
     )
+
 }
 
 async function getFilterBuilderUi(URI,fullUrl="") {
@@ -547,7 +559,6 @@ async function getFilterBuilderUi(URI,fullUrl="") {
         fBuilder.getUi();
     }
     await runFilter()
-    displayPrices()
 
     let timeTaken = Date.now() - start;   
     console.log("fetching metadata took: " + timeTaken + " milliseconds");

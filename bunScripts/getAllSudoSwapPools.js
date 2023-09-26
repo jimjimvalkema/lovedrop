@@ -1,6 +1,6 @@
 
 //import {ethers} from "../ui/scripts/ethers-5.2.umd.min.js"
-import {uriHandler} from "../ui/scripts/uriHandler.js";
+import {uriHandler, MakeQuerablePromise} from "../ui/scripts/uriHandler.js";
 
 //import {ethers} from "ethers"
 
@@ -39,39 +39,51 @@ async function getContractObj(address="",abiFile,provider) {
 }
 
 
-async function getAllPools(sudoswapPairFactory, provider,  startBlockEvenScan=17309202) {
+async function getAllPools(sudoswapPairFactory, provider,preSyncFilePath= "./output/allPoolFromSudoswapV2.json", startBlockEvenScan=17309202) {
     let poolPerNft={};
-    let preSyncFile = undefined;
 
-    preSyncFile = Bun.file("./output/allPoolFromSudoswapV2.json")
-    
-    if (preSyncFile.size) {
-        const preSyncJson = await preSyncFile.json()
-        startBlockEvenScan = preSyncJson.block
-        poolPerNft =preSyncJson.poolPerNft;
+    let preSyncFile
+    if(preSyncFilePath) {
+        preSyncFile = Bun.file(preSyncFilePath)
+        if (preSyncFile.size) {
+            const preSyncJson = await preSyncFile.json()
+            startBlockEvenScan = preSyncJson.block
+            poolPerNft =preSyncJson.poolPerNft;
+        } else {
+            console.warn(`./output/allPoolFromSudoswapV2.json is empty or doesn exist. scanning for sudoswap pools from block ${startBlockEvenScan} now`)
+        }
     } else {
-        console.warn(`./output/allPoolFromSudoswapV2.json is empty or doesn exist. scanning for sudoswap pool from block ${startBlockEvenScan} now`)
+        console.warn(`no preSynced file was found for all pools from sudoSwapV2. scanning for sudoswap pools from block ${startBlockEvenScan} now`)
     }
+
 
 
     const blockNumber =(await provider.getBlock("latest")).number;
     //console.log(blockNumber)
     let eventFilter = sudoswapPairFactory.filters.NewERC721Pair()
     let events = await sudoswapPairFactory.queryFilter(eventFilter, startBlockEvenScan)
-    for (const event of events) {
+    let nftAddrs = []
+    for (const i in events) {
+        const event =events[i]
         const pairAddress = event.args[0]
         const pairContractObj = await getContractObj(pairAddress, `./sudoSwapERC721ABIOnlyNft.json`, provider)
-        const nftAddr = (await pairContractObj.nft())
+        nftAddrs.push( pairContractObj.nft())
+    }
+    nftAddrs =await Promise.all(nftAddrs)
+    for (const i in nftAddrs) {
+        const nftAddr = nftAddrs[i]
+        const event =events[i]
+        const pairAddress = event.args[0]
         if (nftAddr in poolPerNft) {
             poolPerNft[nftAddr].push({
                 ["pairAddress"]:pairAddress,
-                ["deploymentBlock"]:event.blockNumber-1
+                ["deploymentBlock"]:event.blockNumber
             })//TODO deployent block
         } else {
             poolPerNft[nftAddr] = 
             [{
                 ["pairAddress"]:pairAddress,
-                ["deploymentBlock"]:event.blockNumber-1
+                ["deploymentBlock"]:event.blockNumber
             }]
         }
     }
@@ -81,6 +93,136 @@ async function getAllPools(sudoswapPairFactory, provider,  startBlockEvenScan=17
     return poolPerNft
 }
 
+
+//TODO put this into URIHandler
+function isFulfilled(x) {
+    if (x !== undefined) {
+        return x.isFulfilled()
+    } else {
+        return false
+    }
+
+}
+
+async function getPricesFromSudoSwapPools(pools,URIHandler, provider,maxRequest=5) {
+    //const nftContrObj = await getContractObj(nftAddr, `../ui/abi/ERC721ABI.json`, provider)
+    const sudoSwapRouterAddr = "0x090C236B62317db226e6ae6CD4c0Fd25b7028b65";
+    const routerObj = await getContractObj(sudoSwapRouterAddr, `./sudoSwap2RouterABI.json`, provider)
+    let pricesPerNft = {}
+    let pricesPerPoolsIndex = []
+    let idsPerPoolsIndex = []
+    let idsPerPoolsIndexFulFilled = []
+    for (const i in pools) {
+        const pool = pools[i]
+        const poolAddr = pool.pairAddress
+        const startBlockEvenScan = pool.deploymentBlock
+        pricesPerPoolsIndex[i] = routerObj.getNFTQuoteForBuyOrderWithPartialFill(poolAddr,1,0,0)
+
+        //should split up this task into chunks since its not very scalable currently
+        idsPerPoolsIndex[i] = MakeQuerablePromise(URIHandler.getIdsOfowner(poolAddr, startBlockEvenScan))
+        //idsPerPoolsIndex[i] = URIHandler.getIdsOfowner(poolAddr, startBlockEvenScan)
+
+        let fulfilledIndex = idsPerPoolsIndex.findIndex((x)=>isFulfilled(x))
+        idsPerPoolsIndexFulFilled[fulfilledIndex] = idsPerPoolsIndex[fulfilledIndex]
+        delete idsPerPoolsIndex[fulfilledIndex]
+
+        const tempOnlyPromisses = idsPerPoolsIndex.filter((x)=>x!==undefined)
+
+        if (tempOnlyPromisses.length>=maxRequest) {
+            console.log(`max request reached waiting till another finished to start proccess ${i}/${pools.length}`)
+            console.log(`pending requests: ${tempOnlyPromisses.length}`)
+            await Promise.any(tempOnlyPromisses)
+        }
+
+    
+    }
+    Object.assign(idsPerPoolsIndex, idsPerPoolsIndexFulFilled)
+    
+    for (const i in (await Promise.all(idsPerPoolsIndex))) {
+        const pool = pools[i]
+        const poolAddr = pool.pairAddress 
+        for (const id of (await idsPerPoolsIndex[i])) {
+            if (id in pricesPerNft) {
+                pricesPerNft[id].push({["price"]:Number(await pricesPerPoolsIndex[i]),["currency"]:"ETH",["source"]:"SudoSwapV2", ["poolAddr"]:poolAddr})
+    
+            }else {
+                //TODO other currency
+                pricesPerNft[id] = [{["price"]:Number(await pricesPerPoolsIndex[i]),["currency"]:"ETH",["source"]:"SudoSwapV2", ["poolAddr"]:poolAddr}]
+            }
+        }
+
+    }
+
+    return pricesPerNft
+    
+}
+
+async function main() {
+    const rpcProvider = Bun.argv[2]
+    const nftAddress = ethers.utils.getAddress(Bun.argv[3])
+    let startTime = Date.now();
+    const contractAddr = "0xA020d57aB0448Ef74115c112D18a9C231CC86000"
+    const provider = new ethers.providers.JsonRpcProvider(`${rpcProvider}`);
+    const sudoswapPairFactory = await getContractObj(contractAddr, `./sudoswapFactoryABI.json`, provider)
+    const latestBlock = await provider.getBlock("latest")
+    const nftContrObj = await getContractObj(nftAddress, `../ui/abi/ERC721ABI.json`, provider)
+
+    const workingDir = import.meta.url.split("/").slice(null,-1).join("/")
+    console.log(`${workingDir}../ui/scripts/extraUriMetaDataFile.json`)
+    const URI =  new uriHandler(nftContrObj, "http://127.0.0.1:8080",true, `${workingDir}/../ui/scripts/extraUriMetaDataFile.json`, provider)
+
+
+    console.log(latestBlock.number)
+
+    URI.extraUriMetaData = await URI.extraUriMetaData
+    let idsOfOwnerFilePath = `${workingDir}/output/allBalancesOfOwners-${await nftContrObj.address}.json`
+    if ((await Bun.file(idsOfOwnerFilePath.slice(7))).size) {
+        URI.extraUriMetaData.idsOfOwner = idsOfOwnerFilePath
+    }
+    await URI.fetchAllExtraMetaData(false, URI.extraUriMetaData)
+
+    const pools = await getAllPools(sudoswapPairFactory,provider,"./output/allPoolFromSudoswapV2.json")
+    const pricesFound = await getPricesFromSudoSwapPools(pools[URI.contractObj.address],URI, provider)
+
+
+
+    
+    Bun.write(`./output/pricesTest3${await nftContrObj.name()}.json`,JSON.stringify(pricesFound, null, 2))
+    await URI.saveOwnerIdsCacheToStorage(idsOfOwnerFilePath.slice(7) )
+
+
+    //TODO 
+    //make a flag to only get save blocks since re-orgs can mess with things currently
+
+    //if a nft collection has a lot of pools doing a iter over a 10k collection with ownerOf might be faster then scanning events
+    //
+    //current stat on molady: 24277 ms llamarpc (6234 ms with cached sudo swap pools :D)
+    //current stat on molady: 66397 ms infura (5692 ms with cached sudo swap pools :D)
+    //current stat on molady: 96136 ms local full node (92333 ms with cached sudo swap pools :/) (http://geth.dappnode:8545)
+
+
+    //when caching both ids and sudoswap pools
+    //657 milliseconds local node :0
+    //1330 milliseconds llamarpc 
+    //6603 milliseconds infura
+
+
+    //full sync with paralelsation:
+    //29837 milliseconds local node
+    //10398 milliseconds llamarpc 
+    //3946 milliseconds infura
+
+    //cached  with paralelsation:
+    //145 milliseconds local node
+    //439 milliseconds llamarpc 
+    //3008 milliseconds infura
+    let timeTaken = Date.now() - startTime;   
+    console.log("script ran for: " + timeTaken + " milliseconds");
+}
+
+
+//not used since scatter collection uses proxies thus have no code to annalyze :(
+//unless u take the time to implement a way to read the slot with the implementation ofc
 async function contractHasFunction(contractAddr,methodString,abiFile,provider) {
     // In the following line, you could either provide a complete smart contract
     // ABI that is imported from a JSON file; or you could just define it for
@@ -100,92 +242,6 @@ async function contractHasFunction(contractAddr,methodString,abiFile,provider) {
     } else {
         return false
     }
-}
-
-
-//TODO put this into URIHandler
-
-async function getPricesFromSudoSwapPools(pools,URIHandler, provider,ids=undefined) {
-    //const nftContrObj = await getContractObj(nftAddr, `../ui/abi/ERC721ABI.json`, provider)
-    const sudoSwapRouterAddr = "0x090C236B62317db226e6ae6CD4c0Fd25b7028b65";
-    const routerObj = await getContractObj(sudoSwapRouterAddr, `./sudoSwap2RouterABI.json`, provider)
-    let prices = {}
-    for (const pool of pools) {
-        const pairAddres = pool.pairAddress
-        const startBlockEvenScan = pool.deploymentBlock
-        let price = Number(await routerObj.getNFTQuoteForBuyOrderWithPartialFill(pairAddres,1,0,0))//numnft 1, and rest can be 0 i hope :p
-        const matchingIdsInPool = (await URIHandler.getIdsOfowner(pairAddres, startBlockEvenScan))
-        for (const id of matchingIdsInPool) {
-            if (id in prices) {
-
-            }else {
-                //TODO other currency
-                prices[id] = {["price"]:price,["currency"]:"ETH",["source"]:"SudoSwapV2", ["poolAddr"]:pairAddres}
-            }
-        }
-    }
-
-    return prices
-    
-}
-
-async function main() {
-    let startTime = Date.now();
-    const contractAddr = "0xA020d57aB0448Ef74115c112D18a9C231CC86000"
-    const provider = new ethers.providers.JsonRpcProvider(`${Bun.argv[2]}`);
-    const sudoswapPairFactory = await getContractObj(contractAddr, `./sudoswapFactoryABI.json`, provider)
-    const latestBlock = await provider.getBlock("latest")
-    const nftContrObj = await getContractObj("0x3Fc3a022EB15352D3f5E4e6D6f02BBfC57D9C159", `../ui/abi/ERC721ABI.json`, provider)
-
-    //const uriHandlerModule = require('../../ui/scripts/uriHandler.js');
-    const workingDir = import.meta.url.split("/").slice(null,-1).join("/")
-    console.log(`${workingDir}../ui/scripts/extraUriMetaDataFile.json`)
-    const URI =  new uriHandler(nftContrObj, "http://127.0.0.1:8080",true, `${workingDir}/../ui/scripts/extraUriMetaDataFile.json`, provider)
-    // const sudoSwapRouterAddr = "0x090C236B62317db226e6ae6CD4c0Fd25b7028b65";
-    // const routerObj = await getContractObj(sudoSwapRouterAddr, `./sudoSwap2RouterABI.json`, provider)
-    // let price = await routerObj.getNFTQuoteForBuyOrderWithPartialFill("0x3029Ab8F76cabf6Be5C976452897254532695E78",1,1,1)
-    // console.log(price)
-    // console.log(Number(price))
-
-;
-
-    console.log(latestBlock.number)
-
-    //await URI.getOwnerOfIdsWithOwnerOf([], `./output/allBalancesOfOwners-${nftContrObj.address}.json`)
-    URI.extraUriMetaData = await URI.extraUriMetaData
-    let idsOfOwnerFilePath = `${workingDir}/output/allBalancesOfOwners-0x3Fc3a022EB15352D3f5E4e6D6f02BBfC57D9C159.json`
-    URI.extraUriMetaData.idsOfOwner = idsOfOwnerFilePath
-    await URI.fetchAllExtraMetaData(false, URI.extraUriMetaData)
-
-    const poolAddrs = await getAllPools(sudoswapPairFactory,provider)
-    // console.log(`found these pool address:`)
-    // console.log(poolAddrs)
-   
-    const pricesFound = await getPricesFromSudoSwapPools(poolAddrs[URI.contractObj.address],URI, provider)
-    // console.log(`found these prices for ${await URI.contractObj.name()}, ${URI.contractObj.address}`)
-    // console.log(pricesFound)
-    await URI.saveOwnerIdsCacheToStorage(idsOfOwnerFilePath.slice(7) )
-
-    Bun.write(`./output/pricesTest-1${await nftContrObj.name()}.json`,JSON.stringify(pricesFound, null, 2))
-  
-
-
-    //TODO 
-    //make a flag to only get save blocks since re-orgs can mess with things currently
-
-    //if a nft collection has a lot of pools doing a iter over a 10k collection with ownerOf might be faster then scanning events
-    //
-    //current stat on molady: 24277 ms llamarpc (6234 ms with cached sudo swap pools :D)
-    //current stat on molady: 66397 ms infura (5692 ms with cached sudo swap pools :D)
-    //current stat on molady: 96136 ms local full node (92333 ms with cached sudo swap pools :/) (http://geth.dappnode:8545)
-
-
-    //when caching both ids and sudoswap pools
-    //657 milliseconds local node :0
-    //1330 milliseconds llamarpc 
-    //6603 milliseconds infura
-    let timeTaken = Date.now() - startTime;   
-    console.log("script ran for: " + timeTaken + " milliseconds");
 }
 
 

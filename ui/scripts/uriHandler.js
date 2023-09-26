@@ -2,6 +2,40 @@
 //const { error } = require("console");
 
 //import  {ethers} from "../scripts/ethers-5.2.esm.min.js"
+/**
+ * This function allow you to modify a JS Promise by adding some status properties.
+ * Based on: http://stackoverflow.com/questions/21485545/is-there-a-way-to-tell-if-an-es6-promise-is-fulfilled-rejected-resolved
+ * But modified according to the specs of promises : https://promisesaplus.com/
+ * https://ourcodeworld.com/articles/read/317/how-to-check-if-a-javascript-promise-has-been-fulfilled-rejected-or-resolved
+ */
+export function MakeQuerablePromise(promise) {
+    // Don't modify any promise that has been already modified.
+    if (promise.isFulfilled) return promise;
+
+    // Set initial state
+    var isPending = true;
+    var isRejected = false;
+    var isFulfilled = false;
+
+    // Observe the promise, saving the fulfillment in a closure scope.
+    var result = promise.then(
+        function(v) {
+            isFulfilled = true;
+            isPending = false;
+            return v; 
+        }, 
+        function(e) {
+            isRejected = true;
+            isPending = false;
+            throw e; 
+        }
+    );
+
+    result.isFulfilled = function() { return isFulfilled; };
+    result.isPending = function() { return isPending; };
+    result.isRejected = function() { return isRejected; };
+    return result;
+}
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
@@ -67,7 +101,6 @@ export class uriHandler {
     async fetchAllExtraMetaData(buildMissingData = true, extraUriMetaData = this.extraUriMetaData) {
         this.extraUriMetaData = await extraUriMetaData
         this.idsOfOwnerCache = await this.getCachedIdsOfOwner()
-        console.log( this.idsOfOwnerCache)
         if (!(typeof (localStorage) === "undefined") && localStorage.hasOwnProperty(await this.contractObj.address)) {
             console.log(`${this.contractObj.address} extraMetaDataFile was found in local storage :D`)
             const data = JSON.parse(localStorage.getItem(await this.contractObj.address));
@@ -340,9 +373,6 @@ export class uriHandler {
 
         //const reqObj = {method: 'GET'}
         let retries = 0;
-        //console.log(await this.getBaseURI())
-        //console.log((await this.getUrlByProtocol(`${await this.getBaseURI()}${id}${this.baseUriExtension}`, true)))
-        //console.log((await this.getUrlByProtocol(`${await this.getBaseURI()}${id}${this.baseUriExtension}`)))
         let uriString = ""
         if (this.baseUriIsNonStandard) {
             try {
@@ -715,13 +745,12 @@ export class uriHandler {
     async processRangeCondition(condition) { //TODO idlist?
         const inputs = condition.inputs //TODO make cleaner
         let excludeIdSet = new Set();
-
-        if ((!("start" in inputs)) || !inputs.start) {
-            inputs["start"] = this.idStartsAt
+        if ((!("start" in inputs)) || !inputs.start || inputs.start === NaN) {
+            inputs["start"] = Number(await this.getIdStartsAt())
         }
 
         if (!"stop" in inputs || !inputs.stop || inputs.stop === "totalSupply") {
-            inputs["stop"] = (await this.getTotalSupply()) + 1
+            inputs["stop"] =  Number((await this.getTotalSupply())) + 1
         }
         let idSet = new Set([...Array(inputs.stop - inputs.start).keys()].map(i => i + inputs.start)) //range(inputs.start, inputs.stop)
 
@@ -900,7 +929,6 @@ export class uriHandler {
 
     async getIdsOfownerByEventScanning(ownerAddres, startBlockEventScan, nftContrObj = this.contractObj) {
         //ownerAddres = await ethers.utils.getAddress(ownerAddres)
-        console.log(startBlockEventScan)
         let idTransferCount = {}
         let startBlockOfResults = startBlockEventScan
         if (
@@ -918,12 +946,24 @@ export class uriHandler {
 
         // to keep results consistent both to and from end scan at the same block
         const endBlock = (await this.provider.getBlock("latest")).number
-        console.log(`scanning for transfer event from nft: ${await nftContrObj.name()} starting from block: ${startBlockEventScan} till ${endBlock}`)
+        console.log(`scanning for transfer event from nft: ${await nftContrObj.name()}  at ${ownerAddres} starting from block: ${startBlockEventScan} till ${endBlock}`)
         const toOwnerEventFilter = nftContrObj.filters.Transfer(null, ownerAddres)
         const fromOwnerEventFilter = nftContrObj.filters.Transfer(ownerAddres, null)
-        const toOwnerEvents = await nftContrObj.queryFilter(toOwnerEventFilter, startBlockEventScan, endBlock)
-        const fromOwnerEvents = await nftContrObj.queryFilter(fromOwnerEventFilter, startBlockEventScan, endBlock)
-        for (const id of toOwnerEvents.map((x) => Number(x.args[2]))) {
+        let toOwnerEvents
+        let fromOwnerEvents
+        let tries =0;
+        while (tries < 10) {
+            try {
+                toOwnerEvents =  await nftContrObj.queryFilter(toOwnerEventFilter, startBlockEventScan, endBlock)
+                fromOwnerEvents =  await nftContrObj.queryFilter(fromOwnerEventFilter, startBlockEventScan, endBlock)
+                break 
+            } catch (error) {
+                tries +=1
+                console.warn(`whoops fetching transfer events for ${ownerAddres} failed tried ${tries} times `)
+                await delay(2000*tries) 
+            }
+        }
+        for (const id of  toOwnerEvents.map((x) => Number(x.args[2]))) {
             if (idTransferCount[id]) {
                 idTransferCount[id] += 1
             } else {
@@ -942,6 +982,7 @@ export class uriHandler {
         const foundIds = Object.keys(idTransferCount).filter((x) => idTransferCount[x] > 0)
         this.idsOfOwnerCache[ownerAddres] = {["startBlock"]: startBlockOfResults,["endBlock"]:endBlock, ["ids"]:foundIds}
         //this.saveOwnerIdsCacheToStorage()
+        console.log(`done scanning for transfer event from nft: ${await nftContrObj.name()}  at ${ownerAddres} starting from block: ${startBlockEventScan} till ${endBlock}`)
         return foundIds
     }
 
@@ -949,9 +990,9 @@ export class uriHandler {
         let foundIds = []
         const balance = await nftContrObj.balanceOf(ownerAddres);
         for (let i = 0; i < balance; i++) {
-            foundIds.push(this.contractObj.tokenOfOwnerByindex(i))
+            foundIds.push(this.contractObj.tokenOfOwnerByIndex(ownerAddres,i))
         }
-        if (foundIds.length < balance) { throw Error(`balance is smaller then id found (${foundIds.length}). contract porbably doesnt support tokenOfOwnerByindex()`) }
+        //if (foundIds.length < balance-1) { throw Error(`balance is smaller then id found (${foundIds.length}). contract porbably doesnt support tokenOfOwnerByindex()`) }
         return Promise.all(foundIds)
     }
 
@@ -964,7 +1005,6 @@ export class uriHandler {
     //17309202 = deployment block sudoswap2Factory
     async getIdsOfowner(ownerAddres, startBlockEventScan = 0, nftContrObj = this.contractObj) {
         //ownerAddres = await ethers.utils.getAddress(ownerAddres)
-        console.log(ownerAddres, startBlockEventScan, await nftContrObj.name())
         let foundIds = []
         const nftAddr = await this.contractObj.address
         let tokenOfOwnerByindexFailed = false;
@@ -973,7 +1013,8 @@ export class uriHandler {
         try {
             foundIds = await this.getIdsOfownerWithOwnerByindex(ownerAddres, nftContrObj)
         } catch (error) {
-            console.log(`OfownerWithOwnerByindex failed trying TokensOfOwner`)
+            console.log(error)
+            //console.log(`OfownerWithOwnerByindex failed trying TokensOfOwner`)
             tokenOfOwnerByindexFailed = true
         }
 
@@ -989,7 +1030,7 @@ export class uriHandler {
         }
 
         if (idsOfownerWithTokensOfOwnerFailed) {
-            console.warn(`nft: ${nftAddr} doesnt have ownerBalanceToken or tokenOfOwnerByIndex we need to scan transfer events now wich might take a while `)
+            //console.warn(`nft: ${nftAddr} doesnt have ownerBalanceToken or tokenOfOwnerByIndex we need to scan transfer events now wich might take a while `)
             foundIds = await this.getIdsOfownerByEventScanning(ownerAddres, startBlockEventScan, nftContrObj)
         }
         return foundIds
@@ -1004,7 +1045,6 @@ export class uriHandler {
         if (source) {
     
             this.idsOfOwnerCache = await (await this.getUrlByProtocol(source)).json()
-            console.log(this.idsOfOwnerCache)
             return this.idsOfOwnerCache
         } else {
             return {}
