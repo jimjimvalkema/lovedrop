@@ -71,7 +71,7 @@ async function connectSigner() {
                 // Emitted whenever a contract from the user is deploye
             }
         )
-        return [provider, signer];
+        return [window.provider, signer];
     }
 
 }
@@ -239,7 +239,7 @@ function goToclaim() {
     window.x = document.getElementById("infuraIpfsForm").elements;
     const currentUrl = new URL(window.location.href)
     //TODO set address
-    location.replace(`/?mildayDropAddress=${window.deployedDropAddress}&ipfsApi=${x.ipfsApi.value}&projectId=${x.projectId.value}&projectSecret=${x.keySecret.value}`)
+    location.replace(`/?mildayDropAddress=${window.deployedDropAddress}&ipfsGateway=${x.ipfsGateway.value}&projectId=${x.projectId.value}&projectSecret=${x.keySecret.value}`)
 }
 //TODO do event listeners
 window.goToclaim = goToclaim
@@ -360,7 +360,7 @@ async function toggleExclude(id, target) {
 window.toggleExclude = toggleExclude
 
 function getImageWidth(availableWidth) {
-    const amountImages = Math.round(0.001829*screen.availWidth + 2.488)
+    const amountImages = Math.round(0.003333*window.innerWidth - 0.1667)
     const margin = 1//(availableWidth/amountImages)*0.001;
     return (availableWidth/amountImages - margin)
 
@@ -404,7 +404,7 @@ async function displayNfts(currentPage, maxPerPage = 12, availableWidth, ids = w
         if (id in window.fBuilder.globalListings) {
             const priceRounded = Math.round(window.fBuilder.globalListings[id][0].value/10**16)/10**2
             const priceString = `${priceRounded} ${window.fBuilder.globalListings[id][0].currency} `
-            priceDiv = `<div id="price${id}"            style="font-size: 0.9em;float: right; position: absolute; right: 0px; top: 0px; z-index: 2; background-color: rgba(140, 140, 140, 0.8); padding: 5px; color: #FFFFFF; font-weight: bold;">\n 
+            priceDiv = `<div id="price${id}"            style="font-size: 0.8em;float: right; position: absolute; right: 0px; top: 0px; z-index: 2; background-color: rgba(140, 140, 140, 0.8); padding: 5px; color: #FFFFFF; font-weight: bold;">\n 
             ${priceString} </br>\n
             </div>\n 
             <div id="price${id}"            style="font-size: 0.6em;float: right; position: absolute; margin: 0px;padding: 0px; left: 0px; top: 0px; z-index: 1; background-color: rgba(69, 60, 60, 0.65); padding: 5px; color: #FFFFFF; font-weight: bold;">\n 
@@ -431,7 +431,7 @@ async function displayNfts(currentPage, maxPerPage = 12, availableWidth, ids = w
     document.getElementById("nftImages").innerHTML = `${pageSelecter} </br> ${images} </br> ${pageSelecter}`
 }
 
-function getAmountOfRows(availWidth=screen.availWidth) {
+function getAmountOfRows(availWidth=window.innerWidth) {
     return Math.abs(Math.ceil(-0.001948*availWidth + 6.701))
 } 
 
@@ -445,14 +445,23 @@ async function runFilter(currentFilter=fBuilder.getCurrentFilter()) {
 
     window.currentIdsDisplay = [...structuredClone(await fBuilder.runFilter())]
     //window.currentIdsDisplay.sort(())
+    window.NFTDisplayWidth = (1-document.getElementById('inputSelectorContainer').clientWidth/window.innerWidth)*100 
+    document.getElementById('nftImages').style.width = `${window.NFTDisplayWidth-3}vw`
+    
+    
+    const amountRows = getAmountOfRows()
+    let margin = 1
+    if (amountRows>3) {
+        margin = 5
+    }
 
-    displayNfts(0, getRowSize(77)*getAmountOfRows(), 77) //3 rows
+    displayNfts(0, getRowSize(window.NFTDisplayWidth-margin)*amountRows, window.NFTDisplayWidth-margin) //3 rows
     document.getElementById('nftImages').style.display = 'initial'
     displayPrices()
 
     let timeTaken = Date.now() - start;   
     console.log("running filter took: " + timeTaken + " milliseconds");
-    document.getElementById("message").innerHTML = `width:${screen.availWidth} height:${screen.availHeight}`
+    document.getElementById("message").innerHTML = `width:${window.innerWidth} height:${window.innerHeight}`
 }
 window.runFilter = runFilter
 
@@ -547,9 +556,9 @@ async function getFilterBuilderUi(URI,fullUrl="") {
     document.getElementById("message").innerHTML = `this may take between 1min to 10min</br> fetching from ${fullUrl}
     <div id='messageProgress'></div>`
     await URI.fetchAllExtraMetaData()
-    window.fBuilder = await new FilterBuilder(window.URI, structuredClone([f1,f2,window.emptyFilter, window.BlueHair, window.BlueEyesAndHair]))
+    window.fBuilder = await new FilterBuilder(window.URI, structuredClone([window.emptyFilter,f1,f2, window.BlueHair, window.BlueEyesAndHair]))
     //fBuilder.displayFilter(0)
-    fBuilder.currentFilterIndex=4;
+    //fBuilder.currentFilterIndex=2;
     
 
     console.log(window.currentIdsDisplay)
@@ -570,6 +579,7 @@ window.getFilterBuilderUi = getFilterBuilderUi
 window.onload = runOnLoad;
 
 async function runOnLoad() {
+    document.getElementById("nftImages").style.width = `${window.NFTDisplayWidth}vw`
     window.urlVars = await getUrlVars();
     //TODO
     // u = new URL(window.location.href)
@@ -588,7 +598,12 @@ async function runOnLoad() {
     //TODO make function to connect ipfs indexer and option for is gateway in ui
     //TODO test if can connect 
     //connect api
-    window.ipfsApi = window.urlVars["ipfsApi"]
+    if(window.urlVars["ipfsGateway"]) {
+        window.ipfsGateway = window.urlVars["ipfsGateway"]
+    } else {
+        window.ipfsGateway = "https://ipfs.io"
+        window.urlVars["ipfsGateway"] = "https://ipfs.io"
+    }
     window.auth = null;
     if (window.urlVars["projectId"] != null) {
         const projectId = window.urlVars["projectId"]
@@ -599,7 +614,7 @@ async function runOnLoad() {
         window.auth = null
     }
     console.log(window.auth)
-    window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth, false);
+    window.ipfsIndex = new ipfsIndexer(window.ipfsGateway, window.auth, false);
 
     await loadAllContracts()
     test()

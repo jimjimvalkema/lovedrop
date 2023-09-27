@@ -16,12 +16,35 @@ class FilterBuilder {
     constructor(uriHandler, filters = []) {
         this.uriHandler = uriHandler;
         this.nftAddr = this.uriHandler.contractObj.address
+        //TODO maybe do this at urihandle before it is saved to ipfs/local storage
+        this.sortEveryAttribute(this.uriHandler.everyAttribute)
         //TODO needs deep copy?
+        if (localStorage.getItem(`allFilters-${this.nftAddr}`) !== null) {
+            this.allFilters = JSON.parse(localStorage.getItem(`allFilters-${this.nftAddr}`))
+            this.currentFilterIndex =  JSON.parse(localStorage.getItem(`currentFilterIndex-${this.nftAddr}`))
+        } else {
+            for (let i = 0; i < filters.length; i++) {
+                this.allFilters.push(this.formatNewFilter(filters[i], i))
+            }
 
-        for (let i = 0; i < filters.length; i++) {
-            this.allFilters.push(this.formatNewFilter(filters[i], i))
         }
         this.allAtribute
+    }
+
+
+    //TODO put this in uriHandler before it saves it to storage/ipfs
+    sortEveryAttribute(everyAttribute=this.URIHandler.everyAttribute) {
+        for (const attrType in everyAttribute) {
+            const sortedKeys = Object.keys(everyAttribute[attrType]["attributes"]).sort(
+                (a,b)=>
+                everyAttribute[attrType]["attributes"][b].amount
+                -everyAttribute[attrType]["attributes"][a].amount)
+            const sortedAtributes = {}
+            for (const key of sortedKeys) {
+                sortedAtributes[key] = everyAttribute[attrType]["attributes"][key]
+            }
+            everyAttribute[attrType]["attributes"] = sortedAtributes
+        }
     }
 
     formatNewFilter(filter, index) {
@@ -35,7 +58,7 @@ class FilterBuilder {
                     if (!("inputs" in filter)) {
                         filter["inputs"] = structuredClone(this.filterTemplate.inputs)
                     } else {
-                        if (filter["type"]==="RANGE") {
+                        if (filter["type"] === "RANGE") {
                             if (!"start" in filter.inputs) {
                                 filter.inputs["start"] = this.uriHandler.idStartsAt
                             }
@@ -80,7 +103,7 @@ class FilterBuilder {
         return this.allFilters[this.currentFilterIndex]
     }
 
-    async displayFilter(filterIndex=this.currentFilterIndex) {
+    async displayFilter(filterIndex = this.currentFilterIndex) {
         let html = ""
         //TODO remove debug \/
         //html += `\n <div id="fullFilterJson"> ${JSON.stringify(await this.allFilters[filterIndex])} </div>`
@@ -98,8 +121,8 @@ class FilterBuilder {
     removeEmptyKeys(object) {
         //fix for
         const keys = Object.keys(object)
-        for(const key of keys) {
-            if (typeof(object[key]) ==="object") {
+        for (const key of keys) {
+            if (typeof (object[key]) === "object") {
                 if (!Array.isArray(object[key])) {
                     if (Object.keys(object[key]).length) {
                         this.removeEmptyKeys(object[key])
@@ -109,9 +132,9 @@ class FilterBuilder {
                     } else {
                         delete object[key]
                     }
-                } else if(object[key].length) {
+                } else if (object[key].length) {
                     this.removeEmptyKeys(object[key])
-                    if(!object[key].length) { 
+                    if (!object[key].length) {
                         delete object[key]
                     }
 
@@ -179,7 +202,7 @@ class FilterBuilder {
         }
         this.setInputSelectorField(window.currentTarget)
         window.currentTarget[0] = "inputs"
-        let html =`
+        let html = `
         Add: ${this.inputTypeDropDown()} </br>
         to: <a id='AddExclBtn'><button onclick='fBuilder.switchAddExclButton()'>include list</button></a>
         `
@@ -188,9 +211,9 @@ class FilterBuilder {
 
     switchAddExclButton() {
         let html = ""
-        if (window.currentTarget[0] === "NOT"){
+        if (window.currentTarget[0] === "NOT") {
             window.currentTarget[0] = "inputs"
-            html = "<button onclick='fBuilder.switchAddExclButton()'>include list</button>" 
+            html = "<button onclick='fBuilder.switchAddExclButton()'>include list</button>"
         } else {
             window.currentTarget[0] = "NOT"
             html = "<button onclick='fBuilder.switchAddExclButton()'>exclude list</button>"
@@ -202,9 +225,9 @@ class FilterBuilder {
     }
 
     setInputSelectorField(target) {
-        switch (target[target.length-1]) {
+        switch (target[target.length - 1]) {
             case "attributes":
-                document.getElementById("inputSelectorField").innerHTML = this.getTraitTypeMenu(this.uriHandler.everyAttribute,"max-height: 30vh;margin-left:10ch;",window.currentTarget)
+                document.getElementById("inputSelectorField").innerHTML = this.getTraitTypeMenu(this.uriHandler.everyAttribute, "max-height: 30vh;margin-left:10ch;", window.currentTarget)
                 break
             case "idList":
                 document.getElementById("inputSelectorField").innerHTML = `add nft id:<input onchange='fBuilder.addIdUi(${this.currentFilterIndex},this.value, ${JSON.stringify(window.currentTarget)})' type="number" id="idInput" name="id" min="${this.uriHandler.idStartsAt}" max="${this.uriHandler.getTotalSupply()}"/></br>TODO make comma+space separated input` //min="10" max="100" />`
@@ -214,12 +237,12 @@ class FilterBuilder {
                 //document.getElementById("inputSelectorField").style = 'overflow-y: scroll; height:10vh;'
                 break
         }
-        
+
     }
 
     async addIdUi(filterIndex, id, target) {
         if (id <= (await this.uriHandler.getTotalSupply()) && id >= this.uriHandler.idStartsAt) {
-            this.addItem(filterIndex,id,target)
+            this.addItem(filterIndex, id, target)
             document.getElementById("editFilter").innerHTML = this.getEditFilterUi(this.currentFilterIndex)
 
         } else {
@@ -227,11 +250,11 @@ class FilterBuilder {
         }
     }
 
-    addFilterUi(filterIndex, target=window.currentTarget) {
+    addFilterUi(filterIndex, target = window.currentTarget) {
         const addFilter = this.allFilters[filterIndex]
         this.addItem(this.currentFilterIndex, addFilter, target)
         document.getElementById(`filter${filterIndex}`).innerHTML = `remove`
-        document.getElementById(`filter${filterIndex}`).onclick = function() {fBuilder.removeFilterUi(filterIndex)}
+        document.getElementById(`filter${filterIndex}`).onclick = function () { fBuilder.removeFilterUi(filterIndex) }
         document.getElementById("editFilter").innerHTML = this.getEditFilterUi(this.currentFilterIndex)
 
         //This is debug
@@ -239,19 +262,19 @@ class FilterBuilder {
 
     }
 
-    removeFilterUi(filterIndex, target=window.currentTarget) {
+    removeFilterUi(filterIndex, target = window.currentTarget) {
         const removeFilter = this.allFilters[filterIndex]
 
         this.removeItem(this.currentFilterIndex, removeFilter, target)
         document.getElementById(`filter${filterIndex}`).innerHTML = `add`
-        document.getElementById(`filter${filterIndex}`).onclick = function() {fBuilder.addFilterUi(filterIndex)}
+        document.getElementById(`filter${filterIndex}`).onclick = function () { fBuilder.addFilterUi(filterIndex) }
         document.getElementById("editFilter").innerHTML = this.getEditFilterUi(this.currentFilterIndex)
 
         //This is debug
         //document.getElementById("fullFilterJson").innerHTML = JSON.stringify(this.getCurrentFilter())
     }
 
-    sortIdsByPrice(a, b){
+    sortIdsByPrice(a, b) {
         if (a in this.globalListings) {
             a = this.globalListings[a][0].value
         } else {
@@ -260,18 +283,21 @@ class FilterBuilder {
         if (b in this.globalListings) {
             b = this.globalListings[b][0].value
         } else {
-            b=Infinity
+            b = Infinity
         }
-        return a-b
+        return a - b
     }
 
 
-    async runFilter(filter=this.getCurrentFilter()) {
+    async runFilter(filter = this.getCurrentFilter()) {
         //this.displayFilter()
         document.getElementById("editFilter").innerHTML = this.getEditFilterUi(this.currentFilterIndex)
         this.currentIds = [...(await this.uriHandler.processFilter(filter))]
-        return  this.currentIds 
-        
+        localStorage.setItem(`allFilters-${this.nftAddr}`, JSON.stringify(this.allFilters));
+        localStorage.setItem(`currentFilterIndex-${this.nftAddr}`, this.currentFilterIndex);
+
+        return this.currentIds
+
     }
 
     prettyPrintFilterInfo(filter) {
@@ -401,17 +427,17 @@ class FilterBuilder {
         return inputInfoString
     }
 
-    filterSelecterUi(filters, buttonType="edit") {
+    filterSelecterUi(filters, buttonType = "edit") {
         let selectFiltersButtons = ""
         for (let i = 0; i < filters.length; i++) {
             if (filters[i]) {
                 const info = this.prettyPrintFilterInfo(filters[i])
-                if (buttonType==="edit") {
+                if (buttonType === "edit") {
                     selectFiltersButtons += `<button id='editFilter${i}' onclick="fBuilder.switchFilter(${i})" >edit</button>${info}</br>\n`
                 } else {
                     //buttonType=add/remove
                     if (!(this.currentFilterIndex === i)) {
-                        if (this.getItemIndex(this.currentFilterIndex ,this.allFilters[i], window.currentTarget ) === -1) {
+                        if (this.getItemIndex(this.currentFilterIndex, this.allFilters[i], window.currentTarget) === -1) {
                             selectFiltersButtons += `<button id='filter${i}' onclick="fBuilder.addFilterUi(${i})" >add</button>${info}</br>\n`
 
                         } else {
@@ -424,21 +450,21 @@ class FilterBuilder {
 
         }
         return selectFiltersButtons
-    } 
-    
+    }
+
     createNewFilterUi(filterTemplate) {
         let newFilter = structuredClone(this.filterTemplate)
-        newFilter.filterName = `newFilter${this.allFilters.length+1}`
+        newFilter.filterName = `newFilter${this.allFilters.length + 1}`
         newFilter.filterIndex = this.allFilters.length
         this.currentFilterIndex = this.allFilters.length
         this.allFilters.push(this.formatNewFilter(newFilter, this.allFilters.length))
 
-        document.getElementById("editFilter").innerHTML = this.getEditFilterUi(this.currentFilterIndex )
+        document.getElementById("editFilter").innerHTML = this.getEditFilterUi(this.currentFilterIndex)
         this.setInputSelectorField(window.currentTarget)
 
     }
 
-    
+
 
     filtersDropDown(filters = this.allFilters) {
         let selectFiltersButtons = ""
@@ -473,11 +499,11 @@ class FilterBuilder {
         document.getElementById("editFilter").innerHTML = this.getEditFilterUi(filterIndex)
     }
 
-    getNonEmptyInputTypes(filter=this.getCurrentFilter(), target="inputs") {
+    getNonEmptyInputTypes(filter = this.getCurrentFilter(), target = "inputs") {
         let inputTypes = {};
         for (const inputType of Object.keys(filter[target])) {
             if (filter[target][inputType]) {
-                if (typeof(filter[target][inputType]) === "object") {
+                if (typeof (filter[target][inputType]) === "object") {
                     if (filter[target][inputType].length) {
                         inputTypes[inputType] = filter[target][inputType].length
                     }
@@ -489,25 +515,25 @@ class FilterBuilder {
         return inputTypes
     }
 
-    getUiFromInputTypes(inputTypes, inputField="inputs") {
+    getUiFromInputTypes(inputTypes, inputField = "inputs") {
         let html = ""
         const keys = Object.keys(inputTypes)
         for (const key of keys) {
             const target = [inputField, key]
-            const btnId  = `allInputTypesDropdown${JSON.stringify(target).replaceAll("\"", "")}`
+            const btnId = `allInputTypesDropdown${JSON.stringify(target).replaceAll("\"", "")}`
             const countId = `count:${JSON.stringify(target).replaceAll("\"", "")}`
             html += `${key}:<a id=${countId}>${inputTypes[key]}</a> items 
-            <div class="dropdown">
+            <div class="dropdown" style="z-index:10">
                 <button onclick=\"fBuilder.displayEditItemsDropDown(\'${btnId}\')\" class="dropbtn">edit</button>
-                <div id='${btnId}' class="dropdown-content">${this.getEditItemsDropDown(fBuilder.getCurrentFilter(),target)}</div></br>
+                <div id='${btnId}' class="dropdown-content">${this.getEditItemsDropDown(fBuilder.getCurrentFilter(), target)}</div></br>
             </div>\n, `
         }
-        html = html.slice(0,-2)
-        return html 
+        html = html.slice(0, -2)
+        return html
     }
 
-        /* When the user clicks on the button, 
-    toggle between hiding and showing the dropdown content */
+    /* When the user clicks on the button, 
+toggle between hiding and showing the dropdown content */
     displayEditItemsDropDown(btnId) {
         document.getElementById(btnId).classList.toggle("show");
     }
@@ -518,18 +544,18 @@ class FilterBuilder {
 
 
 
-    getInputsUi(filter=this.getCurrentFilter()) {
+    getInputsUi(filter = this.getCurrentFilter()) {
         let html = ""
         const inputTypes = this.getNonEmptyInputTypes(filter, "inputs")
         const inputTypesNOT = this.getNonEmptyInputTypes(filter, "NOT")
         if (Boolean(Object.keys(inputTypes).length)) {
-            html+=`
+            html += `
             inputs:[ ${this.getUiFromInputTypes(inputTypes, "inputs")}]
             `
         }
 
         if (Boolean(Object.keys(inputTypesNOT).length)) {
-            html+=`
+            html += `
             NOT inputs:[ ${this.getUiFromInputTypes(inputTypesNOT, "NOT")}]
             `
         }
@@ -537,13 +563,13 @@ class FilterBuilder {
         return html
     }
 
-    setFilterName(filterName,filterIndex) {
+    setFilterName(filterName, filterIndex) {
         this.allFilters[filterIndex].filterName = filterName;
         document.getElementById("filterName").onclick = `\'fBuilder.editFilterName()\'`
         this.displayFilter()
     }
 
-    editFilterName(filterIndex=this.currentFilterIndex) {
+    editFilterName(filterIndex = this.currentFilterIndex) {
         if (document.getElementById("filterName").innerHTML.startsWith("<div")) {
             document.getElementById("filterName").innerHTML = `Name: ${this.allFilters[filterIndex].filterName}`
         } else {
@@ -559,7 +585,7 @@ class FilterBuilder {
         }
     }
 
-    getEditFilterUi(filterIndex=this.currentFilterIndex) {
+    getEditFilterUi(filterIndex = this.currentFilterIndex) {
         const currenFilterName = this.allFilters[filterIndex].filterName
         const html = `
         <div>
@@ -591,7 +617,7 @@ class FilterBuilder {
         return html
     }
 
-    getTargettedObject(fullObject,target) {
+    getTargettedObject(fullObject, target) {
         let targetedArray = fullObject
         for (let key of target) {
             targetedArray = targetedArray[key]
@@ -606,8 +632,8 @@ class FilterBuilder {
 
         // }
         let l = this.getTargettedObject(this.allFilters[filterIndex], target)
-        if (typeof(item) !== 'object') {
-            if (l.indexOf(item) !== -1 ) {
+        if (typeof (item) !== 'object') {
+            if (l.indexOf(item) !== -1) {
                 console.log("item already in list")
                 return -1
             }
@@ -618,7 +644,7 @@ class FilterBuilder {
 
     removeItem(filterIndex, item, target = ["inputs", "attributes"]) {
         let l = this.getTargettedObject(this.allFilters[filterIndex], target)
-        const itemIndex = this.getItemIndex(filterIndex,item,target)//l.map(x => JSON.stringify(x)).indexOf(JSON.stringify(item))
+        const itemIndex = this.getItemIndex(filterIndex, item, target)//l.map(x => JSON.stringify(x)).indexOf(JSON.stringify(item))
         l.splice(itemIndex, 1)
     }
 
@@ -631,11 +657,11 @@ class FilterBuilder {
         // }
 
         let l = this.getTargettedObject(this.allFilters[filterIndex], target)
-        switch(target[target.length-1]) {
+        switch (target[target.length - 1]) {
             case "attributes":
                 index = l.map(x => JSON.stringify(x)).indexOf(JSON.stringify(item)) //TODO!!! assumes values are uniqe
                 break
-            
+
             case "conditions":
                 index = l.map(x => x.filterIndex).indexOf(item.filterIndex)
                 break
@@ -643,14 +669,14 @@ class FilterBuilder {
                 index = l.indexOf(item)
                 break
         }
-    
+
         return index
     }
 
-    addItemInUi(filterIndex, item,buttonId, target = ["inputs", "attributes"]) {
+    addItemInUi(filterIndex, item, buttonId, target = ["inputs", "attributes"]) {
         const valueKey = this.uriHandler.attributeFormat.valueKey
         let itemName;
-        if (target[target.length-1] === "attributes" ) {
+        if (target[target.length - 1] === "attributes") {
             itemName = item[valueKey]
         } else {
             itemName = item
@@ -661,11 +687,11 @@ class FilterBuilder {
         const itemIndex = this.addItem(filterIndex, item, target)
         if (buttonId !== "") {
             document.getElementById(buttonId).innerHTML = this.getButtonHtml({
-                btnType:'remove',
-                buttonId:buttonId,
-                item:item,
-                itemName:itemName,
-                target:target,
+                btnType: 'remove',
+                buttonId: buttonId,
+                item: item,
+                itemName: itemName,
+                target: target,
                 itemIndex
             });
 
@@ -677,14 +703,14 @@ class FilterBuilder {
         //this.setInputSelectorField(window.currentTarget)
         document.getElementById("editFilter").innerHTML = this.getEditFilterUi(filterIndex)
         console.log(`pressed: ${buttonId}`)
-        
+
     }
 
 
-    removeItemInUi(filterIndex, item,buttonId, target = ["inputs", "attributes"], isSwitch=true) {
+    removeItemInUi(filterIndex, item, buttonId, target = ["inputs", "attributes"], isSwitch = true) {
         const valueKey = this.uriHandler.attributeFormat.valueKey
         let itemName;
-        if (target[target.length-1] === "attributes" ) {
+        if (target[target.length - 1] === "attributes") {
             itemName = item[valueKey]
         } else {
             itemName = item
@@ -693,16 +719,16 @@ class FilterBuilder {
         this.removeItem(filterIndex, item, target)
         if (isSwitch) {
             document.getElementById(buttonId).innerHTML = this.getButtonHtml({
-                btnType:'add',
-                buttonId:buttonId,
-                item:item,
-                itemName:itemName,
-                target:target
+                btnType: 'add',
+                buttonId: buttonId,
+                item: item,
+                itemName: itemName,
+                target: target
             });
         } else {
             document.getElementById(buttonId).innerHTML = ''
         }
-        
+
         //This is debug
         //document.getElementById("fullFilterJson").innerHTML = JSON.stringify(this.getCurrentFilter())
 
@@ -717,7 +743,7 @@ class FilterBuilder {
 
 
     //TODO better name
-    getButtonHtml({btnType, buttonId, item, itemName, target = ["inputs", "attributes"], isSwitch=true, style = "width:8ch;"}={}) {
+    getButtonHtml({ btnType, buttonId, item, itemName, target = ["inputs", "attributes"], isSwitch = true, style = "width:8ch;" } = {}) {
         // if("filterIndex" in item) {
         //     item = {"filterIndex":item.filterIndex}
         // }
@@ -734,7 +760,7 @@ class FilterBuilder {
                         onclick='
                             fBuilder.addItemInUi(
                                 ${this.currentFilterIndex},
-                                ${JSON.stringify(item).replaceAll("\'","")}, 
+                                ${JSON.stringify(item).replaceAll("\'", "")}, 
                                 "${buttonId}",
                                 ${JSON.stringify(target).replaceAll("\'", "\"")},
                             )'>add
@@ -742,8 +768,8 @@ class FilterBuilder {
                     <a>${itemName}</a></div>\n`
                 break
 
-                case "remove":
-                    html = `
+            case "remove":
+                html = `
                     <div id=${buttonId}>
                         <button 
                             class='dropbtn'
@@ -751,14 +777,14 @@ class FilterBuilder {
                             onclick='
                                 fBuilder.removeItemInUi(
                                     ${this.currentFilterIndex},
-                                    ${JSON.stringify(item).replaceAll("\'","")}, 
+                                    ${JSON.stringify(item).replaceAll("\'", "")}, 
                                     "${buttonId}",
                                     ${JSON.stringify(target).replaceAll("\'", "\"")},
                                     ${isSwitch}
                                 )'>remove
                         </button>
                         <a>${itemName}</a></div>\n`
-                    break
+                break
         }
 
         return html
@@ -768,32 +794,35 @@ class FilterBuilder {
     getStringButtons(everyAttribute, traitType, traitTypeKey, valueKey, target) {
         let html = ''
         for (let attribute of Object.keys(everyAttribute[traitType].attributes)) {
-            
+            const amoutnOfAttr = everyAttribute[traitType]["attributes"][attribute]["amount"]
+
             //specific to attr
             let fullAttrObj = {}
             fullAttrObj[traitTypeKey] = traitType
             fullAttrObj[valueKey] = attribute
             const item = fullAttrObj
-            const buttonId = `${fullAttrObj[traitTypeKey]}-${fullAttrObj[valueKey]}-${target.toString()}-button`.replaceAll(",",":").replaceAll(" ", "");
+            const buttonId = `${fullAttrObj[traitTypeKey]}-${fullAttrObj[valueKey]}-${target.toString()}-button`.replaceAll(",", ":").replaceAll(" ", "");
 
             let itemIndex = this.getItemIndex(this.currentFilterIndex, item, target)
 
 
             if (itemIndex === -1) { //if attribute not in current filter
                 html += this.getButtonHtml({
-                    btnType : "add",
-                    buttonId : buttonId,
-                    item : item,
-                    itemName : attribute,
-                    target: target})
+                    btnType: "add",
+                    buttonId: buttonId,
+                    item: item,
+                    itemName: `${amoutnOfAttr}:${attribute}`,
+                    target: target
+                })
             } else {
                 html += this.getButtonHtml({
-                    btnType : "remove",
-                    buttonId : buttonId,
-                    item : item,
-                    itemName : attribute,
-                    target : target})
-            }   
+                    btnType: "remove",
+                    buttonId: buttonId,
+                    item: item,
+                    itemName: `${amoutnOfAttr}:${attribute}`,
+                    target: target
+                })
+            }
 
         }
         return html
@@ -809,7 +838,7 @@ class FilterBuilder {
 
         switch (everyAttribute[traitType].dataType) {
             case "string":
-                html += this.getStringButtons(everyAttribute, traitType,traitTypeKey, valueKey, target)
+                html += this.getStringButtons(everyAttribute, traitType, traitTypeKey, valueKey, target)
                 break
             case "number": //addItemInUi(filterIndex, item,buttonId, target = ["inputs", "attributes"])
                 //TODO!! prevent adding duplicates and dont use onchange
@@ -824,24 +853,24 @@ class FilterBuilder {
                 placeholder='min:${parseInt(everyAttribute[traitType].min)} - max:${parseInt(everyAttribute[traitType].max)}'
                 />Press enter to add
                 `
-                
+
                 break
         }
-        
+
 
         return html
 
     }
 
-    addNumerAttributeUi(event, filterIndex, traitType,value,buttonId, target = ["inputs", "attributes"]) {
-        if(event.key === 'Enter') {
+    addNumerAttributeUi(event, filterIndex, traitType, value, buttonId, target = ["inputs", "attributes"]) {
+        if (event.key === 'Enter') {
             const traitTypeKey = this.uriHandler.attributeFormat.traitTypeKey
             const valueKey = this.uriHandler.attributeFormat.valueKey
             let attr = {}
-            attr[traitTypeKey]= traitType
+            attr[traitTypeKey] = traitType
             attr[valueKey] = value
-            if(this.getItemIndex(filterIndex, attr, target) === -1) {
-                this.addItemInUi(filterIndex, attr,buttonId, target)  
+            if (this.getItemIndex(filterIndex, attr, target) === -1) {
+                this.addItemInUi(filterIndex, attr, buttonId, target)
 
             } else {
                 console.log(`item: ${JSON.stringify(attr)}, already added to filterindex: ${filterIndex}, at target: ${JSON.stringify(target)}`)
@@ -849,15 +878,15 @@ class FilterBuilder {
         }
     }
 
-    getTraitTypeMenu(everyAttribute = this.uriHandler.everyAttribute, style="", target=["inputs","attributes"]) {
+    getTraitTypeMenu(everyAttribute = this.uriHandler.everyAttribute, style = "", target = ["inputs", "attributes"]) {
 
         let html = ""
         const keys = Object.keys(everyAttribute)
-        for (let i=0; i<keys.length;i++) {
+        for (let i = 0; i < keys.length; i++) {
             const traitType = keys[i]
             html += `<div class="dropdown">\n
                 <button onclick="fBuilder.displayAllAttributes(\'${traitType}\')" class="dropbtn">${traitType}</button>\n
-                <div id="${traitType}AttributesDropDown" class="dropdown-content" style="${style};z-index:${i+2}">\n
+                <div id="${traitType}AttributesDropDown" class="dropdown-content" style="${style};z-index:${i + 10}">\n
                     ${this.getAllTraitsMenu(traitType, target)}
                 </div>\n
             </div></br>\n
@@ -866,7 +895,7 @@ class FilterBuilder {
         return html
     }
 
-    getEditAttributesButton(currentFilter = this.getCurrentFilter(), dropdown = true ) {
+    getEditAttributesButton(currentFilter = this.getCurrentFilter(), dropdown = true) {
         //TODO find fix for doing fBuilder.setType
         let html
         if (dropdown) {
@@ -883,20 +912,20 @@ class FilterBuilder {
 
     }
 
-    getEditItemsDropDown(filter, target=["inputs", "attributes"]) {
-        const btnId = `editItemsDropDown${JSON.stringify(target).replaceAll("\"","")}`
+    getEditItemsDropDown(filter, target = ["inputs", "attributes"]) {
+        const btnId = `editItemsDropDown${JSON.stringify(target).replaceAll("\"", "")}`
         const traitTypeKey = this.uriHandler.attributeFormat.traitTypeKey
-        const attrValueKey =  this.uriHandler.attributeFormat.valueKey
+        const attrValueKey = this.uriHandler.attributeFormat.valueKey
         const items = this.getTargettedObject(filter, target);
         let itemsNames = items
         let itemType = "id"
-        switch (target[target.length-1]) {
+        switch (target[target.length - 1]) {
             case "attributes":
-                itemsNames = itemsNames.map((x) => `${x[attrValueKey]}`)
+                itemsNames = itemsNames.map((x) => `${x[traitTypeKey]}:${x[attrValueKey]}`)
                 itemType = "attribute"
                 break
             case "conditions":
-                itemsNames = itemsNames.map((x) => `${x.filterIndex+1}:${x.filterName}`)
+                itemsNames = itemsNames.map((x) => `${x.filterIndex + 1}:${x.filterName}`)
                 itemType = "condition"
                 break
             case "idList":
@@ -905,32 +934,33 @@ class FilterBuilder {
         }
 
         let html = ""
-        for (let i=0; i<items.length; i++) {
+        for (let i = 0; i < items.length; i++) {
             const itemIndex = this.getItemIndex(this.currentFilterIndex, items[i], target);
             let buttonId;
             let stringFiedItem;
-            if (target[1]==="conditions") {
+            if (target[1] === "conditions") {
                 buttonId = `remove-${JSON.stringify(target)}-Filter${items[i].filterIndex}`
-                buttonId = buttonId.replaceAll("\"","").replaceAll(" ","") //it's ugly but works
+                buttonId = buttonId.replaceAll("\"", "").replaceAll(" ", "") //it's ugly but works
                 stringFiedItem = `filter:${JSON.stringify(items[i].filterIndex)}`
 
             } else {
-                buttonId = `remove-${JSON.stringify(target)}-${JSON.stringify(items[i]).slice(1,-1)}` //it's ugly but works
-                buttonId = buttonId.replaceAll("\"","").replaceAll(" ","")
+                buttonId = `remove-${JSON.stringify(target)}-${JSON.stringify(items[i]).slice(1, -1)}` //it's ugly but works
+                buttonId = buttonId.replaceAll("\"", "").replaceAll(" ", "")
                 stringFiedItem = JSON.stringify(items[i])
 
             }
-        
+
 
 
             html += this.getButtonHtml({
-                btnType : 'remove',
-                buttonId : buttonId,
-                item : items[i],
-                itemName : itemsNames[i],
-                target : target,
-                itemIndex : itemIndex,
-                isSwitch : false})
+                btnType: 'remove',
+                buttonId: buttonId,
+                item: items[i],
+                itemName: itemsNames[i],
+                target: target,
+                itemIndex: itemIndex,
+                isSwitch: false
+            })
         }
 
         html += `<button onclick='window.currentTarget=${JSON.stringify(target)}'>TODO add ${itemType}</button>`
@@ -974,7 +1004,7 @@ class FilterBuilder {
         return CBOR.decode(ethers.utils.base58.decode(base58CBOR).buffer)
     }
 
-    exportFilterAsBase58CBOR(filter=this.getCurrentFilter()) {
+    exportFilterAsBase58CBOR(filter = this.getCurrentFilter()) {
         filter = this.removeEmptyKeys(structuredClone(filter))
         return this.encodeObjectToBase58CBOR(filter)
     }
@@ -993,61 +1023,61 @@ class FilterBuilder {
 
     addFilter(filter) {
         if ("inputs" in filter && "conditions" in filter.inputs && filter.inputs.conditions.length) {
-            for(let key in filter.inputs.conditions) {
+            for (let key in filter.inputs.conditions) {
                 this.addFilter(filter.inputs.conditions[key])
             }
         }
         if ("NOT" in filter && "conditions" in filter.NOT && filter.NOT.conditions.length) {
-            for(let key in filter.NOT.conditions) {
+            for (let key in filter.NOT.conditions) {
                 this.addFilter(filter.NOT.conditions[key])
             }
         }
         this.allFilters[filter.filterIndex] = (this.formatNewFilter(filter, filter.filterIndex))
     }
 
-    async retrieveListingsOpensea({ids=[],order="asc",apiKey=window.urlVars["OpenSeaKey"],contractAddr=this.nftAddr}={}) {
+    async retrieveListingsOpensea({ ids = [], order = "asc", apiKey = window.urlVars["OpenSeaKey"], contractAddr = this.nftAddr } = {}) {
         const idsString = ids.join("&token_ids=")
         const options = {
             method: 'GET',
-            headers: {accept: 'application/json', 'X-API-KEY': apiKey}
-          };
+            headers: { accept: 'application/json', 'X-API-KEY': apiKey }
+        };
         let tries = 0;
-        let r={}
-        while (tries<10) {
+        let r = {}
+        while (tries < 10) {
             try {
-                r = await fetch(`https://api.opensea.io/v2/orders/ethereum/seaport/listings?asset_contract_address=${contractAddr}&limit=${ids.length}&token_ids=${idsString}&order_by=eth_price&order_direction=${order}`, options)   
+                r = await fetch(`https://api.opensea.io/v2/orders/ethereum/seaport/listings?asset_contract_address=${contractAddr}&limit=${ids.length}&token_ids=${idsString}&order_by=eth_price&order_direction=${order}`, options)
                 if ("status" in r && r.status === 429) {
-                    console.log(`getting rate limited tried ${tries+1} times :(`)
+                    console.log(`getting rate limited tried ${tries + 1} times :(`)
                     await delay(1000)
                     tries += 1
                     continue
                 } else {
                     return r.json()
                 }
-            
+
             } catch (error) {
                 tries += 3
                 await delay(2000)
             }
-        } 
+        }
 
         return 0
 
     }
 
-    async getPriceOpenSea(id=1,order="asc",apiKey=window.urlVars["OpenSeaKey"],contractAddr=this.nftAddr) {
-        const r= (await this.retrieveListingsOpensea({ids:[id],order:order,apiKey:apiKey,contractAddr:contractAddr}))
-        if ( r!==0 && "orders" in r && r.orders.length) {
-            return {"id":id,"price":{[r.orders[0].current_price]:r.orders[0].taker_asset_bundle.assets[0].asset_contract.name}}
+    async getPriceOpenSea(id = 1, order = "asc", apiKey = window.urlVars["OpenSeaKey"], contractAddr = this.nftAddr) {
+        const r = (await this.retrieveListingsOpensea({ ids: [id], order: order, apiKey: apiKey, contractAddr: contractAddr }))
+        if (r !== 0 && "orders" in r && r.orders.length) {
+            return { "id": id, "price": { [r.orders[0].current_price]: r.orders[0].taker_asset_bundle.assets[0].asset_contract.name } }
         } else {
-            return {"id":id,[-1]:"NotListed"}
+            return { "id": id, [-1]: "NotListed" }
         }
     }
 
-    async getPricesOpenSea(ids,order="asc",apiKey=window.urlVars["OpenSeaKey"]) {
+    async getPricesOpenSea(ids, order = "asc", apiKey = window.urlVars["OpenSeaKey"]) {
         let l = []
         for (const id of ids) {
-            l.push(this.getPriceOpenSea(id,order,apiKey))
+            l.push(this.getPriceOpenSea(id, order, apiKey))
             await delay(100)
             //await delay(1000)
             //await delay(1)
@@ -1057,11 +1087,11 @@ class FilterBuilder {
 
     }
 
-    async getPricesOpenSeaInBatches(ids,batchSize=4,order="asc",apiKey=window.urlVars["OpenSeaKey"]) {
-        let l=[]
+    async getPricesOpenSeaInBatches(ids, batchSize = 4, order = "asc", apiKey = window.urlVars["OpenSeaKey"]) {
+        let l = []
         for (let i = 0; i < ids.length; i += batchSize) {
             const idBatch = ids.slice(i, i + batchSize);
-            l.push(await this.getPricesOpenSea(idBatch,order="asc",apiKey=window.urlVars["OpenSeaKey"]))
+            l.push(await this.getPricesOpenSea(idBatch, order = "asc", apiKey = window.urlVars["OpenSeaKey"]))
             await delay(1000)
         }
         return l
@@ -1070,78 +1100,78 @@ class FilterBuilder {
     async getSlugStringOpenSea(contractAddr) {
         const options = {
             method: 'GET',
-            headers: {accept: 'application/json', 'X-API-KEY': '509e9dd467ef484abab2c5f90fa53d9a'}
-          };
+            headers: { accept: 'application/json', 'X-API-KEY': '509e9dd467ef484abab2c5f90fa53d9a' }
+        };
 
         let tries = 0;
-        let r={}
-        while (tries<10) {
+        let r = {}
+        while (tries < 10) {
             try {
                 const r = await fetch(`https://api.opensea.io/v2/chain/ethereum/contract/${contractAddr}/nfts?limit=1`, options)
                 if ("status" in r && r.status === 429) {
-                    console.log(`getting rate limited tried ${tries+1} times :(`)
+                    console.log(`getting rate limited tried ${tries + 1} times :(`)
                     await delay(200)
                     tries += 1
                     continue
                 } else {
-                    return  (await r.json()).nfts[0].collection
+                    return (await r.json()).nfts[0].collection
                 }
             } catch (error) {
                 console.log(error)
 
             }
         }
-          
-    
+
+
     }
 
-    async getAllListingsOpenSea(page="", slugString, listings=[]) {
+    async getAllListingsOpenSea(page = "", slugString, listings = []) {
         const options = {
             method: 'GET',
-            headers: {accept: 'application/json', 'X-API-KEY': window.urlVars["OpenSeaKey"]}
-          };
-        let next=""
-        if(page) {
-            next = `?next=${page}`  
+            headers: { accept: 'application/json', 'X-API-KEY': window.urlVars["OpenSeaKey"] }
+        };
+        let next = ""
+        if (page) {
+            next = `?next=${page}`
         }
 
         let r;
         let tries = 0
-        while (tries<5) {
+        while (tries < 5) {
             try {
-                r = (await fetch(`https://api.opensea.io/v2/listings/collection/${slugString}/all${next}`, options))  
+                r = (await fetch(`https://api.opensea.io/v2/listings/collection/${slugString}/all${next}`, options))
                 if ("status" in r && r.status === 429) {
-                    console.log(`getting rate limited tried ${tries+1} times :(`)
+                    console.log(`getting rate limited tried ${tries + 1} times :(`)
                     await delay(200)
                     tries += 1
                     continue
                 } else {
                     break
                 }
-            
+
             } catch (error) {
                 console.log(error)
                 tries += 3
                 await delay(200)
             }
-        } 
+        }
         r = await r.json()
 
-    
+
         listings = [...listings, ...Object.values(r.listings)]
-        
+
         if ("next" in r && r.next) {
             //await delay(1)
-            listings = await this.getAllListingsOpenSea(r.next, slugString,listings) 
-        }  
+            listings = await this.getAllListingsOpenSea(r.next, slugString, listings)
+        }
         return listings
     }
 
-    async getAllListingsOpenSeaByContract(contractAddr=this.nftAddr) {
+    async getAllListingsOpenSeaByContract(contractAddr = this.nftAddr) {
         const slugString = await this.getSlugStringOpenSea(contractAddr)
         console.log(slugString)
         //await delay(5)
-        return this.getAllListingsOpenSea("",slugString)
+        return this.getAllListingsOpenSea("", slugString)
 
     }
 
@@ -1152,17 +1182,17 @@ class FilterBuilder {
         }
         return formattedListings
     }
-    
 
-    formatListingsFromOpenSea(listings=this.rawListingsOpenSea) {
+
+    formatListingsFromOpenSea(listings = this.rawListingsOpenSea) {
         let formattedListings = {}
         for (const i in listings) {
             const listing = listings[i]
             const id = listing.protocol_data.parameters.offer[0].identifierOrCriteria
             if (!(id in formattedListings)) {
-                formattedListings[id] =[{["value"]:listing.price.current.value,["currency"]:listing.price.current.currency,["source"]:"OpenSea", ["rawListingsIndexOpenSea"]:i}]
+                formattedListings[id] = [{ ["value"]: listing.price.current.value, ["currency"]: listing.price.current.currency, ["source"]: "OpenSea", ["rawListingsIndexOpenSea"]: i }]
             } else {
-                formattedListings[id].push({["value"]:listing.price.current.value,["currency"]:listing.price.current.currency, ["source"]:"OpenSea",["rawListingsIndexOpenSea"]:i})
+                formattedListings[id].push({ ["value"]: listing.price.current.value, ["currency"]: listing.price.current.currency, ["source"]: "OpenSea", ["rawListingsIndexOpenSea"]: i })
             }
         }
         return this.sortFormattedLisings(formattedListings)
@@ -1170,31 +1200,31 @@ class FilterBuilder {
 
     addListings(formattedListings) {
         const idsInGlobalListings = Object.keys(this.globalListings)
-        for (id of idsInGlobalListings) {
+        for (const id of idsInGlobalListings) {
             if (id in formattedListings) {
                 this.idsInGlobalListings[id] = [...this.idsInGlobalListings[id], ...formattedListings[id]]
-                this.idsInGlobalListings[id].sort((a,b) => a-b)
+                this.idsInGlobalListings[id].sort((a, b) => a - b)
                 delete formattedListings[id]
             }
         }
-        this.globalListings = {...this.globalListings, ...formattedListings}
+        this.globalListings = { ...this.globalListings, ...formattedListings }
         return this.globalListings
     }
 
-    async syncListingsOpenSea(contractAddr=this.nftAddr) {
+    async syncListingsOpenSea(contractAddr = this.nftAddr) {
         this.rawListingsOpenSea = await this.getAllListingsOpenSeaByContract(contractAddr)
         const formattedListingsOpenSea = await this.formatListingsFromOpenSea(this.rawListingsOpenSea)
         this.addListings(formattedListingsOpenSea)
         this.timeSyncListing["OpenSea"] = Date.now()
     }
 
-    sortIds(order="asc") {
+    sortIds(order = "asc") {
         switch (order) {
             case "asc":
-                this.currentIds.sort((a,b)=>this.sortIdsByPrice(a,b))
-                
+                this.currentIds.sort((a, b) => this.sortIdsByPrice(a, b))
+
                 break;
-        
+
             default:
                 break;
         }
