@@ -37,6 +37,16 @@ export function MakeQuerablePromise(promise) {
     return result;
 }
 
+//TODO put this into URIHandler
+export function isFulfilled(x) {
+    if (x !== undefined) {
+        return x.isFulfilled()
+    } else {
+        return false
+    }
+
+}
+
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 //TODO maybe attibute finder is better name? or maybe split classes
@@ -272,8 +282,9 @@ export class uriHandler {
     }
 
 
-    async syncUriCacheByScraping(startId = 0, endId = null, chunkSize = 100, idList = null) {
+    async syncUriCacheByScraping(startId = 0, endId = null, chunkSize = 300, idList = null) {
         let allUris = [];
+        let allUrisFulFilled = [];
         //iter from startId to endId
         if (idList === null) {
             //do entire supply if endId is null
@@ -281,17 +292,45 @@ export class uriHandler {
                 endId = await this.getTotalSupply()
             }
 
-            let endChunk = 0;
-            for (let startChunk = 0; startChunk < endId;) {
-                endChunk += chunkSize;
-                if (endChunk > endId) { //brain cooked prob not good fix TODO
-                    endChunk = endId
-                }
-                let uris = await this.getUrisInBulk(startChunk, endChunk);
-                allUris = [...allUris, ...uris];
+            for(let id=startId; id<endId;id++) {
+                
 
-                startChunk += chunkSize
+                allUris.push(MakeQuerablePromise( this.getTokenUriNoCache(id)))
+
+                let fulfilledIndex = allUris.findIndex((x)=>isFulfilled(x))
+                allUrisFulFilled[fulfilledIndex] = allUris[fulfilledIndex]
+                delete allUris[fulfilledIndex]
+
+                const tempOnlyPromisses = allUris.filter((x)=>x!==undefined)
+
+                if (tempOnlyPromisses.length>=chunkSize) {
+                    //console.log(`max request reached waiting till another finished to start proccess ${id}/${endId}`)
+                    //console.log(`pending requests: ${tempOnlyPromisses.length}`)
+                    await Promise.any(tempOnlyPromisses)
+                }
+
+                if (!(id % 20)) {
+                    const m = `id:${id} out of:${this.totalSupply}`
+                    //console.log(m)
+                    if (!(typeof (document) === "undefined")) {
+                        document.getElementById("messageProgress").innerText = m
+
+                    }
+                }
+        
             }
+
+            // let endChunk = 0;
+            // for (let startChunk = 0; startChunk < endId;) {
+            //     endChunk += chunkSize;
+            //     if (endChunk > endId) { //brain cooked prob not good fix TODO
+            //         endChunk = endId
+            //     }
+            //     let uris = await this.getUrisInBulk(startChunk, endChunk);
+            //     allUris = [...allUris, ...uris];
+
+            //     startChunk += chunkSize
+            // }
 
             //iter ofer idList
         } else { console.error("TODO not implemeted") }
@@ -301,6 +340,9 @@ export class uriHandler {
         //         this.uriCache[id] = this.getTokenUriNoCache(id);
         //     }
         // }
+        Object.assign(allUris,allUrisFulFilled)
+        allUris = await Promise.all(allUris)
+        console.log(allUris)
         return allUris
     }
 
@@ -339,7 +381,7 @@ export class uriHandler {
         }
     }
 
-    async syncUriCache(startId = 0, endId = null, chunkSize = 100) {
+    async syncUriCache(startId = 0, endId = null, chunkSize = 200) {
         // const traitTypeKey = this.attributeFormat.traitTypeKey
         // const valueKey = this.attributeFormat.valueKey
         if ((await this.extraUriMetaData).scrapedUriData) {
@@ -463,9 +505,11 @@ export class uriHandler {
     }
 
     getIdsWithEveryAtrribureObj(attribute) {
+        console.log(attribute)
         if (!this.everyAttribute) {
             throw Error(`everyAttribute is: ${this.everyAttribute}`)
         } else {
+
             return this.everyAttribute[attribute[this.attributeFormat.traitTypeKey]].attributes[attribute[this.attributeFormat.valueKey]].ids
         }
     }

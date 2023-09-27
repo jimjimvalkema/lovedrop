@@ -182,7 +182,13 @@ async function main() {
     await URI.fetchAllExtraMetaData(false, URI.extraUriMetaData)
 
     const pools = await getAllPools(sudoswapPairFactory,provider,"./output/allPoolFromSudoswapV2.json")
-    const pricesFound = await getPricesFromSudoSwapPools(pools[URI.contractObj.address],URI, provider)
+
+    let maxRequest = 50
+    if(rpcProvider.split(".").indexOf("dappnode")!==-1) {
+        console.log("local node setting lower max requests")
+        maxRequest = 5
+    }
+    const pricesFound = await getPricesFromSudoSwapPools(pools[URI.contractObj.address],URI, provider, maxRequest)
 
 
 
