@@ -13,9 +13,13 @@ class FilterBuilder {
     rawListingsOpenSea = []
     globalListings = []
     timeSyncListing = {}
-    constructor(uriHandler, filters = []) {
+    isTest;
+    OpenSeaKey = undefined;
+    constructor(uriHandler, filters = [], _OpenSeaKey) {
+        this.OpenSeaKey = _OpenSeaKey
         this.uriHandler = uriHandler;
         this.nftAddr = this.uriHandler.contractObj.address
+        this.isTest = this.uriHandler.extraUriMetaData.isTest
         //TODO maybe do this at urihandle before it is saved to ipfs/local storage
         this.sortEveryAttribute(this.uriHandler.everyAttribute)
         //TODO needs deep copy?
@@ -1035,7 +1039,7 @@ toggle between hiding and showing the dropdown content */
         this.allFilters[filter.filterIndex] = (this.formatNewFilter(filter, filter.filterIndex))
     }
 
-    async retrieveListingsOpensea({ ids = [], order = "asc", apiKey = window.urlVars["OpenSeaKey"], contractAddr = this.nftAddr } = {}) {
+    async retrieveListingsOpensea({ ids = [], order = "asc", apiKey = this.OpenSeaKey, contractAddr = this.nftAddr } = {}) {
         const idsString = ids.join("&token_ids=")
         const options = {
             method: 'GET',
@@ -1065,7 +1069,7 @@ toggle between hiding and showing the dropdown content */
 
     }
 
-    async getPriceOpenSea(id = 1, order = "asc", apiKey = window.urlVars["OpenSeaKey"], contractAddr = this.nftAddr) {
+    async getPriceOpenSea(id = 1, order = "asc", apiKey = this.OpenSeaKey, contractAddr = this.nftAddr) {
         const r = (await this.retrieveListingsOpensea({ ids: [id], order: order, apiKey: apiKey, contractAddr: contractAddr }))
         if (r !== 0 && "orders" in r && r.orders.length) {
             return { "id": id, "price": { [r.orders[0].current_price]: r.orders[0].taker_asset_bundle.assets[0].asset_contract.name } }
@@ -1074,7 +1078,7 @@ toggle between hiding and showing the dropdown content */
         }
     }
 
-    async getPricesOpenSea(ids, order = "asc", apiKey = window.urlVars["OpenSeaKey"]) {
+    async getPricesOpenSea(ids, order = "asc", apiKey = this.OpenSeaKey) {
         let l = []
         for (const id of ids) {
             l.push(this.getPriceOpenSea(id, order, apiKey))
@@ -1087,11 +1091,11 @@ toggle between hiding and showing the dropdown content */
 
     }
 
-    async getPricesOpenSeaInBatches(ids, batchSize = 4, order = "asc", apiKey = window.urlVars["OpenSeaKey"]) {
+    async getPricesOpenSeaInBatches(ids, batchSize = 4, order = "asc", apiKey = this.OpenSeaKey) {
         let l = []
         for (let i = 0; i < ids.length; i += batchSize) {
             const idBatch = ids.slice(i, i + batchSize);
-            l.push(await this.getPricesOpenSea(idBatch, order = "asc", apiKey = window.urlVars["OpenSeaKey"]))
+            l.push(await this.getPricesOpenSea(idBatch, order = "asc", apiKey = this.OpenSeaKey))
             await delay(1000)
         }
         return l
@@ -1128,7 +1132,7 @@ toggle between hiding and showing the dropdown content */
     async getAllListingsOpenSea(page = "", slugString, listings = []) {
         const options = {
             method: 'GET',
-            headers: { accept: 'application/json', 'X-API-KEY': window.urlVars["OpenSeaKey"] }
+            headers: { accept: 'application/json', 'X-API-KEY': this.OpenSeaKey }
         };
         let next = ""
         if (page) {

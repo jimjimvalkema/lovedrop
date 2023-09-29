@@ -19,21 +19,21 @@ export function MakeQuerablePromise(promise) {
 
     // Observe the promise, saving the fulfillment in a closure scope.
     var result = promise.then(
-        function(v) {
+        function (v) {
             isFulfilled = true;
             isPending = false;
-            return v; 
-        }, 
-        function(e) {
+            return v;
+        },
+        function (e) {
             isRejected = true;
             isPending = false;
-            throw e; 
+            throw e;
         }
     );
 
-    result.isFulfilled = function() { return isFulfilled; };
-    result.isPending = function() { return isPending; };
-    result.isRejected = function() { return isRejected; };
+    result.isFulfilled = function () { return isFulfilled; };
+    result.isPending = function () { return isPending; };
+    result.isRejected = function () { return isRejected; };
     return result;
 }
 
@@ -292,18 +292,18 @@ export class uriHandler {
                 endId = await this.getTotalSupply()
             }
 
-            for(let id=startId; id<endId;id++) {
-                
+            for (let id = startId; id < endId; id++) {
 
-                allUris.push(MakeQuerablePromise( this.getTokenUriNoCache(id)))
 
-                let fulfilledIndex = allUris.findIndex((x)=>isFulfilled(x))
+                allUris.push(MakeQuerablePromise(this.getTokenUriNoCache(id)))
+
+                let fulfilledIndex = allUris.findIndex((x) => isFulfilled(x))
                 allUrisFulFilled[fulfilledIndex] = allUris[fulfilledIndex]
                 delete allUris[fulfilledIndex]
 
-                const tempOnlyPromisses = allUris.filter((x)=>x!==undefined)
+                const tempOnlyPromisses = allUris.filter((x) => x !== undefined)
 
-                if (tempOnlyPromisses.length>=chunkSize) {
+                if (tempOnlyPromisses.length >= chunkSize) {
                     //console.log(`max request reached waiting till another finished to start proccess ${id}/${endId}`)
                     //console.log(`pending requests: ${tempOnlyPromisses.length}`)
                     await Promise.any(tempOnlyPromisses)
@@ -317,7 +317,7 @@ export class uriHandler {
 
                     }
                 }
-        
+
             }
 
             // let endChunk = 0;
@@ -340,7 +340,7 @@ export class uriHandler {
         //         this.uriCache[id] = this.getTokenUriNoCache(id);
         //     }
         // }
-        Object.assign(allUris,allUrisFulFilled)
+        Object.assign(allUris, allUrisFulFilled)
         allUris = await Promise.all(allUris)
         console.log(allUris)
         return allUris
@@ -505,7 +505,6 @@ export class uriHandler {
     }
 
     getIdsWithEveryAtrribureObj(attribute) {
-        console.log(attribute)
         if (!this.everyAttribute) {
             throw Error(`everyAttribute is: ${this.everyAttribute}`)
         } else {
@@ -626,6 +625,13 @@ export class uriHandler {
         return new Set([...setA].filter(x => !setB.has(x)));
     }
 
+    amountOfItemsInInputs(inputs) {
+        let itemsCount = 0;
+        for (const inputType in inputs) {
+            itemsCount += inputs[inputType].length
+        }
+        return itemsCount
+    }
 
     /**
      * 
@@ -637,6 +643,13 @@ export class uriHandler {
         //const inputTypesOrder = ["idList", "attributes", "conditions"]
         let excludeIdSet = new Set();
         let idSet = new Set(); //maybe const if u do if else TODO
+
+        if ((!("NOT" in condition) && !("inputs" in condition)) ||
+            ((this.amountOfItemsInInputs(condition.NOT) === 0) && (this.amountOfItemsInInputs(condition.inputs) === 0))) {
+            const firstId = await this.getIdStartsAt()
+            return new Set([...Array((await this.getTotalSupply()) - firstId).keys()].map(i => i + firstId))
+
+        }
 
         if ("NOT" in condition && condition.NOT) {
             excludeIdSet = await this.processNotCondition(condition.NOT)
@@ -702,6 +715,13 @@ export class uriHandler {
         //const inputTypesOrder = ["idList", "attributes", "conditions"]
         let excludeIdSet = new Set();;
         let idSet = new Set();
+
+        if ((!("NOT" in condition) && !("inputs" in condition)) ||
+            ((this.amountOfItemsInInputs(condition.NOT) === 0) && (this.amountOfItemsInInputs(condition.inputs) === 0))) {
+            const firstId = await this.getIdStartsAt()
+            return new Set([...Array((await this.getTotalSupply()) - firstId).keys()].map(i => i + firstId))
+
+        }
 
         if ("NOT" in condition && condition.NOT) {
             excludeIdSet = await this.processNotCondition(condition.NOT)
@@ -794,7 +814,7 @@ export class uriHandler {
         }
 
         if (!"stop" in inputs || !inputs.stop || inputs.stop === "totalSupply") {
-            inputs["stop"] =  Number((await this.getTotalSupply())) + 1
+            inputs["stop"] = Number((await this.getTotalSupply())) + 1
         }
         let idSet = new Set([...Array(inputs.stop - inputs.start).keys()].map(i => i + inputs.start)) //range(inputs.start, inputs.stop)
 
@@ -979,14 +999,14 @@ export class uriHandler {
             this.idsOfOwnerCache &&
             (ownerAddres in this.idsOfOwnerCache) &&
             (this.idsOfOwnerCache[ownerAddres].startBlock <= startBlockEventScan)
-            
+
         ) {
             startBlockEventScan = this.idsOfOwnerCache[ownerAddres].endBlock
             startBlockOfResults = this.idsOfOwnerCache[ownerAddres].startBlock
             const ids = this.idsOfOwnerCache[ownerAddres].ids
             idTransferCount = Object.fromEntries(ids.map(key => [key, 1])); //set all founds ids to initial value of 1
 
-        }   
+        }
 
         // to keep results consistent both to and from end scan at the same block
         const endBlock = (await this.provider.getBlock("latest")).number
@@ -995,19 +1015,19 @@ export class uriHandler {
         const fromOwnerEventFilter = nftContrObj.filters.Transfer(ownerAddres, null)
         let toOwnerEvents
         let fromOwnerEvents
-        let tries =0;
+        let tries = 0;
         while (tries < 10) {
             try {
-                toOwnerEvents =  await nftContrObj.queryFilter(toOwnerEventFilter, startBlockEventScan, endBlock)
-                fromOwnerEvents =  await nftContrObj.queryFilter(fromOwnerEventFilter, startBlockEventScan, endBlock)
-                break 
+                toOwnerEvents = await nftContrObj.queryFilter(toOwnerEventFilter, startBlockEventScan, endBlock)
+                fromOwnerEvents = await nftContrObj.queryFilter(fromOwnerEventFilter, startBlockEventScan, endBlock)
+                break
             } catch (error) {
-                tries +=1
+                tries += 1
                 console.warn(`whoops fetching transfer events for ${ownerAddres} failed tried ${tries} times `)
-                await delay(2000*tries) 
+                await delay(2000 * tries)
             }
         }
-        for (const id of  toOwnerEvents.map((x) => Number(x.args[2]))) {
+        for (const id of toOwnerEvents.map((x) => Number(x.args[2]))) {
             if (idTransferCount[id]) {
                 idTransferCount[id] += 1
             } else {
@@ -1024,7 +1044,7 @@ export class uriHandler {
             }
         }
         const foundIds = Object.keys(idTransferCount).filter((x) => idTransferCount[x] > 0)
-        this.idsOfOwnerCache[ownerAddres] = {["startBlock"]: startBlockOfResults,["endBlock"]:endBlock, ["ids"]:foundIds}
+        this.idsOfOwnerCache[ownerAddres] = { ["startBlock"]: startBlockOfResults, ["endBlock"]: endBlock, ["ids"]: foundIds }
         //this.saveOwnerIdsCacheToStorage()
         console.log(`done scanning for transfer event from nft: ${await nftContrObj.name()}  at ${ownerAddres} starting from block: ${startBlockEventScan} till ${endBlock}`)
         return foundIds
@@ -1034,7 +1054,7 @@ export class uriHandler {
         let foundIds = []
         const balance = await nftContrObj.balanceOf(ownerAddres);
         for (let i = 0; i < balance; i++) {
-            foundIds.push(this.contractObj.tokenOfOwnerByIndex(ownerAddres,i))
+            foundIds.push(this.contractObj.tokenOfOwnerByIndex(ownerAddres, i))
         }
         //if (foundIds.length < balance-1) { throw Error(`balance is smaller then id found (${foundIds.length}). contract porbably doesnt support tokenOfOwnerByindex()`) }
         return Promise.all(foundIds)
@@ -1087,7 +1107,7 @@ export class uriHandler {
             return this.idsOfOwnerCache
         }
         if (source) {
-    
+
             this.idsOfOwnerCache = await (await this.getUrlByProtocol(source)).json()
             return this.idsOfOwnerCache
         } else {
@@ -1136,7 +1156,7 @@ export class uriHandler {
         return ownerIds
     }
 
-    async saveOwnerIdsCacheToStorage(outputFilePath=undefined) {
+    async saveOwnerIdsCacheToStorage(outputFilePath = undefined) {
         //TODO cleanup
         try {
             if (!(typeof (localStorage) === "undefined")) {
@@ -1145,7 +1165,7 @@ export class uriHandler {
             if (outputFilePath) {
                 try {
                     console.log(`writing to ${outputFilePath}`)
-                    await Bun.write(outputFilePath, JSON.stringify(this.idsOfOwnerCache,null,2));
+                    await Bun.write(outputFilePath, JSON.stringify(this.idsOfOwnerCache, null, 2));
 
                 } catch (error) {
                     console.log("failed to write")

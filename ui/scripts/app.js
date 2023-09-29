@@ -1,6 +1,8 @@
 import { uriHandler } from "./uriHandler.js";
 import  {ethers} from "../scripts/ethers-5.2.esm.min.js"
 
+
+
 if (window.ethereum) {
     window.provider = new ethers.providers.Web3Provider(window.ethereum);
 } else {
@@ -265,7 +267,7 @@ async function deployDropContract(requiredNFTAddress = "0xbaa9cbdac7a1e3f376192d
     }
     message(`submitted transaction at: ${(await tx).hash}`);
     const confirmedTX = (await (await (await tx).wait(1)).transactionHash);
-    window.reciept = (awaitwindow.provider.getTransactionReceipt(confirmedTX));
+    window.reciept = (await window.provider.getTransactionReceipt(confirmedTX));
     window.deployedDropAddress = await ethers.utils.defaultAbiCoder.decode(["address"], reciept.logs[0].data)[0];
     message(`confirmed transaction at: ${(await tx).hash}, deployed at: ${window.deployedDropAddress}`);
 
@@ -276,25 +278,6 @@ async function deployDropContract(requiredNFTAddress = "0xbaa9cbdac7a1e3f376192d
 //TODO do event listeners
 window.deployDropContract = deployDropContract
 
-async function getDeployedContractsFromUser(userAddress = window.signer.getAddress()) {
-    let contractAddresses = [];
-
-    for (let i = 0; i < 1000000; i++) {
-        try {
-            let drop = await miladyDropFactoryContract.DeployedDrops(i);
-            console.log(drop)
-            if (drop["deployerAddress"] === await userAddress) {
-                contractAddresses.push(await drop["dropAddress"])
-            }
-        }
-        catch {
-            break
-        }
-    }
-    document.getElementById("deployedDropsList").innerHTML = JSON.stringify(contractAddresses, 2);
-    return contractAddresses
-
-}
 
 function copyClaimUrl(index) {
     // Get the text field
@@ -330,7 +313,10 @@ async function displayDeployedContracts(contractAddresses) {
 }
 
 async function refreshDeployedContractsUi() {
-    let contractAddresses = await getDeployedContractsFromUser(window.signer.getAddress())
+    const filter = miladyDropFactoryContract.filters.CreateNewDrop(await window.signer.getAddress())
+    const events = await miladyDropFactoryContract.queryFilter(filter)
+    let contractAddresses = events.map((x)=>x.args[1])
+    //let contractAddresses = await getDeployedContractsFromUser(window.signer.getAddress())
     await displayDeployedContracts(contractAddresses);
 }
 
@@ -430,14 +416,12 @@ async function displayNfts(currentPage, maxPerPage = 12, availableWidth, ids = w
         page: ${currentPage + 1} of: ${amountPages + 1} pages \n`
     document.getElementById("nftImages").innerHTML = `${pageSelecter} </br> ${images} </br> ${pageSelecter}`
 }
+window.displayNfts = displayNfts
 
 function getAmountOfRows(availWidth=window.innerWidth) {
     return Math.abs(Math.ceil(-0.001948*availWidth + 6.701))
+    //return Math.abs(Math.ceil(0.002288*availHeight + 1.146))-1
 } 
-
-
-
-window.displayNfts = displayNfts
 
 async function runFilter(currentFilter=fBuilder.getCurrentFilter()) {
     let start = Date.now();
@@ -491,7 +475,7 @@ async function test() {
 
 
 
-    window.URI = await new uriHandler(nftContract, window.urlVars["ipfsGateway"],true, "./scripts/extraUriMetaDataFile.json")
+    window.URI = await new uriHandler(nftContract, window.ipfsGateway,true, "./scripts/extraUriMetaDataFile.json")
     window.baseURI = await window.URI.getBaseURI()
     let fullUrl = "nonstandard tokenURI function TODO"
     if (!(await window.URI.extraUriMetaData).everyAttributeCbor && (!localStorage.hasOwnProperty(window.URI.contractObj.address))) {
@@ -502,7 +486,7 @@ async function test() {
 
         }
         if ((window.baseURI !== undefined) && (new URL(window.baseURI)).protocol ==="ipfs:") {
-            if (isPrivateIP(new URL(window.urlVars["ipfsGateway"]).hostname)) {
+            if (window.ipfsGateway && isPrivateIP(new URL(window.ipfsGateway).hostname)) {
                 comment = `you'r using a local ipfs node. Based :D`
             }
         }
@@ -528,17 +512,19 @@ async function test() {
 
 async function displayPrices() {
     if (!fBuilder.timeSyncListing["OpenSea"] || (Date.now() - fBuilder.timeSyncListing["OpenSea"]) > 60000) {
-        fBuilder.syncListingsOpenSea().then(
-            (ids) => {
-                window.currentIdsDisplay =  window.fBuilder.sortIds("asc")
-                displayNfts(
-                    window.displayNftSettings.currentPage,
-                    window.displayNftSettings.maxPerPage,
-                    window.displayNftSettings.availableWidth,
-                    window.currentIdsDisplay
-                )
-            }
-        )
+        if(!fBuilder.isTest) {
+            fBuilder.syncListingsOpenSea().then(
+                (ids) => {
+                    window.currentIdsDisplay =  window.fBuilder.sortIds("asc")
+                    displayNfts(
+                        window.displayNftSettings.currentPage,
+                        window.displayNftSettings.maxPerPage,
+                        window.displayNftSettings.availableWidth,
+                        window.currentIdsDisplay
+                    )
+                }
+            )
+        }
     }
 
     window.currentIdsDisplay =  window.fBuilder.sortIds("asc")
@@ -556,6 +542,7 @@ async function getFilterBuilderUi(URI,fullUrl="") {
     document.getElementById("message").innerHTML = `this may take between 1min to 10min</br> fetching from ${fullUrl}
     <div id='messageProgress'></div>`
     await URI.fetchAllExtraMetaData()
+    
     window.fBuilder = await new FilterBuilder(window.URI, structuredClone([window.emptyFilter,f1,f2, window.BlueHair, window.BlueEyesAndHair]))
     //fBuilder.displayFilter(0)
     //fBuilder.currentFilterIndex=2;
@@ -604,6 +591,13 @@ async function runOnLoad() {
         window.ipfsGateway = "https://ipfs.io"
         window.urlVars["ipfsGateway"] = "https://ipfs.io"
     }
+    if(window.urlVars["ipfsApi"]) {
+        window.ipfsApi = window.urlVars["ipfsApi"]
+    } else {
+        window.ipfsApi = "http://127.0.0.1:45005"
+        window.urlVars["ipfsApi"] = "http://127.0.0.1:45005"
+    }
+
     window.auth = null;
     if (window.urlVars["projectId"] != null) {
         const projectId = window.urlVars["projectId"]
@@ -613,8 +607,16 @@ async function runOnLoad() {
     } else {
         window.auth = null
     }
+    if (window.urlVars["OpenSeaKey"] != null) {
+        window.OpenSeaKey = window.urlVars["OpenSeaKey"]
+
+
+    } else {
+        window.OpenSeaKey = "cantmakethatpublic:p"
+    }
+
     console.log(window.auth)
-    window.ipfsIndex = new ipfsIndexer(window.ipfsGateway, window.auth, false);
+    window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth, true);
 
     await loadAllContracts()
     test()
