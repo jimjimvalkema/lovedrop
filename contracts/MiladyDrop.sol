@@ -6,6 +6,7 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import {IMiladyDrop} from "./interfaces/IMiladyDrop.sol";
 
+
 error AlreadyClaimed();
 error InvalidProof();
 
@@ -77,21 +78,29 @@ contract MiladyDrop is IMiladyDrop {
         emit Claimed(index, id, amount);
     }
 
-    function claimMultiple(ClaimData[] calldata _claims) public virtual {
+    function claimMultiple(
+        bytes32[] memory _proof,
+        bool[] memory _proofFlags,
+        bytes32 _root,
+        bytes32[] memory _leaves
+    ) public virtual returns (bool) {
         uint256 totalAmount = 0;
-        //TODO keep claiming even if 1 fails (idk might be bad for gas though)
-        for (uint i=0; i < _claims.length; i++) {
-            // TODO check if this is better for gas or just read struct directly  
-            uint256 index = _claims[i].index;
-            uint256 amount = _claims[i].amount; 
-            verifyClaim(index, _claims[i].id, amount,  _claims[i].merkleProof);
+
+        return MerkleProof.multiProofVerify(_proof, _proofFlags, _root, _leaves);
+
+        // //TODO keep claiming even if 1 fails (idk might be bad for gas though)
+        // for (uint i=0; i < _claims.length; i++) {
+        //     // TODO check if this is better for gas or just read struct directly  
+        //     uint256 index = _claims[i].index;
+        //     uint256 amount = _claims[i].amount; 
+        //     verifyClaim(index, _claims[i].id, amount,  _claims[i].merkleProof);
             
-            // Mark it claimed add amount
-            _setClaimed(index);
-            totalAmount += amount;
-        }
-        //Send the total amount to user
-        IERC20(airdropTokenAddress).transfer(address(msg.sender), totalAmount);
+        //     // Mark it claimed add amount
+        //     _setClaimed(index);
+        //     totalAmount += amount;
+        // }
+        // //Send the total amount to user
+        // IERC20(airdropTokenAddress).transfer(address(msg.sender), totalAmount);
 
     }
 }
