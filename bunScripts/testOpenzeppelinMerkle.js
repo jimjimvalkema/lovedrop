@@ -7,19 +7,20 @@ import fs from "fs";
 
 // (1)
 const values = [
-  ["0x1111111111111111111111111111111111111111", "1000000000000000000"],
-  ["0x3333333333333333333333333333333333333333", "2000000000000000000"],
-  ["0x6666666666666666666666666666666666666666", "4000000000000000000"],
-  ["0x6666666666666666666666666666666666666666", "5000000000000000000"],
-  ["0x6666666666666666666666666666666666666666", "6000000000000000000"],
+  ["1", "1000000000000000000"],
+  ["2", "2000000000000000000"],
+  ["4", "4000000000000000000"],
+  ["5", "5000000000000000000"],
+  ["6", "6000000000000000000"],
 ];
-const extraEntries = 1
-let extraLargeValues = [...Array(extraEntries).keys()].map(i => ["0x0000000000000000000000000000000000000000",((
+const extraEntries = 2
+let extraLargeValues = [...Array(extraEntries).keys()].map(i => ["69",((
     ethers.BigNumber.from(i+1).mul(ethers.BigNumber.from("1000000000000000000")).toString()
     )).toString()] )
 // (2)
 console.log("---building tree---")
-const tree = StandardMerkleTree.of([...values, ...extraLargeValues], ["address", "uint256"]);
+console.log([...values, ...extraLargeValues])
+const tree = StandardMerkleTree.of([...values, ...extraLargeValues], ["uint256", "uint256"]);
 
 // (3)
 
@@ -40,19 +41,21 @@ Bun.write(`${workingDir}/output/outputs-MerkleTreeTest/PlainMerkleTreeTest${extr
 Bun.write(`${workingDir}/output/outputs-MerkleTreeTest/merkleTreeTest${extraEntries}.CBOR`,CBOR.encode(tree))
 //Bun.write(`${workingDir}/output/outputs-MerkleTreeTest/merkleTreeTest${extraEntries}.json`,JSON.stringify(tree.dump(), null, 2))
 fs.writeFileSync(`${workingDir}/output/outputs-MerkleTreeTest/merkleTreeTest${extraEntries}.json`, JSON.stringify(tree.dump()));
-function getTreeIndexesOfAdress(address, tree) {
+function getTreeIndexesOfAdress(ids, tree) {
     let indexes = []
-    for (const i in tree.values) {
-        if (tree.values[i].value[0] === address) {
-            indexes.push(parseInt(i))
+    for (const id of ids) {
+        for (const i in tree.values) {
+            if (tree.values[i].value[0] === id.toString()) {
+                indexes.push(parseInt(i))
 
+            }
         }
     }
     return indexes
 }
 
 console.log("---testing multiproof---")
-const treeIndexes = getTreeIndexesOfAdress("0x6666666666666666666666666666666666666666", tree)
+const treeIndexes = getTreeIndexesOfAdress([2,3,4,5], tree)
 console.log(treeIndexes)
 const { proof, proofFlags, leaves } = tree.getMultiProof(treeIndexes)
 console.log("leaves:")
@@ -77,7 +80,7 @@ const tree2 = await StandardMerkleTree.load(await JSON.parse(await fs.readFileSy
 //const tree2 = StandardMerkleTree.load(tree2Json)
 
 
-const treeIndexes2 = getTreeIndexesOfAdress("0x6666666666666666666666666666666666666666", tree2)
+const treeIndexes2 = getTreeIndexesOfAdress([2,3,4,5], tree2)
 console.log(treeIndexes2)
 const proof2Data = tree2.getMultiProof(treeIndexes2)
 const proof2 = proof2Data.proof
@@ -92,7 +95,11 @@ console.log(leaves2)
 console.log("proofFlags:")
 console.log(proofFlags2)
 console.log("proof:")
-console.log(proof2)
+console.log(`[\n${proof2.map((x)=>`\tBytes32(${x})`).join(", \n")}\n]`)
+console.log("ids: ")
+console.log(`[${leaves2.map((x)=>x[0]).join(", ")}]`)
+console.log("amounts: ")
+console.log(`[${leaves2.map((x)=>x[1]).join(", ")}]`)
 
 const isValid2 = tree2.verifyMultiProof( { "proof":proof2, "proofFlags":proofFlags2, "leaves":leaves2 });
 //const isValid2 = StandardMerkleTree.verifyMultiProof({"root": , "leafEncoding":,"MultiProof": })

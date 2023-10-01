@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: TBD
 pragma solidity >=0.8.0;
 
+import "forge-std/console.sol";
+
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
@@ -79,28 +81,32 @@ contract MiladyDrop is IMiladyDrop {
     }
 
     function claimMultiple(
-        bytes32[] memory _proof,
-        bool[] memory _proofFlags,
+        bytes32[] calldata _proof,
+        bool[] calldata _proofFlags,
         bytes32 _root,
-        bytes32[] memory _leaves
+        uint256[] calldata ids,
+        uint256[] calldata amounts  
     ) public virtual returns (bool) {
+        uint256 idsLenght =  ids.length;
         uint256 totalAmount = 0;
+        bytes32[] memory leaves = new bytes32[](idsLenght);
+        
+        for (uint256 index = 0; index < idsLenght; index++) {
+            uint256 amount = amounts[index];
+            uint256 id = ids[index];
+            //TODO keep claiming even if 1 fails (idk might be bad for gas though)
+            if (isClaimed(id)) revert AlreadyClaimed();
 
-        return MerkleProof.multiProofVerify(_proof, _proofFlags, _root, _leaves);
+            require(IERC721(requiredNFTAddress).ownerOf(id) == msg.sender, "you dont own one or more of these nfts"); //msg.sender bad?
+            _setClaimed(id); //TODO is it save to use id as index? is that gas efficient? 
+            leaves[index] = keccak256(
+                bytes.concat(keccak256(abi.encode(id,amount)))
+            );
+            //TODO prevent overflow. if thats neccesarry? cant the ui prevent it since noone should want to make a airdrop that is larger then the overflow value?
+            totalAmount += amount;
+        }
+        IERC20(airdropTokenAddress).transfer(address(msg.sender), totalAmount);
 
-        // //TODO keep claiming even if 1 fails (idk might be bad for gas though)
-        // for (uint i=0; i < _claims.length; i++) {
-        //     // TODO check if this is better for gas or just read struct directly  
-        //     uint256 index = _claims[i].index;
-        //     uint256 amount = _claims[i].amount; 
-        //     verifyClaim(index, _claims[i].id, amount,  _claims[i].merkleProof);
-            
-        //     // Mark it claimed add amount
-        //     _setClaimed(index);
-        //     totalAmount += amount;
-        // }
-        // //Send the total amount to user
-        // IERC20(airdropTokenAddress).transfer(address(msg.sender), totalAmount);
-
+        return MerkleProof.multiProofVerifyCalldata(_proof, _proofFlags, _root, leaves);
     }
 }
