@@ -7,20 +7,25 @@ import fs from "fs";
 
 // (1)
 const values = [
-    ["1", "1000000000000000000"],
-    ["2", "2000000000000000000"],
-    ["4", "4000000000000000000"],
-    ["5", "5000000000000000000"],
-    ["6", "6000000000000000000"],
+    ["0","1", "1000000000000000000"],
+    ["0","2", "2000000000000000000"],
+    ["1","4", "4000000000000000000"],
+    ["1","5", "5000000000000000000"],
+    ["2","6", "6000000000000000000"],
+    ["3","12169697774812703230153278869778437256039855339638969837407632192044393630491", "1000000000000000000000000000"], //nftAddressIndex, idFromEns, 1billion tokens
+
 ];
+
+const dataTypes = ["uint256", "uint256", "uint256"]
+
 const extraEntries = 2
-let extraLargeValues = [...Array(extraEntries).keys()].map(i => ["69", ((
+let extraLargeValues = [...Array(extraEntries).keys()].map(i => ["4","69", ((
     ethers.BigNumber.from(i + 1).mul(ethers.BigNumber.from("1000000000000000000")).toString()
 )).toString()])
 // (2)
 console.log("---building tree---")
 console.log([...values, ...extraLargeValues])
-const tree = StandardMerkleTree.of([...values, ...extraLargeValues], ["uint256", "uint256"]);
+const tree = StandardMerkleTree.of([...values, ...extraLargeValues], dataTypes);
 
 // (3)
 
@@ -41,11 +46,13 @@ Bun.write(`${workingDir}/output/outputs-MerkleTreeTest/PlainMerkleTreeTest${extr
 Bun.write(`${workingDir}/output/outputs-MerkleTreeTest/merkleTreeTest${extraEntries}.CBOR`, CBOR.encode(tree))
 //Bun.write(`${workingDir}/output/outputs-MerkleTreeTest/merkleTreeTest${extraEntries}.json`,JSON.stringify(tree.dump(), null, 2))
 fs.writeFileSync(`${workingDir}/output/outputs-MerkleTreeTest/merkleTreeTest${extraEntries}.json`, JSON.stringify(tree.dump()));
+
+//TODO make it search nftIndex + id
 function getTreeIndexesOfAdress(ids, tree) {
     let indexes = []
     for (const id of ids) {
         for (const i in tree.values) {
-            if (tree.values[i].value[0] === id.toString()) {
+            if (tree.values[i].value[1] === id.toString()) {
                 indexes.push(parseInt(i))
 
             }
@@ -114,11 +121,12 @@ console.log(`----------single proof 1----------`)
 let leaf;
 let proof3
 for (const [i, v] of tree2.entries()) {
-    if (v[0] === '6') {
+    if (v[0] === "2" && v[1] === '6') {
         // (3)
         proof3 = tree2.getProof(i);
-        console.log('id:', v[0]);
-        console.log('amount:', v[1]);
+        console.log('requiredNftIndex:', v[0]);
+        console.log('id:', v[1]);
+        console.log('amount:', v[2]);
         console.log("Proof:")
         console.log(`[\n${proof3.map((x) => `\tbytes32(${x})`).join(", \n")}\n]`)
         leaf =v
