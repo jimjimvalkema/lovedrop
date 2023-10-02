@@ -9,10 +9,11 @@ import fs from "fs";
 const values = [
     ["0","1", "1000000000000000000"],
     ["0","2", "2000000000000000000"],
-    ["1","4", "4000000000000000000"],
-    ["1","5", "5000000000000000000"],
-    ["2","6", "6000000000000000000"],
-    ["3","12169697774812703230153278869778437256039855339638969837407632192044393630491", "1000000000000000000000000000"], //nftAddressIndex, idFromEns, 1billion tokens
+    ["0","3", "4000000000000000000"],
+    ["1","3", "5000000000000000000"],
+    ["1","4", "6000000000000000000"],
+    ["0","12169697774812703230153278869778437256039855339638969837407632192044393630491", "1000000000000000000000000000"], //nftAddressIndex, idFromEns, 1billion tokens
+    ["1","12169697774812703230153278869778437256039855339638969837407632192044393630491","10000000000000000000000000000000000000000000000000000000000000000000000000000"]
 
 ];
 
@@ -48,13 +49,15 @@ Bun.write(`${workingDir}/output/outputs-MerkleTreeTest/merkleTreeTest${extraEntr
 fs.writeFileSync(`${workingDir}/output/outputs-MerkleTreeTest/merkleTreeTest${extraEntries}.json`, JSON.stringify(tree.dump()));
 
 //TODO make it search nftIndex + id
-function getTreeIndexesOfAdress(ids, tree) {
+function getTreeIndexesOfAdress(idsPerNftIndex, tree) {
     let indexes = []
-    for (const id of ids) {
-        for (const i in tree.values) {
-            if (tree.values[i].value[1] === id.toString()) {
-                indexes.push(parseInt(i))
-
+    for (const nftIndex in idsPerNftIndex) {
+        const ids = idsPerNftIndex[nftIndex]
+        for (const id of ids) {
+            for (const i in tree.values) {
+                if (tree.values[i].value[0] === nftIndex && tree.values[i].value[1] === id) {
+                    indexes.push(parseInt(i))
+                }
             }
         }
     }
@@ -62,7 +65,7 @@ function getTreeIndexesOfAdress(ids, tree) {
 }
 
 console.log("---testing multiproof---")
-const treeIndexes = getTreeIndexesOfAdress([2, 3, 4, 5], tree)
+const treeIndexes = getTreeIndexesOfAdress({"0":["2","3"], "1":["3","4"]}, tree)
 console.log(treeIndexes)
 const { proof, proofFlags, leaves } = tree.getMultiProof(treeIndexes)
 console.log("leaves:")
@@ -88,51 +91,61 @@ const tree2 = await StandardMerkleTree.load(await JSON.parse(await fs.readFileSy
 
 function printMultiProof(ids) {
     const treeIndexes2 = getTreeIndexesOfAdress(ids, tree2)
-    console.log(treeIndexes2)
+    console.log(`tree indexes: ${treeIndexes2}`)
     const proof2Data = tree2.getMultiProof(treeIndexes2)
     const proof2 = proof2Data.proof
     const proofFlags2 = proof2Data.proofFlags
     const leaves2 = proof2Data.leaves
 
     console.log("---testing multiproof of tree read from disk---")
-    console.log(tree2.getMultiProof(treeIndexes2))
+    //console.log(tree2.getMultiProof(treeIndexes2))
     //const { proof2, proofFlags2, leaves2 } = StandardMerkleTree.getMultiProof(tree2, treeIndexes2)
-    console.log("leaves:")
-    console.log(leaves2)
-    console.log("proofFlags:")
-    console.log(proofFlags2)
-    console.log("proof:")
-    console.log(`[\n${proof2.map((x) => `\tbytes32(${x})`).join(", \n")}\n]`)
-    console.log("ids: ")
-    console.log(`[${leaves2.map((x) => x[0]).join(", ")}]`)
-    console.log("amounts: ")
-    console.log(`[${leaves2.map((x) => x[1]).join(", ")}]`)
+    console.log("test copypasta")
+    console.log(
+        `
+        amounts = ${`[${leaves2.map((x) => x[2]).join(", ")}]`};
+        ids = ${`[${leaves2.map((x) => x[1]).join(", ")}]`};
+        nftIndexes = ${`[${leaves2.map((x) => x[0]).join(", ")}]`};
+        proof = ${`[\n${proof2.map((x) => `\t\tbytes32(${x})`).join(", \n")}\n`}
+        ];
+        proofFlags = ${`[${proofFlags2.join(", ")}]`};
+        `
+    )
 
     const isValid2 = tree2.verifyMultiProof({ "proof": proof2, "proofFlags": proofFlags2, "leaves": leaves2 });
     //const isValid2 = StandardMerkleTree.verifyMultiProof({"root": , "leafEncoding":,"MultiProof": })
     console.log(`proof is valid: ${isValid2}`)
 }
 console.log(`----------multi proof 1----------`)
-printMultiProof([2, 3, 4, 5])
+printMultiProof({"0":["2","3"], "1":["3","4"]})
 console.log(`----------multi proof 2----------`)
-printMultiProof([1])
+printMultiProof({"0":["2"]})
 
 console.log(`----------single proof 1----------`)
 let leaf;
 let proof3
 for (const [i, v] of tree2.entries()) {
-    if (v[0] === "2" && v[1] === '6') {
+    if (v[0] === "0" && v[1] === '2') {
         // (3)
         proof3 = tree2.getProof(i);
-        console.log('requiredNftIndex:', v[0]);
-        console.log('id:', v[1]);
-        console.log('amount:', v[2]);
-        console.log("Proof:")
-        console.log(`[\n${proof3.map((x) => `\tbytes32(${x})`).join(", \n")}\n]`)
-        leaf =v
+        leaf =v;
+        console.log("test copypasta")
+        console.log(`
+        amount = ${v[2]};
+        id = ${v[1]};
+        nftIndex = ${v[0]};
+
+        proof = ${`[\n${proof3.map((x) => `\t\tbytes32(${x})`).join(", \n")}\n`}
+        ];
+        `)
     }
 }
 
 const isValid3 = tree2.verify(leaf,proof3)
 console.log(`proof is valid: ${isValid3}`)
 
+console.log(`----------multi proof 3----------`)
+printMultiProof({
+    "0":["1","2","12169697774812703230153278869778437256039855339638969837407632192044393630491"],
+    "1":["12169697774812703230153278869778437256039855339638969837407632192044393630491"]
+})

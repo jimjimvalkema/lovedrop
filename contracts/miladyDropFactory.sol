@@ -11,15 +11,15 @@ contract MiladyDropFactory {
       address dropAddress;
    }
 
-   event CreateNewDrop(address indexed requiredNFTAddress, address indexed deployerAddress, address dropAddress);
+   event CreateNewDrop(address indexed deployerAddress, address dropAddress);
 
    //TODO do with proxy to save on deployement cost
-   function createNewDrop(address _requiredNFTAddress, address _airdropTokenAddress, bytes32 _merkleRoot, string memory _claimDataIpfs) public {
-      MiladyDrop newMiladyDrop = new MiladyDrop(_requiredNFTAddress,_airdropTokenAddress, _merkleRoot, _claimDataIpfs);
+   function createNewDrop(address[] calldata _requiredNFTAddresses, address _airdropTokenAddress, bytes32 _merkleRoot, string memory _claimDataIpfs) public {
+      MiladyDrop newMiladyDrop = new MiladyDrop(_requiredNFTAddresses, _airdropTokenAddress, _merkleRoot, _claimDataIpfs);
       
       address dropAddress = address(newMiladyDrop); //TODO check if this cheaper
       address deployerAddress = msg.sender;
 
-      emit CreateNewDrop(_requiredNFTAddress, deployerAddress, dropAddress);
+      emit CreateNewDrop(deployerAddress, dropAddress);
    }
 }

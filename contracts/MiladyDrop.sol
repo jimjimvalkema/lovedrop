@@ -59,7 +59,7 @@ contract MiladyDrop is IMiladyDrop {
         if (isClaimed(nftIndex, id)) revert AlreadyClaimed();
         require(IERC721(requiredNFTAddresses[nftIndex]).ownerOf(id) == msg.sender,"nft isnt owned by claimant"); //msg.sender bad?
 
-        bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(id, amount))));
+        bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(nftIndex, id, amount))));
         require(MerkleProof.verifyCalldata(merkleProof, merkleRoot, leaf), "Invalid proof");
     }
 
@@ -93,7 +93,7 @@ contract MiladyDrop is IMiladyDrop {
 
             require(IERC721(requiredNFTAddresses[nftIndex]).ownerOf(id) == msg.sender, "one or more of these nfts isnt owned by claimant"); //msg.sender bad?
             _setClaimed(nftIndex, id); //TODO is it save to use id as index? is that gas efficient? 
-            leaves[index] = keccak256(bytes.concat(keccak256(abi.encode(id,amount))));
+            leaves[index] = keccak256(bytes.concat(keccak256(abi.encode(nftIndex,id,amount))));
             //TODO prevent overflow. if thats neccesarry? cant the ui prevent it since noone should want to make a airdrop that is larger then the overflow value?
             totalAmount += amount;
         }
