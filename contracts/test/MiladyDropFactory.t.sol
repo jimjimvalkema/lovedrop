@@ -32,7 +32,9 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
     uint256 amountOfCollections;
 
     MiladyDropFactory miladyDropFactory;
-    address deployedDropAddres;
+    address[] requiredNftAddressesGlobal;
+    string claimDataIpfs;
+    bytes32 merkleRoot;
     function preMintNfts(
         uint256[] memory _idsToMint,
         address _userAddress,
@@ -56,35 +58,49 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         airdropToken = new MyToken();
         miladyDropFactory = new MiladyDropFactory();
         amountOfCollections = 2;
+        requiredNftAddressesGlobal = preMintNfts(idsToMint, address(this), amountOfCollections);
+        claimDataIpfs = "";
+        merkleRoot = 0x25a7a8dbe3cb530178fc95c9705bcfe993e3250d4b9981184ba1bba992c534d3;
+
     }
 
-    function deployDropWithPreMints() public returns(address) {
-        //TODO parameters might be usefull
-        address[] memory requiredNftAddresses = preMintNfts(
-            idsToMint,
-            address(this),
-            amountOfCollections
-        );
-        vm.recordLogs();
-        //console.logString("deploying miladyDrop:");
-        miladyDropFactory.createNewDrop(requiredNftAddresses, address(airdropToken), 0x25a7a8dbe3cb530178fc95c9705bcfe993e3250d4b9981184ba1bba992c534d3, "0x0");
-        Vm.Log[] memory entries = vm.getRecordedLogs();
-        address _deployedDropAddres = abi.decode(entries[0].data, (address));
+    // function deployDropWithPreMints() public returns(address) {
+    //     //TODO parameters might be usefull
+    //     address[] memory requiredNftAddresses = preMintNfts(
+    //         idsToMint,
+    //         address(this),
+    //         amountOfCollections
+    //     );
+    //     vm.recordLogs();
+    //     console.logString("deploying miladyDrop:");
+    //     miladyDropFactory.createNewDrop(requiredNftAddresses, address(airdropToken), 0x25a7a8dbe3cb530178fc95c9705bcfe993e3250d4b9981184ba1bba992c534d3, "0x0");
+    //     Vm.Log[] memory entries = vm.getRecordedLogs();
+    //     address _deployedDropAddres = abi.decode(entries[1].data, (address));
 
-        // console.logString("deployed to address:");
-        // console.logAddress(_deployedDropAddres);
-        airdropToken.mint(_deployedDropAddres, amountAirDropTokensToMint);
-        return _deployedDropAddres;
-    }
+    //     console.logString("deployed to address:");
+    //     console.logAddress(_deployedDropAddres);
+    //     airdropToken.mint(_deployedDropAddres, amountAirDropTokensToMint);
+    //     return _deployedDropAddres;
+    // }
 
     function test_createNewDrop_Normal() public {     
-        deployedDropAddres = deployDropWithPreMints();   
-        //TODO require
+        vm.recordLogs();
+        miladyDropFactory.createNewDrop(requiredNftAddressesGlobal, address(airdropToken), merkleRoot, claimDataIpfs);  
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        address _deployedDropAddres = abi.decode(entries[1].data, (address));
+        //possibly add more test to verify that all variables are set
+        require(MiladyDrop(_deployedDropAddres).merkleRoot() == merkleRoot);
     }
 
+    //gas is inacurate since it also mints erc20 tokens
     function test_createNewDrop_And_Do_MultiClaim() public {
-        deployedDropAddres = deployDropWithPreMints();   
-        miladyDrop = MiladyDrop(deployedDropAddres);
+        vm.recordLogs();
+        miladyDropFactory.createNewDrop(requiredNftAddressesGlobal, address(airdropToken), merkleRoot, claimDataIpfs);  
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        address _deployedDropAddres = abi.decode(entries[1].data, (address));
+        airdropToken.mint(_deployedDropAddres, amountAirDropTokensToMint);
+        miladyDrop = MiladyDrop(_deployedDropAddres);
+        //console.logBytes32(miladyDrop.merkleRoot());
         
         //proof
         amounts = [4000000000000000000, 2000000000000000000, 5000000000000000000, 6000000000000000000];
