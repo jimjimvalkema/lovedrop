@@ -29,12 +29,12 @@ contract MiladyDrop is IMiladyDrop,Initializable {
     // This is a packed array of booleans per each requiredNftIndex.
     mapping(uint256 => mapping(uint256 => uint256)) private claimedBitMapPerNftIndex;
 
-    constructor(address[] memory _requiredNFTAddresses, address _airdropTokenAddress, bytes32 _merkleRoot, string memory _claimDataIpfs) {
-        _setRequiredNFTAddresses(_requiredNFTAddresses);
-        airdropTokenAddress = _airdropTokenAddress;
-        merkleRoot = _merkleRoot;
-        claimDataIpfs = _claimDataIpfs;
-    }
+    // constructor(address[] memory _requiredNFTAddresses, address _airdropTokenAddress, bytes32 _merkleRoot, string memory _claimDataIpfs) {
+    //     _setRequiredNFTAddresses(_requiredNFTAddresses);
+    //     airdropTokenAddress = _airdropTokenAddress;
+    //     merkleRoot = _merkleRoot;
+    //     claimDataIpfs = _claimDataIpfs;
+    // }
 
     function initialize(address[] memory _requiredNFTAddresses, address _airdropTokenAddress, bytes32 _merkleRoot, string memory _claimDataIpfs) public initializer {
         _setRequiredNFTAddresses(_requiredNFTAddresses);
@@ -93,11 +93,12 @@ contract MiladyDrop is IMiladyDrop,Initializable {
         );
     }
 
+    //proof, id, amount, nftIndex
     function claim(
-        uint256 nftIndex,
+        bytes32[] calldata merkleProof,
         uint256 id,
         uint256 amount,
-        bytes32[] calldata merkleProof
+        uint256 nftIndex
     ) public virtual override {
         verifyClaim(nftIndex, id, amount, merkleProof);
 

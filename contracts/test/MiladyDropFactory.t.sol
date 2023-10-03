@@ -35,6 +35,8 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
     address[] requiredNftAddressesGlobal;
     string claimDataIpfs;
     bytes32 merkleRoot;
+
+    MiladyDrop miladyDropGlobalDeployment;
     function preMintNfts(
         uint256[] memory _idsToMint,
         address _userAddress,
@@ -61,6 +63,8 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         requiredNftAddressesGlobal = preMintNfts(idsToMint, address(this), amountOfCollections);
         claimDataIpfs = "";
         merkleRoot = 0x25a7a8dbe3cb530178fc95c9705bcfe993e3250d4b9981184ba1bba992c534d3;
+        miladyDropGlobalDeployment = _deployFromFactory();  
+        airdropToken.mint(address(miladyDropGlobalDeployment), amountAirDropTokensToMint);
 
     }
 
@@ -83,25 +87,23 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
     //     return _deployedDropAddres;
     // }
 
-    function test_createNewDrop_Normal() public {     
+    function _deployFromFactory() private returns (MiladyDrop) {
         vm.recordLogs();
         miladyDropFactory.createNewDrop(requiredNftAddressesGlobal, address(airdropToken), merkleRoot, claimDataIpfs);  
         Vm.Log[] memory entries = vm.getRecordedLogs();
         address _deployedDropAddres = abi.decode(entries[1].data, (address));
         //possibly add more test to verify that all variables are set
-        require(MiladyDrop(_deployedDropAddres).merkleRoot() == merkleRoot);
+        return MiladyDrop(_deployedDropAddres);
     }
 
-    //gas is inacurate since it also mints erc20 tokens
-    function test_createNewDrop_And_Do_MultiClaim() public {
-        vm.recordLogs();
-        miladyDropFactory.createNewDrop(requiredNftAddressesGlobal, address(airdropToken), merkleRoot, claimDataIpfs);  
-        Vm.Log[] memory entries = vm.getRecordedLogs();
-        address _deployedDropAddres = abi.decode(entries[1].data, (address));
-        airdropToken.mint(_deployedDropAddres, amountAirDropTokensToMint);
-        miladyDrop = MiladyDrop(_deployedDropAddres);
-        //console.logBytes32(miladyDrop.merkleRoot());
-        
+    function test_createNewDrop_Normal() public {   
+        MiladyDrop deployedMiladyDrop = _deployFromFactory();  
+        require(deployedMiladyDrop.merkleRoot() == merkleRoot);
+    }
+
+    function test_claimMultiple() public {
+        //gas pre proxy: 606838
+        //after 614624
         //proof
         amounts = [4000000000000000000, 2000000000000000000, 5000000000000000000, 6000000000000000000];
         ids = [3, 2, 3, 4];
@@ -121,7 +123,7 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         }
 
         //claim
-        miladyDrop.claimMultiple(proof, proofFlags, ids, amounts, nftIndexes);
+        miladyDropGlobalDeployment.claimMultiple(proof, proofFlags, ids, amounts, nftIndexes);
 
         //test correct amount recieved
         require(
@@ -132,9 +134,39 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         //test if all set to claimed
         for (uint256 index = 0; index < ids.length; index++) {
             require(
-                miladyDrop.isClaimed(nftIndexes[index], ids[index]),
+                miladyDropGlobalDeployment.isClaimed(nftIndexes[index], ids[index]),
                 "one or more ids wasnt set to claimed"
             );
         }
     }
+    function test_claim() public {
+        //gas pre proxy: 606838
+        //after 614624
+        //proof
+        amount = 2000000000000000000;
+        id = 2;
+        nftIndex = 0;
+
+        proof = [
+                bytes32(0x4745de99a328b2ebae232c20f96567a461050c7faae982ae6fe86ae7b152ef7f), 
+                bytes32(0x79ea2690f3de51ccf35b1147779a6155f0a310af09f47244bb690b43765ff46d), 
+                bytes32(0xc7c0845a7e20c05cd7664cfa888ff16b08a5d224e1409d41d78fd18124ccc1a3)
+
+        ];
+        //claim
+        miladyDropGlobalDeployment.claim(proof, id, amount, nftIndex);
+
+        //test correct amount recieved
+        require(
+            amount == airdropToken.balanceOf(address(this)),
+            "resulting balance is different than totalAmount claimed"
+        );
+
+        //test if its set to claimed
+        require(
+            miladyDropGlobalDeployment.isClaimed(nftIndex, id),
+            "one or more ids wasnt set to claimed"
+        );
+    }
+
 }

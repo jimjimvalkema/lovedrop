@@ -15,7 +15,7 @@ interface IMiladyDrop {
     // Returns true if the index has been marked claimed.
     function isClaimed(uint256 nftIndex, uint256 id) external view returns (bool);
     // Claim the given amount of the token to the given address if it owns that nft id. Reverts if the inputs are invalid.
-    function claim(uint256 nftIndex,uint256 id, uint256 amount, bytes32[] calldata merkleProof) external;
+    function claim(bytes32[] calldata merkleProof, uint256 id, uint256 amount, uint256 nftIndex) external;
 
     // Claim the given amount of multiple ids to the given address if it owns that nft ids. Reverts if the inputs are invalid.
     function claimMultiple(bytes32[] calldata _proof,bool[] calldata _proofFlags,uint256[] calldata ids,uint256[] calldata amounts,uint256[] calldata nftIndexes) external;
