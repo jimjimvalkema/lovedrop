@@ -2,15 +2,10 @@
 pragma solidity >=0.8.0;
 
 import {MiladyDrop} from "./MiladyDrop.sol";
+// import "@openzeppelin/contracts/proxy/Clones.sol";
 
 
 contract MiladyDropFactory {
-   //Its possible to use etherscan/archive node to get this data without the list
-   struct DeployedDrop {
-      address deployerAddress;
-      address dropAddress;
-   }
-
    event CreateNewDrop(address indexed deployerAddress, address dropAddress);
 
    //TODO do with proxy to save on deployement cost
@@ -21,5 +16,8 @@ contract MiladyDropFactory {
       address deployerAddress = msg.sender;
 
       emit CreateNewDrop(deployerAddress, dropAddress);
+
+      // address instance = dropAddress.clone();
+      // MiladyDrop(payable(instance)).initialize(_requiredNFTAddresses, _airdropTokenAddress, _merkleRoot, _claimDataIpfs);
    }
 }
