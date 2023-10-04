@@ -1,0 +1,24 @@
+| contracts/MiladyDrop_noNftIndex.sol:MiladyDrop_noNftIndex contract|                 |        |        |        |         |
+|-------------------------------------------------------------------|-----------------|--------|--------|--------|---------|
+| Deployment Cost                                                   | Deployment Size |        |        |        |         |
+| 999034                                                            | 5022            |        |        |        |         |
+
+| Function Name                                                     | min             | avg    | median | max    | # calls |
+| claim                                                             | 69419           | 69419  | 69419  | 69419  | 1       |
+| claimMultiple                                                     | 120422          | 120422 | 120422 | 120422 | 1       |
+
+| initialize                                                        | 71508           | 71508  | 71508  | 71508  | 4       |
+| merkleRoot                                                        | 307             | 307    | 307    | 307    | 1       |
+
+| contracts/MiladyDrop.sol:MiladyDrop contract 						|                 |        |        |        |         |
+|----------------------------------------------						|-----------------|--------|--------|--------|---------|
+| Deployment Cost                              						| Deployment Size |        |        |        |         |
+| 1127567                                      						| 5664            |        |        |        |         |
+
+| Function Name                                						| min             | avg    | median | max    | # calls |
+| claim                                        						| 1181            | 45772  | 58234  | 71534  | 7       |
+| claimMultiple                               						| 2573            | 99734  | 118133 | 147653 | 8       |
+
+| initialize                                   						| 1908            | 111680 | 117458 | 117458 | 20      |
+| isClaimed                                    						| 878             | 878    | 878    | 878    | 19      |
+| merkleRoot                                   						| 307             | 307    | 307    | 307    | 1       |
