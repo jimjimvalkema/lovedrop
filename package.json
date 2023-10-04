@@ -1,1 +1,1 @@
-{ "dependencies": { "borc": "^3.0.0", "cbor": "^9.0.1" } }
+{"dependencies":{"@openzeppelin/contracts":"^4.9.3","@openzeppelin/merkle-tree":"^1.0.5","borc":"^3.0.0","cbor":"^9.0.1","ethers":"^6.7.1","fs":"^0.0.1-security"}}
