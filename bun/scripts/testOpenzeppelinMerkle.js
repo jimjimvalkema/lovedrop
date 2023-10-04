@@ -1,5 +1,5 @@
 import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
-import { ethers } from "../ui/scripts/ethers-5.2.umd.min.js";
+import { ethers } from "ethers"
 import * as CBOR from "borc";
 import fs from "fs";
 

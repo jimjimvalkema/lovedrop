@@ -1,10 +1,10 @@
 
 //import {ethers} from "../ui/scripts/ethers-5.2.umd.min.js"
-import {uriHandler, MakeQuerablePromise} from "../ui/scripts/uriHandler.js";
+import {uriHandler, MakeQuerablePromise} from "../../ui/scripts/uriHandler.js";
 
 //import {ethers} from "ethers"
 
-import { ethers } from "../ui/scripts/ethers-5.2.umd.min.js"
+import {ethers} from "ethers"
 //const { ethers } = require("ethers");
 function getWorkingDir() {
     const scriptFilePath = structuredClone(Bun.argv[1])
@@ -39,7 +39,7 @@ async function getContractObj(address="",abiFile,provider) {
 }
 
 
-async function getAllPools(sudoswapPairFactory, provider,preSyncFilePath= "./output/allPoolFromSudoswapV2.json", startBlockEvenScan=17309202) {
+async function getAllPools(sudoswapPairFactory, provider,preSyncFilePath= "../output/sudoswapv2/allPoolFromSudoswapV2.json", startBlockEvenScan=17309202) {
     let poolPerNft={};
 
     let preSyncFile
@@ -50,7 +50,7 @@ async function getAllPools(sudoswapPairFactory, provider,preSyncFilePath= "./out
             startBlockEvenScan = preSyncJson.block
             poolPerNft =preSyncJson.poolPerNft;
         } else {
-            console.warn(`./output/allPoolFromSudoswapV2.json is empty or doesn exist. scanning for sudoswap pools from block ${startBlockEvenScan} now`)
+            console.warn(`${preSyncFilePath} is empty or doesn exist. scanning for sudoswap pools from block ${startBlockEvenScan} now`)
         }
     } else {
         console.warn(`no preSynced file was found for all pools from sudoSwapV2. scanning for sudoswap pools from block ${startBlockEvenScan} now`)
@@ -66,7 +66,7 @@ async function getAllPools(sudoswapPairFactory, provider,preSyncFilePath= "./out
     for (const i in events) {
         const event =events[i]
         const pairAddress = event.args[0]
-        const pairContractObj = await getContractObj(pairAddress, `./sudoSwapERC721ABIOnlyNft.json`, provider)
+        const pairContractObj = await getContractObj(pairAddress, `${workinDirBunFile}/../abi/sudoSwapERC721ABIOnlyNft.json`, provider)
         nftAddrs.push( pairContractObj.nft())
     }
     nftAddrs =await Promise.all(nftAddrs)
@@ -89,7 +89,7 @@ async function getAllPools(sudoswapPairFactory, provider,preSyncFilePath= "./out
     }
 
     const data = JSON.stringify(({["block"]:blockNumber,["poolPerNft"]:poolPerNft}))
-    await Bun.write("./output/allPoolFromSudoswapV2.json", data);
+    await Bun.write(`${workinDirBunFile}/../output/sudoswapv2/allPoolFromSudoswapV2.json`, data);
     return poolPerNft
 }
 
@@ -107,7 +107,7 @@ function isFulfilled(x) {
 async function getPricesFromSudoSwapPools(pools,URIHandler, provider,maxRequest=5) {
     //const nftContrObj = await getContractObj(nftAddr, `../ui/abi/ERC721ABI.json`, provider)
     const sudoSwapRouterAddr = "0x090C236B62317db226e6ae6CD4c0Fd25b7028b65";
-    const routerObj = await getContractObj(sudoSwapRouterAddr, `./sudoSwap2RouterABI.json`, provider)
+    const routerObj = await getContractObj(sudoSwapRouterAddr, `${workinDirBunFile}/../abi/sudoSwap2RouterABI.json`, provider)
     let pricesPerNft = {}
     let pricesPerPoolsIndex = []
     let idsPerPoolsIndex = []
@@ -156,32 +156,33 @@ async function getPricesFromSudoSwapPools(pools,URIHandler, provider,maxRequest=
     return pricesPerNft
     
 }
-
+const workingDir = import.meta.url.split("/").slice(null,-1).join("/")
+const workinDirBunFile = structuredClone(workingDir).slice(7)
 async function main() {
+
     const rpcProvider = Bun.argv[2]
     const nftAddress = ethers.utils.getAddress(Bun.argv[3])
     let startTime = Date.now();
     const contractAddr = "0xA020d57aB0448Ef74115c112D18a9C231CC86000"
     const provider = new ethers.providers.JsonRpcProvider(`${rpcProvider}`);
-    const sudoswapPairFactory = await getContractObj(contractAddr, `./sudoswapFactoryABI.json`, provider)
+    const sudoswapPairFactory = await getContractObj(contractAddr, `${workinDirBunFile}/../abi/sudoswapFactoryABI.json`, provider)
     const latestBlock = await provider.getBlock("latest")
-    const nftContrObj = await getContractObj(nftAddress, `../ui/abi/ERC721ABI.json`, provider)
+    const nftContrObj = await getContractObj(nftAddress, `${workinDirBunFile}/../../ui/abi/ERC721ABI.json`, provider)
 
-    const workingDir = import.meta.url.split("/").slice(null,-1).join("/")
-    console.log(`${workingDir}../ui/scripts/extraUriMetaDataFile.json`)
-    const URI =  new uriHandler(nftContrObj, "http://127.0.0.1:8080",true, `${workingDir}/../ui/scripts/extraUriMetaDataFile.json`, provider)
+    console.log(`${workingDir}../../ui/scripts/extraUriMetaDataFile.json`)
+    const URI =  new uriHandler(nftContrObj, "http://127.0.0.1:8080",true, `${workingDir}/../../ui/scripts/extraUriMetaDataFile.json`, provider)
 
 
     console.log(latestBlock.number)
 
     URI.extraUriMetaData = await URI.extraUriMetaData
-    let idsOfOwnerFilePath = `${workingDir}/output/allBalancesOfOwners-${await nftContrObj.address}.json`
+    let idsOfOwnerFilePath = `${workingDir}/../output/sudoswapv2/allBalancesOfOwners-${await nftContrObj.address}.json`
     if ((await Bun.file(idsOfOwnerFilePath.slice(7))).size) {
         URI.extraUriMetaData.idsOfOwner = idsOfOwnerFilePath
     }
     await URI.fetchAllExtraMetaData(false, URI.extraUriMetaData)
 
-    const pools = await getAllPools(sudoswapPairFactory,provider,"./output/allPoolFromSudoswapV2.json")
+    const pools = await getAllPools(sudoswapPairFactory,provider,`${workinDirBunFile}/../output/sudoswapv2/allPoolFromSudoswapV2.json`)
 
     let maxRequest = 50
     if(rpcProvider.split(".").indexOf("dappnode")!==-1) {
@@ -191,9 +192,9 @@ async function main() {
     const pricesFound = await getPricesFromSudoSwapPools(pools[URI.contractObj.address],URI, provider, maxRequest)
 
 
-
-    
-    Bun.write(`./output/pricesTest3${await nftContrObj.name()}.json`,JSON.stringify(pricesFound, null, 2))
+    console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+    console.log(`${workinDirBunFile}/../output/sudoswapv2/pricesTest3${await nftContrObj.name()}.json`)
+    Bun.write(`${workinDirBunFile}/../output/sudoswapv2/pricesTest3${await nftContrObj.name()}.json`,JSON.stringify(pricesFound, null, 2))
     await URI.saveOwnerIdsCacheToStorage(idsOfOwnerFilePath.slice(7) )
 
 
@@ -250,5 +251,5 @@ async function contractHasFunction(contractAddr,methodString,abiFile,provider) {
     }
 }
 
-
+//bun run bun/scripts/getAllSudoSwapPools.js https://eth.llamarpc.com 0x3Fc3a022EB15352D3f5E4e6D6f02BBfC57D9C159
 main()
