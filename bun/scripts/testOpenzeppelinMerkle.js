@@ -41,10 +41,10 @@ entries = 200
 extraEntries = 1000
 
 */
-Bun.write(`${workingDir}/output/outputs-MerkleTreeTest/noNftIndex_PlainMerkleTreeTest${extraEntries}.json`, JSON.stringify(tree, null, 2))
-Bun.write(`${workingDir}/output/outputs-MerkleTreeTest/noNftIndex_merkleTreeTest${extraEntries}.CBOR`, CBOR.encode(tree.dump()))
+Bun.write(`${workingDir}/../output/outputs-MerkleTreeTest/noNftIndex_PlainMerkleTreeTest${extraEntries}.json`, JSON.stringify(tree, null, 2))
+Bun.write(`${workingDir}/../output/outputs-MerkleTreeTest/noNftIndex_merkleTreeTest${extraEntries}.CBOR`, CBOR.encode(tree.dump()))
 //Bun.write(`${workingDir}/output/outputs-MerkleTreeTest/merkleTreeTest${extraEntries}.json`,JSON.stringify(tree.dump(), null, 2))
-fs.writeFileSync(`${workingDir}/output/outputs-MerkleTreeTest/noNftIndex_merkleTreeTest${extraEntries}.json`, JSON.stringify(tree.dump()));
+fs.writeFileSync(`${workingDir}/../output/outputs-MerkleTreeTest/noNftIndex_merkleTreeTest${extraEntries}.json`, JSON.stringify(tree.dump()));
 
 //TODO make it search nftIndex + id
 function getTreeIndexesOfAdress(idsPerNftIndex, tree) {
@@ -86,7 +86,7 @@ console.log(`proof is valid: ${isValid}`)
 
 console.log("---reading tree---")
 //const tree2Json = await Bun.file(`${workingDir}/output/outputs-MerkleTreeTest/merkleTreeTest${extraEntries}.json`).json()
-const tree2 = await StandardMerkleTree.load(await JSON.parse(await fs.readFileSync(`${workingDir}/output/outputs-MerkleTreeTest/noNftIndex_merkleTreeTest${extraEntries}.json`, "utf8")));
+const tree2 = await StandardMerkleTree.load(await JSON.parse(await fs.readFileSync(`${workingDir}/../output/outputs-MerkleTreeTest/noNftIndex_merkleTreeTest${extraEntries}.json`, "utf8")));
 
 //const tree2 = StandardMerkleTree.load(tree2Json)
 
