@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: UNKNOWN 
 pragma solidity >=0.8.0;
 
 import "forge-std/Test.sol";
@@ -12,8 +13,7 @@ import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 
 contract MiladyDropFactoryTest is Test, ERC721Holder {
     MiladyDrop public miladyDrop;
-    MyNft public requiredNft1;
-    MyNft public requiredNft2;
+
     MyToken public airdropToken;
 
     bytes32[] proof;
@@ -23,11 +23,11 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
     bytes32[] leaves;
     uint256[] ids;
     uint256[] amounts;
-    uint16[] nftIndexes;
+    address[] nftAddresses;
 
     uint256 id;
     uint256 amount;
-    uint16 nftIndex;
+    address nftAddress;
 
     uint256[] idsToMint;
     uint256 amountAirDropTokensToMint;
@@ -68,32 +68,36 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         amountOfCollections = 2;
         requiredNftAddressesGlobal = preMintNfts(idsToMint, address(this), amountOfCollections);
         claimDataIpfs = "";
-        merkleRoot = 0x25a7a8dbe3cb530178fc95c9705bcfe993e3250d4b9981184ba1bba992c534d3;
+        merkleRoot = 0xb8d5e0df2c356b4dea07216d951ad8ab428733d222163c7bbcab781b21cc2f04;
         miladyDropGlobalDeployment = _deployFromFactory();  
         airdropToken.mint(address(miladyDropGlobalDeployment), amountAirDropTokensToMint);
 
         
         
         
-        amounts = [4000000000000000000, 2000000000000000000, 5000000000000000000, 6000000000000000000];
-        ids = [3, 2, 3, 4];
-        nftIndexes = [uint16(0), 0, 1, 1];
+        amounts = [5000000000000000000, 2000000000000000000, 6000000000000000000, 4000000000000000000];
+        ids = [3, 2, 4, 3];
+        nftAddresses = [
+                address(0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9), 
+                address(0xF62849F9A0B5Bf2913b396098F7c7019b51A820a), 
+                address(0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9), 
+                address(0xF62849F9A0B5Bf2913b396098F7c7019b51A820a)];
         multiProof = [
-                bytes32(0x2aae4589212a210002b5c52ef1a8a302ff6a68e0db9c28ebe57738e6ea0e340d), 
-                bytes32(0x4745de99a328b2ebae232c20f96567a461050c7faae982ae6fe86ae7b152ef7f), 
-                bytes32(0xa07c47999914533524b061ea33d8d650b5c240ce14f38b2868b31bc63fb252ee), 
-                bytes32(0x79ea2690f3de51ccf35b1147779a6155f0a310af09f47244bb690b43765ff46d)
+                bytes32(0x1e2b4a413e27f5f1b889257844a9124e74880674b6e2c4f86211fd03d55695af), 
+                bytes32(0xce2bc8b63c9fcb7b3dd7b330de3c6be73bd69ca1a0c90cb21b18fc5539cd8977), 
+                bytes32(0x7466462bde889ddf0c02b4fa5b036b4f259e1b79fa07b7e641515ba5b6907fb8)
+
         ];
-        proofFlags = [false, false, false, true, false, true, true];
+        proofFlags = [false, true, true, false, false, true];
 
         amount = 2000000000000000000;
         id = 2;
-        nftIndex = uint16(0);
+        nftAddress = 0xF62849F9A0B5Bf2913b396098F7c7019b51A820a;
 
         proof = [
-                bytes32(0x4745de99a328b2ebae232c20f96567a461050c7faae982ae6fe86ae7b152ef7f), 
-                bytes32(0x79ea2690f3de51ccf35b1147779a6155f0a310af09f47244bb690b43765ff46d), 
-                bytes32(0xc7c0845a7e20c05cd7664cfa888ff16b08a5d224e1409d41d78fd18124ccc1a3)
+                bytes32(0x418d6562379a37fcbd09ed87c9adaf49e7f08cce1bdec6a54098899e4832d67c), 
+                bytes32(0xce2bc8b63c9fcb7b3dd7b330de3c6be73bd69ca1a0c90cb21b18fc5539cd8977), 
+                bytes32(0x168376b4f437f2dbb969bd315b7865f7f1e1c9d33c02ff1151f922d5c16f6dbe)
 
         ];
 
@@ -102,7 +106,7 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
 
     function _deployFromFactory() private returns (MiladyDrop) {
         vm.recordLogs();
-        miladyDropFactory.createNewDrop(requiredNftAddressesGlobal, address(airdropToken), merkleRoot, claimDataIpfs);  
+        miladyDropFactory.createNewDrop(address(airdropToken), merkleRoot, claimDataIpfs);  
         Vm.Log[] memory entries = vm.getRecordedLogs();
         address _deployedDropAddres = abi.decode(entries[1].data, (address));
         //possibly add more test to verify that all variables are set
@@ -118,7 +122,7 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         //after 614624
         //proof
         //claim
-        miladyDropGlobalDeployment.claim(proof, id, amount, nftIndex);
+        miladyDropGlobalDeployment.claim(proof, id, amount, nftAddress);
     }
 
     function test_claimMultiple_GasTest_4_claims() public {
@@ -126,7 +130,7 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         //after 614624
         //proof
         //claim
-        miladyDropGlobalDeployment.claimMultiple(multiProof, proofFlags, ids, amounts, nftIndexes);
+        miladyDropGlobalDeployment.claimMultiple(multiProof, proofFlags, ids, amounts, nftAddresses);
     }
     
 
@@ -134,16 +138,21 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         //gas pre proxy: 606838
         //after 614624
         //proof
-        amounts = [4000000000000000000, 2000000000000000000, 5000000000000000000, 6000000000000000000];
-        ids = [3, 2, 3, 4];
-        nftIndexes = [uint16(0), 0, 1, 1];
-        proof = [
-                bytes32(0x2aae4589212a210002b5c52ef1a8a302ff6a68e0db9c28ebe57738e6ea0e340d), 
-                bytes32(0x4745de99a328b2ebae232c20f96567a461050c7faae982ae6fe86ae7b152ef7f), 
-                bytes32(0xa07c47999914533524b061ea33d8d650b5c240ce14f38b2868b31bc63fb252ee), 
-                bytes32(0x79ea2690f3de51ccf35b1147779a6155f0a310af09f47244bb690b43765ff46d)
+        amounts = [5000000000000000000, 2000000000000000000, 6000000000000000000, 4000000000000000000];
+        ids = [3, 2, 4, 3];
+        nftAddresses = [
+                address(0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9), 
+                address(0xF62849F9A0B5Bf2913b396098F7c7019b51A820a), 
+                address(0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9), 
+                address(0xF62849F9A0B5Bf2913b396098F7c7019b51A820a)];
+        multiProof = [
+                bytes32(0x1e2b4a413e27f5f1b889257844a9124e74880674b6e2c4f86211fd03d55695af), 
+                bytes32(0xce2bc8b63c9fcb7b3dd7b330de3c6be73bd69ca1a0c90cb21b18fc5539cd8977), 
+                bytes32(0x7466462bde889ddf0c02b4fa5b036b4f259e1b79fa07b7e641515ba5b6907fb8)
+
         ];
-        proofFlags = [false, false, false, true, false, true, true];
+        proofFlags = [false, true, true, false, false, true];
+        
 
         //track expected amount that will be claimed
         uint256 totalAmount = 0;
@@ -152,7 +161,7 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         }
 
         //claim
-        miladyDropGlobalDeployment.claimMultiple(proof, proofFlags, ids, amounts, nftIndexes);
+        miladyDropGlobalDeployment.claimMultiple(multiProof, proofFlags, ids, amounts, nftAddresses);
 
         //test correct amount recieved
         require(
@@ -163,7 +172,7 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         //test if all set to claimed
         for (uint256 index = 0; index < ids.length; index++) {
             require(
-                miladyDropGlobalDeployment.isClaimed(nftIndexes[index], ids[index]),
+                miladyDropGlobalDeployment.isClaimed(nftAddresses[index], ids[index]),
                 "one or more ids wasnt set to claimed"
             );
         }
@@ -174,16 +183,16 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         //proof
         amount = 2000000000000000000;
         id = 2;
-        nftIndex = uint16(0);
+        nftAddress = 0xF62849F9A0B5Bf2913b396098F7c7019b51A820a;
 
         proof = [
-                bytes32(0x4745de99a328b2ebae232c20f96567a461050c7faae982ae6fe86ae7b152ef7f), 
-                bytes32(0x79ea2690f3de51ccf35b1147779a6155f0a310af09f47244bb690b43765ff46d), 
-                bytes32(0xc7c0845a7e20c05cd7664cfa888ff16b08a5d224e1409d41d78fd18124ccc1a3)
+                bytes32(0x418d6562379a37fcbd09ed87c9adaf49e7f08cce1bdec6a54098899e4832d67c), 
+                bytes32(0xce2bc8b63c9fcb7b3dd7b330de3c6be73bd69ca1a0c90cb21b18fc5539cd8977), 
+                bytes32(0x168376b4f437f2dbb969bd315b7865f7f1e1c9d33c02ff1151f922d5c16f6dbe)
 
         ];
         //claim
-        miladyDropGlobalDeployment.claim(proof, id, amount, nftIndex);
+        miladyDropGlobalDeployment.claim(proof, id, amount, nftAddress);
 
         //test correct amount recieved
         require(
@@ -193,7 +202,7 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
 
         //test if its set to claimed
         require(
-            miladyDropGlobalDeployment.isClaimed(nftIndex, id),
+            miladyDropGlobalDeployment.isClaimed(nftAddress, id),
             "one or more ids wasnt set to claimed"
         );
     }
@@ -206,19 +215,9 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         //gas pre proxy: 606838
         //after 614624
         //proof
-        amount = 2000000000000000000;
         uint256 totalAmount = amount;
-        id = 2;
-        nftIndex = uint16(0);
-
-        proof = [
-                bytes32(0x4745de99a328b2ebae232c20f96567a461050c7faae982ae6fe86ae7b152ef7f), 
-                bytes32(0x79ea2690f3de51ccf35b1147779a6155f0a310af09f47244bb690b43765ff46d), 
-                bytes32(0xc7c0845a7e20c05cd7664cfa888ff16b08a5d224e1409d41d78fd18124ccc1a3)
-
-        ];
         //claim
-        deployedMiladyDrop1.claim(proof, id, amount, nftIndex);
+        deployedMiladyDrop1.claim(proof, id, amount, nftAddress);
 
         //test correct amount recieved
         require(
@@ -228,7 +227,7 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
 
         //test if its set to claimed
         require(
-            deployedMiladyDrop1.isClaimed(nftIndex, id),
+            deployedMiladyDrop1.isClaimed(nftAddress, id),
             "one or more ids wasnt set to claimed"
         );
 
@@ -236,7 +235,7 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         totalAmount += totalAmount;
 
         //claim2
-        deployedMiladyDrop2.claim(proof, id, amount, nftIndex);
+        deployedMiladyDrop2.claim(proof, id, amount, nftAddress);
 
         //test correct amount recieved
         require(
@@ -246,7 +245,7 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
 
         //test if its set to claimed
         require(
-            deployedMiladyDrop2.isClaimed(nftIndex, id),
+            deployedMiladyDrop2.isClaimed(nftAddress, id),
             "one or more ids wasnt set to claimed"
         );
     }
@@ -259,17 +258,6 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         //gas pre proxy: 606838
         //after 614624
         //proof
-        amounts = [4000000000000000000, 2000000000000000000, 5000000000000000000, 6000000000000000000];
-        ids = [3, 2, 3, 4];
-        nftIndexes = [uint16(0), 0, 1, 1];
-        proof = [
-                bytes32(0x2aae4589212a210002b5c52ef1a8a302ff6a68e0db9c28ebe57738e6ea0e340d), 
-                bytes32(0x4745de99a328b2ebae232c20f96567a461050c7faae982ae6fe86ae7b152ef7f), 
-                bytes32(0xa07c47999914533524b061ea33d8d650b5c240ce14f38b2868b31bc63fb252ee), 
-                bytes32(0x79ea2690f3de51ccf35b1147779a6155f0a310af09f47244bb690b43765ff46d)
-        ];
-        proofFlags = [false, false, false, true, false, true, true];
-
         //track expected amount that will be claimed
         uint256 totalAmount = 0;
         for (uint256 index = 0; index < amounts.length; index++) {
@@ -277,7 +265,7 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         }
 
         //claim
-        deployedMiladyDrop1.claimMultiple(proof, proofFlags, ids, amounts, nftIndexes);
+        deployedMiladyDrop1.claimMultiple(multiProof, proofFlags, ids, amounts, nftAddresses);
 
         //test correct amount recieved
         require(
@@ -288,7 +276,7 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         //test if all set to claimed
         for (uint256 index = 0; index < ids.length; index++) {
             require(
-                deployedMiladyDrop1.isClaimed(nftIndexes[index], ids[index]),
+                deployedMiladyDrop1.isClaimed(nftAddresses[index], ids[index]),
                 "one or more ids wasnt set to claimed"
             );
         }
@@ -296,7 +284,7 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         //claiming a second time with the same token so totalAmount should double
         totalAmount +=totalAmount;
         //claim2
-        deployedMiladyDrop2.claimMultiple(proof, proofFlags, ids, amounts, nftIndexes);
+        deployedMiladyDrop2.claimMultiple(multiProof, proofFlags, ids, amounts, nftAddresses);
 
         //test correct amount recieved
         require(
@@ -307,24 +295,28 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         //test if all set to claimed
         for (uint256 index = 0; index < ids.length; index++) {
             require(
-                deployedMiladyDrop2.isClaimed(nftIndexes[index], ids[index]),
+                deployedMiladyDrop2.isClaimed(nftAddresses[index], ids[index]),
                 "one or more ids wasnt set to claimed"
             );
         }
     }
 
         function test_claimMultiple_LargeValues() public {
-        amounts = [1000000000000000000000000000, 2000000000000000000, 10000000000000000000000000000000000000000000000000000000000000000000000000000, 1000000000000000000];
+        amounts = [10000000000000000000000000000000000000000000000000000000000000000000000000000, 2000000000000000000, 1000000000000000000000000000, 1000000000000000000];
         ids = [12169697774812703230153278869778437256039855339638969837407632192044393630491, 2, 12169697774812703230153278869778437256039855339638969837407632192044393630491, 1];
-        nftIndexes = [0, 0, 1, 0];
-        proof = [
-                bytes32(0x2dc439c4d96bd768e24e1db4ced39b3908bf43ee18d8e3423d0fb063dd7ee50d), 
-                bytes32(0xb3cebfc8728e296007f195fdd3224942ca4eb1d65fb33959fbb4b4232da5e192), 
-                bytes32(0xb4cb88bc85a81a03451a097805ff0fea473ea74e2477f57191198b53a78317eb), 
-                bytes32(0x79ea2690f3de51ccf35b1147779a6155f0a310af09f47244bb690b43765ff46d)
+        nftAddresses = [
+                address(0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9), 
+                address(0xF62849F9A0B5Bf2913b396098F7c7019b51A820a), 
+                address(0xF62849F9A0B5Bf2913b396098F7c7019b51A820a), 
+                address(0xF62849F9A0B5Bf2913b396098F7c7019b51A820a)];
+        multiProof = [
+                bytes32(0x1a6a298d22e295c119e0b64829ce8afca12cedd7e508e43e7b0cec46cea02e51), 
+                bytes32(0x418d6562379a37fcbd09ed87c9adaf49e7f08cce1bdec6a54098899e4832d67c), 
+                bytes32(0xd9c9e27ac7b09b98ce03617a0b5c34772a8eb23105e7fda1d9b517cd92abdd50), 
+                bytes32(0x7466462bde889ddf0c02b4fa5b036b4f259e1b79fa07b7e641515ba5b6907fb8)
 
         ];
-        proofFlags = [false, true, false, false, false, true, true];
+        proofFlags = [false, false, true, false, true, false, true];
 
 
         uint256 totalAmount = 0;
@@ -333,7 +325,7 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         }
         
         //claim
-        miladyDropGlobalDeployment.claimMultiple(proof, proofFlags, ids, amounts, nftIndexes);
+        miladyDropGlobalDeployment.claimMultiple(multiProof, proofFlags, ids, amounts, nftAddresses);
         require(
             totalAmount == airdropToken.balanceOf(address(this)),
             "resulting balance is different than totalAmount claimed"
@@ -342,65 +334,37 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         //test if all set to claimed
         for (uint256 index = 0; index < ids.length; index++) {
             require(
-                miladyDropGlobalDeployment.isClaimed(nftIndexes[index], ids[index]),
+                miladyDropGlobalDeployment.isClaimed(nftAddresses[index], ids[index]),
                 "one or more ids wasnt set to claimed"
             );
         }
     }
 
     function test_Revert_claim_ClaimTwice() public {
-        amount = 2000000000000000000;
-        id = 2;
-        nftIndex = 0;
-
-        proof = [
-                bytes32(0x4745de99a328b2ebae232c20f96567a461050c7faae982ae6fe86ae7b152ef7f), 
-                bytes32(0x79ea2690f3de51ccf35b1147779a6155f0a310af09f47244bb690b43765ff46d), 
-                bytes32(0xc7c0845a7e20c05cd7664cfa888ff16b08a5d224e1409d41d78fd18124ccc1a3)
-
-        ];
-        miladyDropGlobalDeployment.claim(proof, id, amount, nftIndex);
+        miladyDropGlobalDeployment.claim(proof, id, amount, nftAddress);
         vm.expectRevert();
-        miladyDropGlobalDeployment.claim(proof, id, amount, nftIndex);
+        miladyDropGlobalDeployment.claim(proof, id, amount, nftAddress);
 
     }
 
     function test_Revert_claimMultiple_ClaimTwice() public {
-        amounts = [4000000000000000000, 2000000000000000000, 5000000000000000000, 6000000000000000000];
-        ids = [3, 2, 3, 4];
-        nftIndexes = [0, 0, 1, 1];
-        proof = [
-                bytes32(0x2aae4589212a210002b5c52ef1a8a302ff6a68e0db9c28ebe57738e6ea0e340d), 
-                bytes32(0x4745de99a328b2ebae232c20f96567a461050c7faae982ae6fe86ae7b152ef7f), 
-                bytes32(0xa07c47999914533524b061ea33d8d650b5c240ce14f38b2868b31bc63fb252ee), 
-                bytes32(0x79ea2690f3de51ccf35b1147779a6155f0a310af09f47244bb690b43765ff46d)
-
-        ];
-        proofFlags = [false, false, false, true, false, true, true];
-
         uint256 totalAmount = 0;
         for (uint256 index = 0; index < amounts.length; index++) {
             totalAmount += amounts[index];
         }
 
         //claim
-        miladyDropGlobalDeployment.claimMultiple(proof, proofFlags, ids, amounts, nftIndexes);
+        miladyDropGlobalDeployment.claimMultiple(multiProof, proofFlags, ids, amounts, nftAddresses);
         vm.expectRevert();
-        miladyDropGlobalDeployment.claimMultiple(proof, proofFlags, ids, amounts, nftIndexes);
+        miladyDropGlobalDeployment.claimMultiple(multiProof, proofFlags, ids, amounts, nftAddresses);
     }
 
     function test_Revert_claimMultiple_ZeroedProof() public {
-        amounts = [4000000000000000000, 2000000000000000000, 5000000000000000000, 6000000000000000000];
-        ids = [3, 2, 3, 4];
-        nftIndexes = [0, 0, 1, 1];
-        proof = [
-                bytes32(0x0), 
+        multiProof = [
                 bytes32(0x0), 
                 bytes32(0x0), 
                 bytes32(0x0)
-
         ];
-        proofFlags = [false, false, false, true, false, true, true];
 
         uint256 totalAmount = 0;
         for (uint256 index = 0; index < amounts.length; index++) {
@@ -409,14 +373,10 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
 
         //claim
         vm.expectRevert();
-        miladyDropGlobalDeployment.claimMultiple(proof, proofFlags, ids, amounts, nftIndexes);
+        miladyDropGlobalDeployment.claimMultiple(multiProof, proofFlags, ids, amounts, nftAddresses);
     }
 
     function test_Revert_claim_ZeroedProof() public {
-        amount = 2000000000000000000;
-        id = 2;
-        nftIndex = 0;
-
         proof = [
             bytes32(0x0), 
             bytes32(0x0), 
@@ -424,13 +384,13 @@ contract MiladyDropFactoryTest is Test, ERC721Holder {
         ];
         
         vm.expectRevert();
-        miladyDropGlobalDeployment.claim(proof, id, amount, nftIndex);
+        miladyDropGlobalDeployment.claim(proof, id, amount, nftAddress);
     }
 
     function test_Revet_createNewDrop_DoubleInitialization() public {
         MiladyDrop deployedMiladyDrop = _deployFromFactory();
         vm.expectRevert();
-        deployedMiladyDrop.initialize(requiredNftAddressesGlobal, address(0x0), 0x0, "rugged");
+        deployedMiladyDrop.initialize(address(0x0), 0x0, "rugged");
     }
 
     //to test how many nft addresses can fit into a drop. this function can iter 1155 times before hitting the block limit

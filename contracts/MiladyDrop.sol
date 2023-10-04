@@ -15,7 +15,7 @@ error InvalidProof();
 contract MiladyDrop is IMiladyDrop,Initializable {
     using SafeERC20 for IERC20;
 
-    mapping(uint16 => address) public requiredNFTAddresses;
+    //mapping(uint16 => address) public requiredNFTAddresses;
     //immutable is not supported yet on strings
     string public override claimDataIpfs;
 
@@ -25,65 +25,53 @@ contract MiladyDrop is IMiladyDrop,Initializable {
     //TODO is there a way it can be immutable when using initialize?
 
     // This is a packed array of booleans per each requiredNftIndex.
-    mapping(uint16 => mapping(uint256 => uint256)) private claimedBitMapPerNftIndex;
+    mapping(address => mapping(uint256 => uint256)) private claimedBitMapPerNftIndex;
 
-    // constructor(address[] memory _requiredNFTAddresses, address _airdropTokenAddress, bytes32 _merkleRoot, string memory _claimDataIpfs) {
-    //     _setRequiredNFTAddresses(_requiredNFTAddresses);
+    // constructor(address _airdropTokenAddress, bytes32 _merkleRoot, string memory _claimDataIpfs) {
     //     airdropTokenAddress = _airdropTokenAddress;
     //     merkleRoot = _merkleRoot;
     //     claimDataIpfs = _claimDataIpfs;
     // }
 
-    function initialize(address[] memory _requiredNFTAddresses, address _airdropTokenAddress, bytes32 _merkleRoot, string memory _claimDataIpfs) public initializer {
-        require(_requiredNFTAddresses.length <65534, "too many requiredNFTAddresses, nftIndex would overflow");
-        //approx 1148 nfts addresses can be set before hitting the block gas limit (30000000 gas)
-        _setRequiredNFTAddresses(_requiredNFTAddresses);
+    function initialize(address _airdropTokenAddress, bytes32 _merkleRoot, string memory _claimDataIpfs) public initializer {
         airdropTokenAddress = _airdropTokenAddress;
         merkleRoot = _merkleRoot;
         claimDataIpfs = _claimDataIpfs;
     }
 
-    function _setRequiredNFTAddresses (
-        address[] memory _requiredNFTAddresses
-    ) private onlyInitializing {
-        for (uint16 index = 0; index < _requiredNFTAddresses.length; index++) {
-            requiredNFTAddresses[index] = _requiredNFTAddresses[index];
-        }
-    }
-
-    function _setClaimed(uint16 nftIndex, uint256 id) private {
+    function _setClaimed(address nftAddress, uint256 id) private {
         uint256 claimedWordIndex = id / 256;
         uint256 claimedBitIndex = id % 256;
-        claimedBitMapPerNftIndex[nftIndex][claimedWordIndex] =
-            claimedBitMapPerNftIndex[nftIndex][claimedWordIndex] |
+        claimedBitMapPerNftIndex[nftAddress][claimedWordIndex] =
+            claimedBitMapPerNftIndex[nftAddress][claimedWordIndex] |
             (1 << claimedBitIndex);
     }
 
     function isClaimed(
-        uint16 nftIndex,
+        address nftAddress,
         uint256 id
     ) public view override returns (bool) {
         uint256 claimedWordIndex = id / 256;
         uint256 claimedBitIndex = id % 256;
-        uint256 claimedWord = claimedBitMapPerNftIndex[nftIndex][claimedWordIndex];
+        uint256 claimedWord = claimedBitMapPerNftIndex[nftAddress][claimedWordIndex];
         uint256 mask = (1 << claimedBitIndex);
         return claimedWord & mask == mask;
     }
 
     function verifyClaim(
-        uint16 nftIndex,
+        address nftAddress,
         uint256 id,
         uint256 amount,
         bytes32[] calldata merkleProof
     ) private view {
-        if (isClaimed(nftIndex, id)) revert AlreadyClaimed();
+        if (isClaimed(nftAddress, id)) revert AlreadyClaimed();
         require(
-            IERC721(requiredNFTAddresses[nftIndex]).ownerOf(id) == msg.sender,
+            IERC721(nftAddress).ownerOf(id) == msg.sender,
             "nft isnt owned by claimant"
         ); //msg.sender bad?
 
         bytes32 leaf = keccak256(
-            bytes.concat(keccak256(abi.encode(nftIndex, id, amount)))
+            bytes.concat(keccak256(abi.encode(nftAddress, id, amount)))
         );
         require(
             MerkleProof.verifyCalldata(merkleProof, merkleRoot, leaf),
@@ -96,20 +84,20 @@ contract MiladyDrop is IMiladyDrop,Initializable {
         bytes32[] calldata merkleProof,
         uint256 id,
         uint256 amount,
-        uint16 nftIndex
+        address nftAddress
     ) public virtual override {
-        verifyClaim(nftIndex, id, amount, merkleProof);
+        verifyClaim(nftAddress, id, amount, merkleProof);
 
         // Mark it claimed and send the token.
-        _setClaimed(nftIndex, id);
+        _setClaimed(nftAddress, id);
         IERC20(airdropTokenAddress).transfer(address(msg.sender), amount);
-        emit Claimed(id, amount, nftIndex);
+        emit Claimed(id, amount, nftAddress);
     }
 
     function _buildLeavesAndTotalAmount(
         uint256[] calldata ids,
         uint256[] calldata amounts,
-        uint16[] calldata nftIndexes
+        address[] calldata nftAddresses
     ) private returns (bytes32[] memory, uint256) {
         uint256 idsLenght = ids.length;
         //not strictly necessary since it would just fail later with amounts going out of bounds
@@ -124,18 +112,18 @@ contract MiladyDrop is IMiladyDrop,Initializable {
         for (uint256 index = 0; index < idsLenght; index++) {
             uint256 amount = amounts[index];
             uint256 id = ids[index];
-            uint16 nftIndex = nftIndexes[index];
+            address nftAddress = nftAddresses[index];
             //TODO keep claiming even if 1 fails (idk might be bad for gas though)
-            if (isClaimed(nftIndex, id)) revert AlreadyClaimed();
+            if (isClaimed(nftAddress, id)) revert AlreadyClaimed();
 
             require(
-                IERC721(requiredNFTAddresses[nftIndex]).ownerOf(id) ==
+                IERC721(nftAddress).ownerOf(id) ==
                     msg.sender,
                 "one or more of these nfts isnt owned by claimant"
             ); //msg.sender bad?
-            _setClaimed(nftIndex, id); //TODO is it save to use id as index? is that gas efficient?
+            _setClaimed(nftAddress, id); //TODO is it save to use id as index? is that gas efficient?
             leaves[index] = keccak256(
-                bytes.concat(keccak256(abi.encode(nftIndex, id, amount)))
+                bytes.concat(keccak256(abi.encode(nftAddress, id, amount)))
             );
             //TODO prevent overflow. if thats neccesarry? cant the ui prevent it since noone should want to make a airdrop that is larger then the overflow value?
             totalAmount += amount;
@@ -151,14 +139,14 @@ contract MiladyDrop is IMiladyDrop,Initializable {
         bool[] calldata _proofFlags,
         uint256[] calldata ids,
         uint256[] calldata amounts,
-        uint16[] calldata nftIndexes
+        address[] calldata nftAddresses
     ) public {
         //apparently doing this in a function adds 82 gas :(
         //_buildLeavesAndTotalAmount also checks if msg.sender == ownerOf(id) + isClaimed(id)
         (
             bytes32[] memory leaves,
             uint256 totalAmount
-        ) = _buildLeavesAndTotalAmount(ids, amounts, nftIndexes);
+        ) = _buildLeavesAndTotalAmount(ids, amounts, nftAddresses);
         if (
             !MerkleProof.multiProofVerifyCalldata(
                 _proof,
@@ -169,6 +157,6 @@ contract MiladyDrop is IMiladyDrop,Initializable {
         ) revert InvalidProof();
 
         IERC20(airdropTokenAddress).transfer(address(msg.sender), totalAmount);
-        emit ClaimedMulti(ids, amounts, nftIndexes);
+        emit ClaimedMulti(ids, amounts, nftAddresses);
     }
 }

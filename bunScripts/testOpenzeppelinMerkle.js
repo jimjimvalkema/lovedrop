@@ -3,24 +3,22 @@ import { ethers } from "../ui/scripts/ethers-5.2.umd.min.js";
 import * as CBOR from "borc";
 import fs from "fs";
 
-
-
 // (1)
 const values = [
-    ["0","1", "1000000000000000000"],
-    ["0","2", "2000000000000000000"],
-    ["0","3", "4000000000000000000"],
-    ["1","3", "5000000000000000000"],
-    ["1","4", "6000000000000000000"],
-    ["0","12169697774812703230153278869778437256039855339638969837407632192044393630491", "1000000000000000000000000000"], //nftAddressIndex, idFromEns, 1billion tokens
-    ["1","12169697774812703230153278869778437256039855339638969837407632192044393630491","10000000000000000000000000000000000000000000000000000000000000000000000000000"]
+    ["0xF62849F9A0B5Bf2913b396098F7c7019b51A820a","1", "1000000000000000000"],
+    ["0xF62849F9A0B5Bf2913b396098F7c7019b51A820a","2", "2000000000000000000"],
+    ["0xF62849F9A0B5Bf2913b396098F7c7019b51A820a","3", "4000000000000000000"],
+    ["0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9","3", "5000000000000000000"],
+    ["0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9","4", "6000000000000000000"],
+    ["0xF62849F9A0B5Bf2913b396098F7c7019b51A820a","12169697774812703230153278869778437256039855339638969837407632192044393630491", "1000000000000000000000000000"], //nftAddressIndex, idFromEns, 1billion tokens
+    ["0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9","12169697774812703230153278869778437256039855339638969837407632192044393630491","10000000000000000000000000000000000000000000000000000000000000000000000000000"]
 
 ];
 
-const dataTypes = ["uint16", "uint256", "uint256"]
+const dataTypes = ["address", "uint256", "uint256"]
 
 const extraEntries = 2
-let extraLargeValues = [...Array(extraEntries).keys()].map(i => ["4","69", ((
+let extraLargeValues = [...Array(extraEntries).keys()].map(i => ["0x1111111111111111111111111111111111111111","69", ((
     ethers.BigNumber.from(i + 1).mul(ethers.BigNumber.from("1000000000000000000")).toString()
 )).toString()])
 // (2)
@@ -43,18 +41,21 @@ entries = 200
 extraEntries = 1000
 
 */
-Bun.write(`${workingDir}/output/outputs-MerkleTreeTest/PlainMerkleTreeTest${extraEntries}.json`, JSON.stringify(tree, null, 2))
-Bun.write(`${workingDir}/output/outputs-MerkleTreeTest/merkleTreeTest${extraEntries}.CBOR`, CBOR.encode(tree))
+Bun.write(`${workingDir}/output/outputs-MerkleTreeTest/noNftIndex_PlainMerkleTreeTest${extraEntries}.json`, JSON.stringify(tree, null, 2))
+Bun.write(`${workingDir}/output/outputs-MerkleTreeTest/noNftIndex_merkleTreeTest${extraEntries}.CBOR`, CBOR.encode(tree.dump()))
 //Bun.write(`${workingDir}/output/outputs-MerkleTreeTest/merkleTreeTest${extraEntries}.json`,JSON.stringify(tree.dump(), null, 2))
-fs.writeFileSync(`${workingDir}/output/outputs-MerkleTreeTest/merkleTreeTest${extraEntries}.json`, JSON.stringify(tree.dump()));
+fs.writeFileSync(`${workingDir}/output/outputs-MerkleTreeTest/noNftIndex_merkleTreeTest${extraEntries}.json`, JSON.stringify(tree.dump()));
 
 //TODO make it search nftIndex + id
 function getTreeIndexesOfAdress(idsPerNftIndex, tree) {
+    //console.log(`getting values: ${JSON.stringify(idsPerNftIndex)}`)
     let indexes = []
     for (const nftIndex in idsPerNftIndex) {
         const ids = idsPerNftIndex[nftIndex]
         for (const id of ids) {
             for (const i in tree.values) {
+                // console.log(tree.values[i].value[0])
+                // console.log(tree.values[i].value[1])
                 if (tree.values[i].value[0] === nftIndex && tree.values[i].value[1] === id) {
                     indexes.push(parseInt(i))
                 }
@@ -65,7 +66,7 @@ function getTreeIndexesOfAdress(idsPerNftIndex, tree) {
 }
 
 console.log("---testing multiproof---")
-const treeIndexes = getTreeIndexesOfAdress({"0":["2","3"], "1":["3","4"]}, tree)
+const treeIndexes = getTreeIndexesOfAdress({"0xF62849F9A0B5Bf2913b396098F7c7019b51A820a":["2","3"], "0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9":["3","4"]}, tree)
 console.log(treeIndexes)
 const { proof, proofFlags, leaves } = tree.getMultiProof(treeIndexes)
 console.log("leaves:")
@@ -85,7 +86,7 @@ console.log(`proof is valid: ${isValid}`)
 
 console.log("---reading tree---")
 //const tree2Json = await Bun.file(`${workingDir}/output/outputs-MerkleTreeTest/merkleTreeTest${extraEntries}.json`).json()
-const tree2 = await StandardMerkleTree.load(await JSON.parse(await fs.readFileSync(`${workingDir}/output/outputs-MerkleTreeTest/merkleTreeTest${extraEntries}.json`, "utf8")));
+const tree2 = await StandardMerkleTree.load(await JSON.parse(await fs.readFileSync(`${workingDir}/output/outputs-MerkleTreeTest/noNftIndex_merkleTreeTest${extraEntries}.json`, "utf8")));
 
 //const tree2 = StandardMerkleTree.load(tree2Json)
 
@@ -105,7 +106,7 @@ function printMultiProof(ids) {
         `
         amounts = ${`[${leaves2.map((x) => x[2]).join(", ")}]`};
         ids = ${`[${leaves2.map((x) => x[1]).join(", ")}]`};
-        nftIndexes = ${`[${leaves2.map((x) => x[0]).join(", ")}]`};
+        nftAddresses = ${`[\n${leaves2.map((x) =>`\t\taddress(${x[0]})`).join(", \n")}]`};
         proof = ${`[\n${proof2.map((x) => `\t\tbytes32(${x})`).join(", \n")}\n`}
         ];
         proofFlags = ${`[${proofFlags2.join(", ")}]`};
@@ -117,15 +118,15 @@ function printMultiProof(ids) {
     console.log(`proof is valid: ${isValid2}`)
 }
 console.log(`----------multi proof 1----------`)
-printMultiProof({"0":["2","3"], "1":["3","4"]})
+printMultiProof({"0xF62849F9A0B5Bf2913b396098F7c7019b51A820a":["2","3"], "0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9":["3","4"]})
 console.log(`----------multi proof 2----------`)
-printMultiProof({"0":["2"]})
+printMultiProof({"0xF62849F9A0B5Bf2913b396098F7c7019b51A820a":["2"]})
 
 console.log(`----------single proof 1----------`)
 let leaf;
 let proof3
 for (const [i, v] of tree2.entries()) {
-    if (v[0] === "0" && v[1] === '2') {
+    if (v[0] === "0xF62849F9A0B5Bf2913b396098F7c7019b51A820a" && v[1] === "2") {
         // (3)
         proof3 = tree2.getProof(i);
         leaf =v;
@@ -133,21 +134,20 @@ for (const [i, v] of tree2.entries()) {
         console.log(`
         amount = ${v[2]};
         id = ${v[1]};
-        nftIndex = ${v[0]};
+        nftAddress = ${v[0]};
 
         proof = ${`[\n${proof3.map((x) => `\t\tbytes32(${x})`).join(", \n")}\n`}
         ];
         `)
     }
 }
-
 const isValid3 = tree2.verify(leaf,proof3)
 console.log(`proof is valid: ${isValid3}`)
 
 console.log(`----------multi proof 3----------`)
 printMultiProof({
-    "0":["1","2","12169697774812703230153278869778437256039855339638969837407632192044393630491"],
-    "1":["12169697774812703230153278869778437256039855339638969837407632192044393630491"]
+    "0xF62849F9A0B5Bf2913b396098F7c7019b51A820a":["1","2","12169697774812703230153278869778437256039855339638969837407632192044393630491"],
+    "0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9":["12169697774812703230153278869778437256039855339638969837407632192044393630491"]
 })
 
 
