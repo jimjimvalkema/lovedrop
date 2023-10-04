@@ -15,11 +15,9 @@ error InvalidProof();
 contract MiladyDrop is IMiladyDrop,Initializable {
     using SafeERC20 for IERC20;
 
-    //TODO interface
-    //TODO maybe switch to uint32 since it can hold 4billion different nfts. uint8 might be doable at 65k since deployment size would be too large
-    mapping(uint256 => address) public requiredNFTAddresses;
+    mapping(uint16 => address) public requiredNFTAddresses;
     //immutable is not supported yet on strings
-    string public override claimDataIpfs; //TODO do with bytes32: https://docs.ipfs.tech/concepts/content-addressing/#cid-conversion
+    string public override claimDataIpfs;
 
     address public override airdropTokenAddress;
     //TODO is there a way it can be immutable when using initialize?
@@ -27,7 +25,7 @@ contract MiladyDrop is IMiladyDrop,Initializable {
     //TODO is there a way it can be immutable when using initialize?
 
     // This is a packed array of booleans per each requiredNftIndex.
-    mapping(uint256 => mapping(uint256 => uint256)) private claimedBitMapPerNftIndex;
+    mapping(uint16 => mapping(uint256 => uint256)) private claimedBitMapPerNftIndex;
 
     // constructor(address[] memory _requiredNFTAddresses, address _airdropTokenAddress, bytes32 _merkleRoot, string memory _claimDataIpfs) {
     //     _setRequiredNFTAddresses(_requiredNFTAddresses);
@@ -37,6 +35,8 @@ contract MiladyDrop is IMiladyDrop,Initializable {
     // }
 
     function initialize(address[] memory _requiredNFTAddresses, address _airdropTokenAddress, bytes32 _merkleRoot, string memory _claimDataIpfs) public initializer {
+        require(_requiredNFTAddresses.length <65534, "too many requiredNFTAddresses, nftIndex would overflow");
+        //approx 1148 nfts addresses can be set before hitting the block gas limit (30000000 gas)
         _setRequiredNFTAddresses(_requiredNFTAddresses);
         airdropTokenAddress = _airdropTokenAddress;
         merkleRoot = _merkleRoot;
@@ -46,12 +46,12 @@ contract MiladyDrop is IMiladyDrop,Initializable {
     function _setRequiredNFTAddresses (
         address[] memory _requiredNFTAddresses
     ) private onlyInitializing {
-        for (uint256 index = 0; index < _requiredNFTAddresses.length; index++) {
+        for (uint16 index = 0; index < _requiredNFTAddresses.length; index++) {
             requiredNFTAddresses[index] = _requiredNFTAddresses[index];
         }
     }
 
-    function _setClaimed(uint256 nftIndex, uint256 id) private {
+    function _setClaimed(uint16 nftIndex, uint256 id) private {
         uint256 claimedWordIndex = id / 256;
         uint256 claimedBitIndex = id % 256;
         claimedBitMapPerNftIndex[nftIndex][claimedWordIndex] =
@@ -60,20 +60,18 @@ contract MiladyDrop is IMiladyDrop,Initializable {
     }
 
     function isClaimed(
-        uint256 nftIndex,
+        uint16 nftIndex,
         uint256 id
     ) public view override returns (bool) {
         uint256 claimedWordIndex = id / 256;
         uint256 claimedBitIndex = id % 256;
-        uint256 claimedWord = claimedBitMapPerNftIndex[nftIndex][
-            claimedWordIndex
-        ];
+        uint256 claimedWord = claimedBitMapPerNftIndex[nftIndex][claimedWordIndex];
         uint256 mask = (1 << claimedBitIndex);
         return claimedWord & mask == mask;
     }
 
     function verifyClaim(
-        uint256 nftIndex,
+        uint16 nftIndex,
         uint256 id,
         uint256 amount,
         bytes32[] calldata merkleProof
@@ -98,7 +96,7 @@ contract MiladyDrop is IMiladyDrop,Initializable {
         bytes32[] calldata merkleProof,
         uint256 id,
         uint256 amount,
-        uint256 nftIndex
+        uint16 nftIndex
     ) public virtual override {
         verifyClaim(nftIndex, id, amount, merkleProof);
 
@@ -111,7 +109,7 @@ contract MiladyDrop is IMiladyDrop,Initializable {
     function _buildLeavesAndTotalAmount(
         uint256[] calldata ids,
         uint256[] calldata amounts,
-        uint256[] calldata nftIndexes
+        uint16[] calldata nftIndexes
     ) private returns (bytes32[] memory, uint256) {
         uint256 idsLenght = ids.length;
         //not strictly necessary since it would just fail later with amounts going out of bounds
@@ -126,7 +124,7 @@ contract MiladyDrop is IMiladyDrop,Initializable {
         for (uint256 index = 0; index < idsLenght; index++) {
             uint256 amount = amounts[index];
             uint256 id = ids[index];
-            uint256 nftIndex = nftIndexes[index];
+            uint16 nftIndex = nftIndexes[index];
             //TODO keep claiming even if 1 fails (idk might be bad for gas though)
             if (isClaimed(nftIndex, id)) revert AlreadyClaimed();
 
@@ -153,7 +151,7 @@ contract MiladyDrop is IMiladyDrop,Initializable {
         bool[] calldata _proofFlags,
         uint256[] calldata ids,
         uint256[] calldata amounts,
-        uint256[] calldata nftIndexes
+        uint16[] calldata nftIndexes
     ) public {
         //apparently doing this in a function adds 82 gas :(
         //_buildLeavesAndTotalAmount also checks if msg.sender == ownerOf(id) + isClaimed(id)

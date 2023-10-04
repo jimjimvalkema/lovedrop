@@ -13,14 +13,14 @@ interface IMiladyDrop {
     // Returns the merkle root of the merkle tree containing balances of all nft ids available to claim.
     function merkleRoot() external view returns (bytes32);
     // Returns true if the index has been marked claimed.
-    function isClaimed(uint256 nftIndex, uint256 id) external view returns (bool);
+    function isClaimed(uint16 nftIndex, uint256 id) external view returns (bool);
     // Claim the given amount of the token to the given address if it owns that nft id. Reverts if the inputs are invalid.
-    function claim(bytes32[] calldata merkleProof, uint256 id, uint256 amount, uint256 nftIndex) external;
+    function claim(bytes32[] calldata merkleProof, uint256 id, uint256 amount, uint16 nftIndex) external;
 
     // Claim the given amount of multiple ids to the given address if it owns that nft ids. Reverts if the inputs are invalid.
-    function claimMultiple(bytes32[] calldata _proof,bool[] calldata _proofFlags,uint256[] calldata ids,uint256[] calldata amounts,uint256[] calldata nftIndexes) external;
+    function claimMultiple(bytes32[] calldata _proof,bool[] calldata _proofFlags,uint256[] calldata ids,uint256[] calldata amounts,uint16[] calldata nftIndexes) external;
 
     // This event is triggered whenever a call to #claim succeeds.
-    event Claimed(uint256 id, uint256 amount, uint256 nftIndex);
-    event ClaimedMulti(uint256[] ids, uint256[] amounts,uint256[] nftIndexes);
+    event Claimed(uint256 id, uint256 amount, uint16 nftIndex);
+    event ClaimedMulti(uint256[] ids, uint256[] amounts,uint16[] nftIndexes);
 }

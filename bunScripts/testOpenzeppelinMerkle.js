@@ -17,7 +17,7 @@ const values = [
 
 ];
 
-const dataTypes = ["uint256", "uint256", "uint256"]
+const dataTypes = ["uint16", "uint256", "uint256"]
 
 const extraEntries = 2
 let extraLargeValues = [...Array(extraEntries).keys()].map(i => ["4","69", ((
@@ -149,3 +149,6 @@ printMultiProof({
     "0":["1","2","12169697774812703230153278869778437256039855339638969837407632192044393630491"],
     "1":["12169697774812703230153278869778437256039855339638969837407632192044393630491"]
 })
+
+
+console.log('Merkle Root:', tree.root);
