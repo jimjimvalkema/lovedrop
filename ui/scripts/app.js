@@ -1,5 +1,7 @@
 import { uriHandler } from "./uriHandler.js";
 import  {ethers} from "../scripts/ethers-5.2.esm.min.js"
+import { merkleBuilder } from "./merkleBuilder.js";
+window.merkleBuilder = merkleBuilder;
 
 
 
