@@ -10,4 +10,10 @@ contract MyNft is ERC721, Ownable(msg.sender) {
     function safeMint(address to, uint256 tokenId) public onlyOwner {
         _safeMint(to, tokenId);
     }
+    function safeMintBulk(address to, uint256[] calldata tokenIds) public onlyOwner {
+        for (uint256 index = 0; index < tokenIds.length; index++) {
+            _safeMint(to, tokenIds[index]);
+        }
+
+    }
 }

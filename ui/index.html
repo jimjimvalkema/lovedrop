@@ -79,7 +79,8 @@
     </style>
 <body>
     <div id="message" hidden="hidden" style="position:fixed;width:80vmin;height:60vmin; z-index: 1000; background-color: lightgray; left: 50%; transform: translate(-50%, 0);  top: 25%; transform: translate(-50%, 0);">
-        <button onclick="hideDiv('message')"></button>    
+        <button onclick="hideDiv('message')">hide</button> 
+        <div id='messageProgress'>hi</div>   
     </div> 
     <a href="./?mildayDropFactoryAddress=0xb214Bff26c1bb335Ae273A954405C907A365B357&ipfsApi=http://ipfs.dappnode:5001">
         connect ipfs dappnode </a></br>
@@ -95,8 +96,10 @@
     <button onclick="test()">test</button>
     <button onclick="connectSigner()">connect</button>
     <input onchange="readFile(this)" type="file">
-    <button onclick="claimIndexIpfsFromCsv()">generate</button>
+    <button onclick="generateMerkleClaimsIpfs()">generate</button>
     <button onclick="deployDropContract()">deploy</button></br>
+    <div id="progress">hi</div>
+
     <div id="deployedDropsList"></div></br>
     <div id="FilterBuilder"></div></br>
     <div id="editFilter" ></div>
@@ -113,7 +116,8 @@
 </body>
     <script src="./scripts/cbor.js" type="text/javascript"></script>
 
-
+    <script src="./scripts/papaparse.min.js"  
+    type="application/javascript"></script>
     <script src="./scripts/FileSaver.js"  
     type="application/javascript"></script>
     <script src="./scripts/jszip.js"  

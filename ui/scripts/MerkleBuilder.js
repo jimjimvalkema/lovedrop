@@ -11747,7 +11747,7 @@ async function main() {
     ["0xF62849F9A0B5Bf2913b396098F7c7019b51A820a", "12169697774812703230153278869778437256039855339638969837407632192044393630491", "1000000000000000000000000000"],
     ["0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9", "12169697774812703230153278869778437256039855339638969837407632192044393630491", "10000000000000000000000000000000000000000000000000000000000000000000000000000"]
   ];
-  let m = new merkleBuilder(balances, provider);
+  let m = new MerkleBuilder(balances, provider);
   ;
   const multiProof = m.getMultiProof({ "0xF62849F9A0B5Bf2913b396098F7c7019b51A820a": ["2", "3"], "0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9": ["3", "5"] });
   console.log(multiProof);
@@ -11757,7 +11757,7 @@ async function main() {
   console.log("---all proof----");
   await m.getAllProofs();
   await m.exportAllProofs(`${outpurDir}/allProofs-test.json`, 2);
-  let m2 = new merkleBuilder([], provider);
+  let m2 = new MerkleBuilder([], provider);
   await m2.importBalancesCsvFromFile(csvInput);
   await m2.buildTree();
   console.log(m2.merkleRoot);
@@ -11774,7 +11774,7 @@ async function main() {
   console.log("script ran for: " + timeTaken + " milliseconds");
 }
 
-class merkleBuilder {
+export class MerkleBuilder {
   balances = [];
   dataTypes = [];
   allProofs = {};
@@ -11827,7 +11827,8 @@ class merkleBuilder {
   getMultiProof(idsPerNftAddr) {
     return this.tree.getMultiProof(this.getTreeIndexes(idsPerNftAddr));
   }
-  async getProof(nftAddr, id) {
+  delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+  getProof(nftAddr, id) {
     if (typeof id === "number") {
       throw Error("Id was set as a number. Javascript numbers are unsafe to be used for uint256 values");
     }
@@ -11846,10 +11847,25 @@ class merkleBuilder {
       return;
     }
   }
-  async getAllProofs() {
+  getProofsInChunk(chunkedBalances) {
+    let proofs = []
+    for (const i in chunkedBalances) {
+      proofs.push(this.getProof(chunkedBalances[i][0], chunkedBalances[i][1]))
+      }
+    const message = `get proofs from id: ${chunkedBalances[chunkedBalances.length-1][1]} of nft ${chunkedBalances[chunkedBalances.length-1][0]}`
+    console.log(message)
+    document.getElementById("progress").innerText = message
+    return proofs 
+  }
+
+  async getAllProofsInChunks(chunkSize=500) {
     let proofs = { ["nftAddresses"]: [...this.allContractAddrs], ["proofPerAddress"]: {} };
-    const proofPromises = this.balances.map((item) => this.getProof(item[0], item[1]));
-    for (const item of await Promise.all(proofPromises)) {
+    let proofChunks=[]
+    for (let i = 0; i < this.balances.length; i += chunkSize) {
+        const chunk = this.balances.slice(i, i + chunkSize);
+        setTimeout(() => proofChunks.push(this.getProofsInChunk(chunk)))
+    }
+    for (const item of proofChunks.flat()) {
       if (item.nftAddress in proofs["proofPerAddress"]) {
         proofs["proofPerAddress"][item.nftAddress]["ids"][item.id] = { ["amount"]: item.amount, ["treeIndex"]: item.treeIndex, ["index"]: item.index, ["proof"]: item.proof };
       } else {
@@ -11857,7 +11873,7 @@ class merkleBuilder {
         proofs["proofPerAddress"][item.nftAddress]["ids"][item.id] = { ["amount"]: item.amount, ["treeIndex"]: item.treeIndex, ["index"]: item.index, ["proof"]: item.proof };
       }
     }
-    this.allProofs = await proofs;
+    this.allProofs = proofs;
     return proofs;
   }
   importBalancesCsv(csvString) {
@@ -11932,6 +11948,4 @@ class merkleBuilder {
   }
 }
 main();
-export {
-  merkleBuilder
-};
+

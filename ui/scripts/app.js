@@ -1,7 +1,6 @@
 import { uriHandler } from "./uriHandler.js";
 import  {ethers} from "../scripts/ethers-5.2.esm.min.js"
-import { merkleBuilder } from "./merkleBuilder.js";
-window.merkleBuilder = merkleBuilder;
+import { MerkleBuilder } from "./MerkleBuilder.js";
 
 
 
@@ -55,9 +54,9 @@ window.emptyFilter = {"type":"RANGE","inputs":{"idList":[],"conditions":[],"attr
 
 function message(message) {
     console.log(message);
-    document.getElementById("message").innerHTML = message;
+    document.getElementById("progress").innerText = message;
 }
-
+window.message = message
 
 async function connectSigner() {
     // MetaMask requires requesting permission to connect users accounts
@@ -140,30 +139,26 @@ function isWalletConnected() {
     if (signer == null) {
         message = "wallet not connected";
         console.log(message);
-        document.getElementById("message").innerHTML = message;
+        document.getElementById("messageProgress").innerHTML = message;
         return false
     } else {
-        document.getElementById("message").innerHTML = message;
+        document.getElementById("messageProgress").innerHTML = message;
         return true;
     }
 }
 
 function readFile(input) {
-    let file = input.files[0];
-    let result = ""
+    window.currentFile = input.files[0];
 
-    let reader = new FileReader();
-    window.currenFileName = file["name"];
+    // let result = ""
+    // reader.readAsText(file);
+    // reader.onload = function () {
+    //     result += reader.result;
+    // }
 
-
-    reader.readAsText(file);
-    reader.onload = function () {
-        result += reader.result;
-    }
-
-    reader.onloadend = function () {
-        window.currentFileString = result;
-    }
+    // reader.onloadend = function () {
+    //     window.currentFileString = result;
+    // }
 };
 //TODO do event listeners
 window.readFile = readFile
@@ -228,16 +223,16 @@ function formatBalanceMapIds(balanceMap) {
     return (formatedBalanceMap);
 }
 
-function csvToBalanceMapJSON(file) {
-    message(`parsing csv`)
-    var balanceMap = Papa.parse(file)["data"];
-    var formatedBalanceMap = formatBalanceMapIds(balanceMap);
-    message(`building merkle tree on: ${Object.keys(formatedBalanceMap).length} claims.`)
-    let merkle = uniswapMerkle.parseBalanceMapOnIds(formatedBalanceMap);
-    let newFilename = currenFileName.split(".")[0] + ".json";
-    //downloadString(JSON.stringify(merkle, null, 2), "json", newFilename)
-    return merkle;
+async function generateMerkleClaimsIpfs() {
+    const csvString = await currentFile.text()
+    await setTimeout((message(`parsing csv`)))
+    const balances = Papa.parse(csvString)["data"].map((line)=>line.slice(1)).filter((line)=>line.length!==0) //remove contract names
+    setTimeout((message(`building merkle tree on: ${balances.length} claims.`)),100)
+    window.merkleBuilder = new MerkleBuilder(balances,window.provider)
+    setTimeout((message(`done building tree, calculating all ${balances.length} proofs`)),100)
+    await window.merkleBuilder.getAllProofsInChunks()
 }
+window.generateMerkleClaimsIpfs = generateMerkleClaimsIpfs
 
 function goToclaim() {
     window.x = document.getElementById("infuraIpfsForm").elements;
@@ -258,18 +253,19 @@ async function claimIndexIpfsFromCsv(csvString = window.currentFileString) {
 window.claimIndexIpfsFromCsv = claimIndexIpfsFromCsv
 
 //TODO remove default value
-async function deployDropContract(requiredNFTAddress = "0xbaa9cbdac7a1e3f376192dfac0d41fce4fc4a564", airDropTokenAddress = "0xaf98D8B8C7611F68cf630A43b117A0e1f666d2EA", ipfsIndex = window.ipfsIndex) {
-    const merkleRoot = ipfsIndex.metaData.merkleRoot;
-    const claimDataIpfs = ipfsIndex.dropsRootHash;
+async function deployDropContract(requiredNFTAddress = ["0xd9C63956E65E7484bB513535d675f549AD480F6d", "0xED6FC103008736951689bC06075c9E86035D233b"], airDropTokenAddress = "0xc526526197d3027923afe3C1009F69f016940C14", ipfsIndex = window.ipfsIndex) {
+    const merkleRoot = window.merkleBuilder.merkleRoot//ipfsIndex.metaData.merkleRoot;
+    const claimDataIpfs = "TODO"//ipfsIndex.dropsRootHash;
 
 
     if (isWalletConnected()) {
         message(`creating deploy tx with ${requiredNFTAddress}, ${airDropTokenAddress}, ${merkleRoot}, ${claimDataIpfs}`)
-        window.tx = window.miladyDropFactoryContractWithSigner.createNewDrop(requiredNFTAddress, airDropTokenAddress, merkleRoot, claimDataIpfs);
+        window.tx = window.miladyDropFactoryContractWithSigner.createNewDrop(airDropTokenAddress, merkleRoot, claimDataIpfs);
     }
     message(`submitted transaction at: ${(await tx).hash}`);
     const confirmedTX = (await (await (await tx).wait(1)).transactionHash);
     window.reciept = (await window.provider.getTransactionReceipt(confirmedTX));
+    console.log(reciept.logs)
     window.deployedDropAddress = await ethers.utils.defaultAbiCoder.decode(["address"], reciept.logs[0].data)[0];
     message(`confirmed transaction at: ${(await tx).hash}, deployed at: ${window.deployedDropAddress}`);
 
@@ -316,11 +312,13 @@ async function displayDeployedContracts(contractAddresses) {
 
 async function refreshDeployedContractsUi() {
     const filter = miladyDropFactoryContract.filters.CreateNewDrop(await window.signer.getAddress())
-    const events = await miladyDropFactoryContract.queryFilter(filter)
+    const events = await miladyDropFactoryContract.queryFilter(filter, 0)
+    console.log(events)
     let contractAddresses = events.map((x)=>x.args[1])
     //let contractAddresses = await getDeployedContractsFromUser(window.signer.getAddress())
     await displayDeployedContracts(contractAddresses);
 }
+window.refreshDeployedContractsUi = refreshDeployedContractsUi
 
 function updatedDisplayedNft(id, target) {
     const NOTidList = fBuilder.getCurrentFilter().NOT.idList
@@ -447,7 +445,7 @@ async function runFilter(currentFilter=fBuilder.getCurrentFilter()) {
 
     let timeTaken = Date.now() - start;   
     console.log("running filter took: " + timeTaken + " milliseconds");
-    document.getElementById("message").innerHTML = `width:${window.innerWidth} height:${window.innerHeight}`
+    //document.getElementById("message").innerHTML = `width:${window.innerWidth} height:${window.innerHeight}`
 }
 window.runFilter = runFilter
 
@@ -458,6 +456,7 @@ function hideDiv(id) {
 function showDiv(id) {
     document.getElementById("message").removeAttribute("hidden")
 }
+window.showDiv = showDiv
 
 function isPrivateIP(ip="") {
     if (ip.startsWith("localhost")) {
@@ -475,7 +474,7 @@ async function test() {
     //     return 0http://127.0.0.1:45005
     // }
 
-
+    
 
     window.URI = await new uriHandler(nftContract, window.ipfsGateway,true, "./scripts/extraUriMetaDataFile.json")
     window.baseURI = await window.URI.getBaseURI()
@@ -573,7 +572,7 @@ async function runOnLoad() {
     //TODO
     // u = new URL(window.location.href)
     // base = u.host+u.pathname
-    window.mildayDropFactoryAbiFile = await fetch('./abi/mildayDropFactoryAbi.json');
+    window.mildayDropFactoryAbiFile = await fetch('./abi/MiladayDropFactoryAbi.json');
     console.log(await (await fetch('./abi/mildayDropAbi.json')).json())
     console.log(window)
     window.mildayDropAbiFile = await fetch('./abi/mildayDropAbi.json');
