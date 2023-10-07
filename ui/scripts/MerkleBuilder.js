@@ -11852,35 +11852,44 @@ export class MerkleBuilder {
     for (const i in chunkedBalances) {
       proofs.push(this.getProof(chunkedBalances[i][0], chunkedBalances[i][1]))
       }
-    const message = `get proofs from id: ${chunkedBalances[chunkedBalances.length-1][1]} of nft ${chunkedBalances[chunkedBalances.length-1][0]}`
-    console.log(message)
+    const message = `processed proofs till id: ${chunkedBalances[chunkedBalances.length-1][1]} of nft ${chunkedBalances[chunkedBalances.length-1][0]}`
+    //console.log(message)
     document.getElementById("progressProofGen").innerText = message
     return proofs 
   }
 
-  async getAllProofsInChunks(chunkSize=500) {
+  async getAllProofsInChunks(chunkSize=100) {
     let proofs = { ["nftAddresses"]: [...this.allContractAddrs], ["proofPerAddress"]: {} };
     let proofChunks=[]
     for (let i = 0; i < this.balances.length; i += chunkSize) {
         const chunk = this.balances.slice(i, i + chunkSize);
-        setTimeout(() => proofChunks.push(this.getProofsInChunk(chunk)))
+        const poofsChunk = new Promise((resolve, reject) => {
+          setTimeout(() => {
+            resolve(this.getProofsInChunk(chunk));
+          });
+        });
+        
+        proofChunks.push(poofsChunk)
     }
-    for (const item of proofChunks.flat()) {
+    proofChunks = (await Promise.all(proofChunks)).flat()
+
+    for (const item of proofChunks) {
       if (item.nftAddress in proofs["proofPerAddress"]) {
         proofs["proofPerAddress"][item.nftAddress]["ids"][item.id] = { ["amount"]: item.amount, ["treeIndex"]: item.treeIndex, ["index"]: item.index, ["proof"]: item.proof };
       } else {
-        proofs["proofPerAddress"][item.nftAddress] = { ["ids"]: {} };
-        proofs["proofPerAddress"][item.nftAddress]["ids"][item.id] = { ["amount"]: item.amount, ["treeIndex"]: item.treeIndex, ["index"]: item.index, ["proof"]: item.proof };
+        //proofs["proofPerAddress"][item.nftAddress] = { ["ids"]: [] };
+        proofs["proofPerAddress"][item.nftAddress]= {["ids"]:{[item.id]:{["amount"]: item.amount, ["treeIndex"]: item.treeIndex, ["index"]: item.index, ["proof"]: item.proof}}}
       }
     }
-    this.allProofs = proofs;
+    
+    this.allProofs = proofs
     return proofs;
   }
+
   importBalancesCsv(csvString) {
     let csvArr = Papa.parse(csvString).data;
     this.balances = this.formatAddressInBalances(csvArr.map((line) => line.slice(1, 4)));
     this.allContractAddrs = new Set([...this.balances.map((x) => x[0])]);
-    console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     console.log(`imported ${this.balances.length} entries`);
   }
   async importBalancesCsvFromFile(url) {

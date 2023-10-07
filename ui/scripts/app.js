@@ -503,11 +503,12 @@ async function loadNft() {
 window.loadNft = loadNft
 window.filterResults = {}
 async function  addIds() {
-    const amount = document.getElementById("nftAmountAirdrop").value
-    const ids = window.currentIdsDisplay
-    const nftAddress = window.URI.contractObj.address
-    const allFilters = window.fBuilder.allFilters
-    const filterIndex = window.fBuilder.currentFilterIndex
+    //bit excessive with structuredClone but these values shouldnt change since it can effect the resulting merkle tree
+    const amount = structuredClone(document.getElementById("nftAmountAirdrop").value)
+    const ids = structuredClone(window.currentIdsDisplay)
+    const nftAddress = structuredClone(window.URI.contractObj.address)
+    const allFilters = structuredClone(window.fBuilder.allFilters)
+    const filterIndex = structuredClone(window.fBuilder.currentFilterIndex)
     const nftName = await window.URI.contractObj.name()
 
     if (nftAddress in window.filterResults) {
@@ -533,21 +534,23 @@ async function  addIds() {
 }
 window.addIds = addIds
 
+
 async function buildTreeAndProofsIpfs(balances) {
     //TODO ipfs :p
-    setTimeout((document.getElementById("progressProofGen").innerText = (`building merkle tree on: ${balances.length} claims.`)),100)
+    setTimeout(function(){(document.getElementById("progressProofGen").innerText = (`building merkle tree on: ${balances.length} claims.`))},100)
     window.merkleBuilder = new MerkleBuilder(balances,window.provider)
-    setTimeout((document.getElementById("progressProofGen").innerText = (`done building tree, calculating all ${balances.length} proofs`)),100)
+    setTimeout(function(){(document.getElementById("progressProofGen").innerText = (`done building tree, calculating all ${balances.length} proofs`))},100)
     await window.merkleBuilder.getAllProofsInChunks()
+    console.log("done generating proofs")
 }
 
 async function generateMerkleFromCsvFile() {
     const csvString = await currentFile.text()
-    await setTimeout((document.getElementById("progressProofGen").innerText = (`parsing csv`)))
+    await setTimeout(function(){(document.getElementById("progressProofGen").innerText = (`parsing csv`))})
     const balances = Papa.parse(csvString)["data"].map((line)=>line.slice(1)).filter((line)=>line.length!==0) //remove contract names
-    buildTreeAndProofsIpfs(balances)
+    await buildTreeAndProofsIpfs(balances)
 }
-window.generateMerkleClaimsIpfs = generateMerkleFromCsvFile
+window.generateMerkleFromCsvFile = generateMerkleFromCsvFile
 
 async function generateMerkleFromFilterResults() {
     let balances = []
@@ -563,7 +566,7 @@ async function generateMerkleFromFilterResults() {
         }
     }
     console.log(balances)
-    buildTreeAndProofsIpfs(balances)
+    await buildTreeAndProofsIpfs(balances)
 }
 window.generateMerkleFromFilterResults = generateMerkleFromFilterResults
 

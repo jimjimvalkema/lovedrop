@@ -7,7 +7,8 @@ class ipfsIndexer{
     constructor(url, auth=null, isGateway=true) {
         this.auth = auth;
         this.ApiUrl = url;
-        this.isGateway=isGateway
+        this.isGateway=isGateway;
+        this.indexes=[];
         let urlobj = new URL(url);
         let options = {
             host: urlobj.hostname,
@@ -33,7 +34,7 @@ class ipfsIndexer{
     
     message(message) {
         console.log(message);
-        document.getElementById("message").innerHTML = message;
+        document.getElementById("message2").innerHTML = message;
     }
 
     async addToIpfs(data, filename, pin=true, cidVersion=1) {
@@ -53,18 +54,28 @@ class ipfsIndexer{
         return r.json();
     }
 
-    splitObject(obj, amountItems) {
-        let result = [];
+    splitObject(obj, amountItems=750) {
+        let result = {};//TODO make start stop the last key not a int
         let keys = Object.keys(obj);
         let start = 0;
         let stop = amountItems;
-        let amountOfSplits = keys.length/amountItems;
-        for (let i = 1; i < (amountOfSplits+2); i++) {
+        let amountOfSplits = Math.ceil(keys.length/amountItems);
+        for (let i = 0; i < (amountOfSplits); i++) {
+            if(!keys[start]){console.log("whoops"); continue}//
+        
             this.message(`Splitting up claims ${i}/${amountOfSplits}`);
-            let name = `${start+1}-${stop}`;
+            let stopKey;
+            if (keys[stop]) {
+                stopKey = keys[stop]
+
+            } else {
+                stopKey = keys[keys.length-1]
+            }
+            let name = `${keys[start]}-${stopKey}`;
             result[name] = this.getValues(obj, keys.slice(start,stop));
             start=stop;
             stop+=amountItems 
+
         }
         this.message("");
         return result
@@ -143,14 +154,18 @@ class ipfsIndexer{
         //yes i have given up on ipfshttpclient at this point lmao
         let r = await fetch(`${this.ApiUrl}/api/v0/dag/get?arg=${hash}`, reqObj);
         let rjson = await r.json();
+    
         //shit breaks when tsize=null :(
-        for (let i=0; i<rjson.Links.length; i++) {
-            if (rjson.Links[i].Tsize == null) {
-                delete rjson.Links[i].Tsize
+        if ("Links" in rjson) {
+            for (let i=0; i<rjson.Links.length; i++) {
+                if (rjson.Links[i].Tsize == null) {
+                    delete rjson.Links[i].Tsize
+                }
+
             }
+            return rjson
 
         }
-        return rjson
     }
 
     indexFromCids(cids) {
@@ -209,6 +224,70 @@ class ipfsIndexer{
         this.dropsRootHash = newHashWithIndex;
         this.message(`claims index ipfs hash: ${newHashWithIndex}`)
         return this.dropsRootHash
+    }
+
+    async createClaimData(treeDump, allProofs,balancesAsCsv,splitSize=500, uiHash="Qmd9khr3UjLjvYNZoLZnd7W2yeDXDQhp1pdh5hb6KGrBro") {//uiHash:oct7
+        const treeDumpHash = (await this.addToIpfs(JSON.stringify(treeDump), "treeDump.json"))["Hash"]
+        const rootDirHash = await this.wrapInDirectory(treeDumpHash, "treeDump.json")
+        let rootDirDag = await this.getDag(rootDirHash);
+        rootDirDag = await this.addHashToDag(uiHash,"ui", rootDirDag)
+        let allProofsDag = {"Data": {"/":{"bytes": "CAE"}},"Links":[]}
+        //console.log(allProofs.proofPerAddress)
+        let indexHasPerNftAddr = {}
+        for (const nftAddr in allProofs.proofPerAddress) {
+            const split = this.splitObject(allProofs.proofPerAddress[nftAddr].ids,splitSize)
+            const cids = await this.addObjectsToIpfs(split);
+            let dag = this.dagFromCids(cids);
+            let hash = await this.putDag(dag)
+            hash = await this.wrapInDirectory(hash, "data");
+            dag = await this.getDag(hash);
+
+            //create index
+            const index = this.indexFromCids(cids);
+            this.indexes.push(index)
+
+            //add to ipfs
+            dag = await this.addObjectToDag(dag, index, "index.json");
+            const newHashWithIndex = await this.putDag(dag)
+            indexHasPerNftAddr[nftAddr] = newHashWithIndex;
+            this.addHashToDag(newHashWithIndex,`${nftAddr}`,allProofsDag)
+        }
+        
+        allProofsDag = await this.addObjectToDag(allProofsDag,indexHasPerNftAddr,"index.json")
+        
+        rootDirDag = await this.addHashToDag(await this.putDag(allProofsDag),"allProofs", rootDirDag)
+        rootDirDag = await this.addHashToDag((await this.addToIpfs(balancesAsCsv))["Hash"],"balances.csv", rootDirDag)
+        this.dropsRootHash = await this.putDag(rootDirDag)
+        return this.dropsRootHash
+
+        //root
+            //ui folder
+                //ui shit
+            
+            //treedump.json                     <= {the entire tree}
+            //balances.csv                      <= [[nftAddr,id,amout],etc] (as csv ofc)
+            //metaData.json                     <= {nftAddrs:[], eligibleIds:{"0x1":[],"0x2":[]} }
+
+            //allProofs
+                //allProofsIndex.json           <= {"0x1":"HashOf-0x1-index.json"}
+                //0x1
+                    //0x1-index.json
+                    //data
+                        //0-100-0x1.json 
+                        //100-200-0x1.json
+                //0x2
+                    //0x2-index.json            <= [{"start":0, "stop":100, "hash":"hashOf_0-100-0x2.json"}, etc]
+                    //data
+                        //0-100-0x2.json
+                        //100-200-0x2.json      <= {"100":{"proof":["bytes32",etc]}, etc }
+
+
+    }
+
+    async addHashToDag(hash,name,dag) {
+        dag.Links.push({"Hash":{"/":hash},"Name":name})
+        return dag
+
     }
 
     async wrapInDirectory(hash, dirName) {
