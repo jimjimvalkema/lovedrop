@@ -175,7 +175,15 @@ export class uriHandler {
             return this.totalSupply
         } else {
             let id = 0;
-            id = (await this.contractObj.totalSupply()).toNumber()
+            try {
+                id = (await this.contractObj.totalSupply()).toNumber()
+                
+            } catch (error) {
+                console.warn("uriHandeler had a error")
+                console.warn(error)
+                return undefined
+            }
+    
             //of by 100 error fix :P
             for (let tries = 0; tries < 100; tries++)
                 try {
@@ -238,9 +246,8 @@ export class uriHandler {
 
     async getExtraUriMetaData(contractObj, extraUriMetaDataFile) {
         let extraUriMetaData = await (await fetch(extraUriMetaDataFile)).json();
-        const contractAddr = (await contractObj.address).toLowerCase()
-        console.log(contractAddr, extraUriMetaData[contractAddr])
-
+        const contractAddr = (await contractObj.address)
+        console.log(contractAddr, Object.keys(extraUriMetaData))
         if (contractAddr in extraUriMetaData) {
             return extraUriMetaData[contractAddr]
         } else {

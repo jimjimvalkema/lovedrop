@@ -11854,7 +11854,7 @@ export class MerkleBuilder {
       }
     const message = `get proofs from id: ${chunkedBalances[chunkedBalances.length-1][1]} of nft ${chunkedBalances[chunkedBalances.length-1][0]}`
     console.log(message)
-    document.getElementById("progress").innerText = message
+    document.getElementById("progressProofGen").innerText = message
     return proofs 
   }
 

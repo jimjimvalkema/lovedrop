@@ -54,7 +54,7 @@ window.emptyFilter = {"type":"RANGE","inputs":{"idList":[],"conditions":[],"attr
 
 function message(message) {
     console.log(message);
-    document.getElementById("progress").innerText = message;
+    document.getElementById("message2").innerText = message;
 }
 window.message = message
 
@@ -139,10 +139,10 @@ function isWalletConnected() {
     if (signer == null) {
         message = "wallet not connected";
         console.log(message);
-        document.getElementById("messageProgress").innerHTML = message;
+        document.getElementById("message2").innerHTML = message;
         return false
     } else {
-        document.getElementById("messageProgress").innerHTML = message;
+        document.getElementById("message2").innerHTML = message;
         return true;
     }
 }
@@ -223,17 +223,6 @@ function formatBalanceMapIds(balanceMap) {
     return (formatedBalanceMap);
 }
 
-async function generateMerkleClaimsIpfs() {
-    const csvString = await currentFile.text()
-    await setTimeout((message(`parsing csv`)))
-    const balances = Papa.parse(csvString)["data"].map((line)=>line.slice(1)).filter((line)=>line.length!==0) //remove contract names
-    setTimeout((message(`building merkle tree on: ${balances.length} claims.`)),100)
-    window.merkleBuilder = new MerkleBuilder(balances,window.provider)
-    setTimeout((message(`done building tree, calculating all ${balances.length} proofs`)),100)
-    await window.merkleBuilder.getAllProofsInChunks()
-}
-window.generateMerkleClaimsIpfs = generateMerkleClaimsIpfs
-
 function goToclaim() {
     window.x = document.getElementById("infuraIpfsForm").elements;
     const currentUrl = new URL(window.location.href)
@@ -253,7 +242,7 @@ async function claimIndexIpfsFromCsv(csvString = window.currentFileString) {
 window.claimIndexIpfsFromCsv = claimIndexIpfsFromCsv
 
 //TODO remove default value
-async function deployDropContract(requiredNFTAddress = ["0xd9C63956E65E7484bB513535d675f549AD480F6d", "0xED6FC103008736951689bC06075c9E86035D233b"], airDropTokenAddress = "0xc526526197d3027923afe3C1009F69f016940C14", ipfsIndex = window.ipfsIndex) {
+async function deployDropContract(requiredNFTAddress = ["0xd9C63956E65E7484bB513535d675f549AD480F6d", "0x906125935407a8754a83eA01D396Ac43c8116288"], airDropTokenAddress = "0xc526526197d3027923afe3C1009F69f016940C14", ipfsIndex = window.ipfsIndex) {
     const merkleRoot = window.merkleBuilder.merkleRoot//ipfsIndex.metaData.merkleRoot;
     const claimDataIpfs = "TODO"//ipfsIndex.dropsRootHash;
 
@@ -468,14 +457,14 @@ function isPrivateIP(ip="") {
        (parts[0] === '192' && parts[1] === '168') || (parts[0] === '127');
  }
 
-async function test() {
+async function loadNft() {
     //let response = await fetch('./merkle_proofs/index.json')
     // if (!isWalletConnected()) {
     //     return 0http://127.0.0.1:45005
     // }
 
-    
-
+    const nftAddressInput = ethers.utils.getAddress(document.getElementById("nftAddressAttributeSelector").value)
+    const nftContract = await getNftContract(provider, nftAddressInput);
     window.URI = await new uriHandler(nftContract, window.ipfsGateway,true, "./scripts/extraUriMetaDataFile.json")
     window.baseURI = await window.URI.getBaseURI()
     let fullUrl = "nonstandard tokenURI function TODO"
@@ -492,6 +481,7 @@ async function test() {
             }
         }
         showDiv("message")
+        console.log(window.URI.contractObj.address)
         document.getElementById("message").innerHTML = `
         pre processed data for nft contract: ${window.URI.contractObj.address} is not found.</br>
         Want to build it now? <button onclick='getFilterBuilderUi(window.URI)'>yes</button><button onclick='hideDiv("message")'>no</button></br>
@@ -510,6 +500,72 @@ async function test() {
     
 
 };
+window.loadNft = loadNft
+window.filterResults = {}
+async function  addIds() {
+    const amount = document.getElementById("nftAmountAirdrop").value
+    const ids = window.currentIdsDisplay
+    const nftAddress = window.URI.contractObj.address
+    const allFilters = window.fBuilder.allFilters
+    const filterIndex = window.fBuilder.currentFilterIndex
+    const nftName = await window.URI.contractObj.name()
+
+    if (nftAddress in window.filterResults) {
+        window.filterResults[nftAddress].push({["nftName"]:nftName ,["nftAddress"]:nftAddress, ["amount"]:amount, ["filterIndex"]:filterIndex, ["ids"]:ids, ["allFilters"]:allFilters })
+
+    }else {
+        window.filterResults[nftAddress]= [{["nftName"]:nftName, ["nftAddress"]:nftAddress, ["amount"]:amount, ["filterIndex"]:filterIndex, ["ids"]:ids, ["allFilters"]:allFilters }]
+    }
+    document.getElementById("allFilterResults").innerHTML = ""
+
+    for (const nftAddress in window.filterResults){
+        for (const result of window.filterResults[nftAddress]){
+            const nftName = result.nftName
+            const filterName = result.allFilters[result.filterIndex].filterName
+            const amount =  result.amount
+            const ids =  result.ids
+
+            document.getElementById("allFilterResults").innerHTML += `filter: ${filterName} on collection ${nftName} has ${ids.length} ids, which will recieve ${amount} tokens  click to edit (TODO) </br>\n `
+        }
+
+    }
+    
+}
+window.addIds = addIds
+
+async function buildTreeAndProofsIpfs(balances) {
+    //TODO ipfs :p
+    setTimeout((document.getElementById("progressProofGen").innerText = (`building merkle tree on: ${balances.length} claims.`)),100)
+    window.merkleBuilder = new MerkleBuilder(balances,window.provider)
+    setTimeout((document.getElementById("progressProofGen").innerText = (`done building tree, calculating all ${balances.length} proofs`)),100)
+    await window.merkleBuilder.getAllProofsInChunks()
+}
+
+async function generateMerkleFromCsvFile() {
+    const csvString = await currentFile.text()
+    await setTimeout((document.getElementById("progressProofGen").innerText = (`parsing csv`)))
+    const balances = Papa.parse(csvString)["data"].map((line)=>line.slice(1)).filter((line)=>line.length!==0) //remove contract names
+    buildTreeAndProofsIpfs(balances)
+}
+window.generateMerkleClaimsIpfs = generateMerkleFromCsvFile
+
+async function generateMerkleFromFilterResults() {
+    let balances = []
+    for (const nftAddress in window.filterResults) {
+        for (const result of window.filterResults[nftAddress]) {
+            const amount = result.amount
+            for (const id of result.ids) {
+            
+
+                balances.push([nftAddress,ethers.BigNumber.from(id).toString(),ethers.BigNumber.from(amount).mul('1000000000000000000').toString()])
+
+            }
+        }
+    }
+    console.log(balances)
+    buildTreeAndProofsIpfs(balances)
+}
+window.generateMerkleFromFilterResults = generateMerkleFromFilterResults
 
 async function displayPrices() {
     if (!fBuilder.timeSyncListing["OpenSea"] || (Date.now() - fBuilder.timeSyncListing["OpenSea"]) > 60000) {
@@ -620,7 +676,7 @@ async function runOnLoad() {
     window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth, true);
 
     await loadAllContracts()
-    test()
+    //test()
 
 }
 

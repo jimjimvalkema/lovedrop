@@ -1,8 +1,10 @@
 {
-    "0xbaa9cbdac7a1e3f376192dfac0d41fce4fc4a564": {
+    "0xbf4a480D3009348FDF523A43Ba33220566fC1e4E": {
         "type": "milady",
         "name": "miladyTest",
         "isTest":true,
+        "idStartsAt":0,
+        "totalSupply":9,
         "correctedMetaDataSeparatedFiles":"bafybeiawqw7zaoliz2rjgiqwzyykwzjsmr24i3a6paazalmqijsldtfg7i",
         "baseUriCompressed": "ipfs://bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a",
         "scrapedUriData" : "ipfs://bafybeibexus34rk6bt7psn7gly2sduq3xui4jzshoimmdvrw3otqzglp3y",
@@ -10,16 +12,17 @@
         "everyAttribute": "ipfs://bafybeicgayygxqzdsz37hkn3shfpsxrbyyiemodpyrpkoazxbb3p5khc5m",
         "everyAttributeCbor":"ipfs://bafybeigey4mq6pxl7zk77rwls7glb46pjzxhm5rf33eu6fbzfh4pwoktmy" 
     },
-        "0xd9c63956e65e7484bb513535d675f549ad480f6d": {
-        "type": "milady",
-        "name": "miladyTest",
+    "0x08e89a2a1660CE48f3178b4Ea88F49b7593576ba": {
+        "type": "standard",
+        "name": "mifairymaker",
         "isTest":true,
-        "correctedMetaDataSeparatedFiles":"bafybeiawqw7zaoliz2rjgiqwzyykwzjsmr24i3a6paazalmqijsldtfg7i",
-        "baseUriCompressed": "ipfs://bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a",
-        "scrapedUriData" : "ipfs://bafybeibexus34rk6bt7psn7gly2sduq3xui4jzshoimmdvrw3otqzglp3y",
-        "scrapedUriDataCbor": "ipfs://bafybeic7f5slx2tqmkt3uj6573cvdtfgwk3pg3xyuu2jra7klyohkh2sii",
-        "everyAttribute": "ipfs://bafybeicgayygxqzdsz37hkn3shfpsxrbyyiemodpyrpkoazxbb3p5khc5m",
-        "everyAttributeCbor":"ipfs://bafybeigey4mq6pxl7zk77rwls7glb46pjzxhm5rf33eu6fbzfh4pwoktmy" 
+        "idStartsAt":1,
+        "totalSupply":9,
+        "baseUriCompressed": "ipfs://bafybeigydxenstqykovw3hpfsqyf46zkvezkigs52shqno4rul4cpznl7i",
+        "scrapedUriData" : "ipfs://bafybeigweabg4xfyrzv3envrqfrfyj5hsr6abw5ijmvxbygiozxeavt6me",
+        "scrapedUriDataCbor": "ipfs://bafybeih62dlui4td2bcwxlgjkn63lz2ibqp7i2k3s6a3zmm4xxioj4m6hq",
+        "everyAttribute": "ipfs://bafybeiek26panjzlaqif5ovolak7bgz4kjj7lbsfupixnytjxj47lcu5dq",
+        "everyAttributeCbor":"ipfs://bafkreidwkpbcw2gzxufhnjyamfkl3izdkfzwugzlerzrodr5xldr6ikwwq"
     },
     "0x5af0d9827e0c53e4799bb226655a1de152a425a5" : {
         "type": "milady",
