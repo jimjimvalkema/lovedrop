@@ -276,7 +276,7 @@ export class IpfsIndexer{
         return null;
     }
 
-    async createMiladyDropClaimData(treeDump, allProofs,balancesAsCsv,splitSize=500, uiHash="Qmd9khr3UjLjvYNZoLZnd7W2yeDXDQhp1pdh5hb6KGrBro") {//uiHash:oct7
+    async createMiladyDropClaimData(treeDump, allProofs,balancesAsCsv,idsPerCollection,splitSize=500, uiHash="Qmd9khr3UjLjvYNZoLZnd7W2yeDXDQhp1pdh5hb6KGrBro") {//uiHash:oct7
         const treeDumpHash = (await this.addToIpfs(JSON.stringify(treeDump), "treeDump.json"))["Hash"]
         const rootDirHash = await this.wrapInDirectory(treeDumpHash, "treeDump.json")
         let rootDirDag = await this.getDag(rootDirHash);
@@ -307,6 +307,7 @@ export class IpfsIndexer{
         
         rootDirDag = await this.addHashToDag(await this.putDag(allProofsDag),"allProofs", rootDirDag)
         rootDirDag = await this.addHashToDag((await this.addToIpfs(balancesAsCsv))["Hash"],"balances.csv", rootDirDag)
+        rootDirDag = await this.addHashToDag((await this.addToIpfs(idsPerCollection))["Hash"],"idsPerCollection.json", rootDirDag)
         this.MiladyDropClaimDataHash = await this.putDag(rootDirDag)
         return this.MiladyDropClaimDataHash
 
@@ -356,5 +357,9 @@ export class IpfsIndexer{
     async getProof(nftAddr, id) {
         const proofsIndex = await this.getIpfs(this.allProofsIndex[nftAddr]+"/index.json")
         return await this.getIdFromIndex(id, proofsIndex)
+    }
+
+    async getIdsPerCollection() {
+        return await this.getIpfs(this.MiladyDropClaimDataHash+"/idsPerCollection.json")
     }
 }

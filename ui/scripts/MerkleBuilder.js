@@ -11866,7 +11866,7 @@ export class MerkleBuilder {
         const poofsChunk = new Promise((resolve, reject) => {
           setTimeout(() => {
             resolve(this.getProofsInChunk(chunk));
-          });
+          },1);
         });
         
         proofChunks.push(poofsChunk)
@@ -11957,6 +11957,21 @@ export class MerkleBuilder {
       console.warn("didnt export file todo implement");
     }
   }
+  getIdsPerCollection() {
+    let idsPerCollection = {}
+    for (const balance of this.balances) {
+      const addr =balance[0]
+      const id =balance[1]
+      const amount = balance[2]
+      if (addr in idsPerCollection) {
+        idsPerCollection[addr][id] = amount
+      } else {
+        idsPerCollection[addr] = {[id]:amount}
+      }
+    }
+    return idsPerCollection
+  }
+
 }
 main();
 

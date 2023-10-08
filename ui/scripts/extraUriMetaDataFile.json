@@ -22,7 +22,8 @@
         "scrapedUriData" : "ipfs://bafybeigweabg4xfyrzv3envrqfrfyj5hsr6abw5ijmvxbygiozxeavt6me",
         "scrapedUriDataCbor": "ipfs://bafybeih62dlui4td2bcwxlgjkn63lz2ibqp7i2k3s6a3zmm4xxioj4m6hq",
         "everyAttribute": "ipfs://bafybeiek26panjzlaqif5ovolak7bgz4kjj7lbsfupixnytjxj47lcu5dq",
-        "everyAttributeCbor":"ipfs://bafkreidwkpbcw2gzxufhnjyamfkl3izdkfzwugzlerzrodr5xldr6ikwwq"
+        "everyAttributeCbor":"ipfs://bafkreidwkpbcw2gzxufhnjyamfkl3izdkfzwugzlerzrodr5xldr6ikwwq",
+        "imageFileExtesion":".png"
     },
     "0x5af0d9827e0c53e4799bb226655a1de152a425a5" : {
         "type": "milady",

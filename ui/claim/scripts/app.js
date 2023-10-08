@@ -35,6 +35,7 @@ async function connectSigner() {
     window.signer = provider.getSigner();
     if (isWalletConnected()) {
         await loadAllContracts();
+        await test();
         return [provider, signer];
     }
 }
@@ -94,23 +95,25 @@ async function displayNFTSForClaims(URI, ids) {
 
 
 async function displayAllUserNfts(userAddress, allUriHandlers=window.allUriHandlers,startBlockEventScan=0) {
-    const ticker ="TODO"
     let html = ""
     let collectionHtmlsArr = []
-    let allIds = allUriHandlers.map((nftHandler)=> nftHandler.getIdsOfowner(userAddress, startBlockEventScan))
-    allIds =await Promise.all(allIds);
+    let allIds = window.allUserIds
     console.log(allIds)
+
+    const idsByClaimableStatus = await getClaimableStatus(allIds,window.allEligibleIds)
+    console.log(idsByClaimableStatus)
     for (const i in allUriHandlers) {
         const nftHandler = allUriHandlers[i]
-        const nftAddr = nftHandler.contractObj.address
-        let collectionHtml = `<p>${nftAddr}</p><div id=display-${nftAddr}>`
-        for (const id of allIds[i]) {
-            const amount = "TODO"
+        const nftAddr = await nftHandler.contractObj.address
+        const nftName = await nftHandler.contractObj.name()
+        const idsToDisplay =  [...idsByClaimableStatus[nftAddr].claimable, ...idsByClaimableStatus[nftAddr].claimed, ...idsByClaimableStatus[nftAddr].ineligible]
+        let collectionHtml = `<a>${nftName}<a></br><a style="font-size:0.8em ">${nftAddr}</a><div id=display-${nftAddr}>`
+        for (const id of idsToDisplay) {
             const imgUrl = await nftHandler.getImage(id)
             collectionHtml +=`<div id="${nftAddr}-${id}" onclick="toggleClaim(${nftAddr},${id})" style="position: relative; margin: 2px; cursor:pointer; border:5px solid green; width: 20%; display: inline-block;" >\n
                         <img src="${imgUrl}" style="max-width: 100%; max-height: 100%;">\n 
-                        <div  style="float: right; position: absolute; left: 0px; bottom: 0px; z-index: 1; background-color: rgba(20, 200, 20, 0.8); padding: 5px; color: #FFFFFF; font-weight: bold;">\n
-                            ${amount} ${ticker} claimable :D\n
+                        <div id="claimableStatus${nftAddr}-${id}"   style="float: right; position: absolute; left: 0px; bottom: 0px; z-index: 1; background-color: rgba(20, 200, 20, 0.8); padding: 5px; color: #FFFFFF; font-weight: bold;">\n
+                            checking rn!\n
                         </div>\n
                     </div>\n`
 
@@ -119,7 +122,13 @@ async function displayAllUserNfts(userAddress, allUriHandlers=window.allUriHandl
         collectionHtmlsArr.push(collectionHtml)
     }
 
-    document.getElementById("nftImages").innerHTML = collectionHtmlsArr[0]
+    document.getElementById("nftImages").innerHTML = collectionHtmlsArr.join("")
+    for (const nftAddr of window.allNftAddresses) {
+        const {claimable, claimed, ineligible} = idsByClaimableStatus[nftAddr]
+        setIdClaimbleStatus(nftAddr, claimable, "claimable")
+        setIdClaimbleStatus(nftAddr, claimed, "claimed")
+        setIdClaimbleStatus(nftAddr, ineligible, "ineligible")
+    }
 
 }
 window.displayAllUserNfts = displayAllUserNfts
@@ -169,6 +178,8 @@ async function loadAllContracts() {
 
     //get all nft contracts
     window.allNftAddresses = await window.ipfsIndex.getAllNftAddrs()
+    window.allEligibleIds = await window.ipfsIndex.getIdsPerCollection()
+
     window.allNftContractObjs = allNftAddresses.map((address)=> new ethers.Contract(address, ERC721ABI, window.provider))
     Promise.all(window.allNftContractObjs)
     window.allUriHandlers = window.allNftContractObjs.map((contractObj)=>new uriHandler(contractObj,window.ipfsGateway,true, "../../scripts/extraUriMetaDataFile.json",window.provider ))
@@ -177,10 +188,64 @@ async function loadAllContracts() {
 }
 window.loadAllContracts = loadAllContracts
 
-async function test() {
-    const ids = await window.allUriHandlers[0].getIdsOfowner(await window.signer.getAddress())
-    console.log(ids)
-    console.log(await ipfsIndex.getProof(window.allNftAddresses[0],ids[0]))
+function isClaimed() {
+    console.warn("isClaimed is not implemted yet")
+    return false
+}
+
+function setIdClaimbleStatus(nftAddr, ids, claimableStatus){
+    for (const id of ids) {
+        switch (claimableStatus) {
+            case "ineligible":
+                document.getElementById(`claimableStatus${nftAddr}-${id}`).innerText = `not eligible :(`
+                break;
+            case "claimed":
+                document.getElementById(`claimableStatus${nftAddr}-${id}`).innerText = `claimed :/`
+                break;
+            case "claimable":
+                document.getElementById(`claimableStatus${nftAddr}-${id}`).innerText = `claimable :D`
+                break; 
+            default:
+                document.getElementById(`claimableStatus${nftAddr}-${id}`).innerText = "uhmm uuuh idk this is a bug";
+        }
+    }
+
+}
+
+async function getClaimableStatus(allUserIds=window.allUserIds, allEligibleIds = window.allEligibleIds) {
+    let idsByClaimableStatus = {}
+    for (const nftAddr of (await window.ipfsIndex.getAllNftAddrs())) {
+        const EligibleIdsCurrentNft  = Object.keys(allEligibleIds[nftAddr])
+        console.log(allUserIds)
+        console.log(`am at ${nftAddr}`)
+        let ids = allUserIds[nftAddr]
+        console.log(ids)
+        const eligibleUserIds = ids.filter((x)=>EligibleIdsCurrentNft.indexOf(x)!==-1) 
+        const ineligibleIds =  ids.filter((x)=>EligibleIdsCurrentNft.indexOf(x)===-1) 
+        const allClaimedUserIds = eligibleUserIds.filter((x)=>isClaimed(x))
+
+        idsByClaimableStatus[nftAddr] = {["claimable"]:eligibleUserIds , ["claimed"]:allClaimedUserIds , ["ineligible"]:ineligibleIds}
+    }
+    return idsByClaimableStatus
+}
+
+async function getAllUserBalances(userAddress,allNftHandlers=window.allUriHandlers) {
+    let userBalances = []
+    let nftAddrs = []
+    for (const nftHandler of allNftHandlers) {
+        nftAddrs.push( nftHandler.contractObj.address)
+        userBalances.push(nftHandler.getIdsOfowner(userAddress))
+    }
+    userBalances = await Promise.all(userBalances)
+    return Object.fromEntries(nftAddrs.map((x,i)=>[x,userBalances[i] ]))
+
+}
+window.getAllUserBalances = getAllUserBalances
+
+async function test() {    
+    const userAddress = await window.signer.getAddress()
+    window.allUserIds = await getAllUserBalances(userAddress, window.allUriHandlers)
+    await displayAllUserNfts(userAddress)
 
 }
 window.test = test

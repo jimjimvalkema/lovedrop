@@ -546,7 +546,8 @@ async function buildTreeAndProofsIpfs(balances) {
 
     //add to ipfs
     const csvString = await merkleBuilder.exportBalancesCsv("",true)
-    const hash = await ipfsIndex.createMiladyDropClaimData(merkleBuilder.tree.dump(),merkleBuilder.allProofs, csvString ,500)
+    const idsPerCollection = JSON.stringify(merkleBuilder.getIdsPerCollection())
+    const hash = await ipfsIndex.createMiladyDropClaimData(merkleBuilder.tree.dump(),merkleBuilder.allProofs, csvString,idsPerCollection,500)
     document.getElementById("progressProofGen").innerText = `added claim to ipfs at: ${hash}`
     window.claimDataIpfs = hash
 }
@@ -554,7 +555,7 @@ async function buildTreeAndProofsIpfs(balances) {
 async function generateMerkleFromCsvFile() {
     const csvString = await currentFile.text()
     await setTimeout(function(){(document.getElementById("progressProofGen").innerText = (`parsing csv`))})
-    const balances = Papa.parse(csvString)["data"].map((line)=>line.slice(1)).filter((line)=>line.length!==0) //remove contract names and empty lines
+    const balances = Papa.parse(csvString)["data"].map((line)=>line.slice(0,-1)).filter((line)=>line.length!==0) //remove contract names and empty lines
     await buildTreeAndProofsIpfs(balances)
 }
 window.generateMerkleFromCsvFile = generateMerkleFromCsvFile

@@ -146,7 +146,12 @@ export class uriHandler {
             }
         }
         if (this.useCustomCompressedImages && ((await this.extraUriMetaData).baseUriCompressed)) {
-            return `${await this.getCompressedImages()}/${id}.jpg`;
+            let extension = ".jpg"
+            if ("imageFileExtesion" in (await this.extraUriMetaData)) {
+                console.log( await (this.extraUriMetaData).imageFileExtesion)
+                extension = (await this.extraUriMetaData).imageFileExtesion
+            }
+            return `${await this.getCompressedImages()}/${id}${extension}`;
         }
 
         let imgURL = "";
