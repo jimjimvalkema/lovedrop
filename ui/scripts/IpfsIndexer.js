@@ -1,8 +1,10 @@
-class ipfsIndexer{
+export class IpfsIndexer{
     dropsRootHash = null;
     index = null;
     isGateway = null;
     metaData = null;
+    MiladyDropClaimDataHash;
+    allProofsIndex;
 
     constructor(url, auth=null, isGateway=true) {
         this.auth = auth;
@@ -194,96 +196,6 @@ class ipfsIndexer{
         return dag
     }
 
-    async createIpfsIndex(balanceMapJson, splitSize=780, metaData=null) {
-        this.metaData = metaData;
-        // TODO make more generic and not assume it has ["claims"]
-        // TODO ipfs root hash that contains all files needed to claim (ui, balance tree, contracts addres, chainid, etc)
-        // build it
-
-        //split object
-        this.message(`splitting: ${balanceMapJson["claims"].length} proofs into chunks of size: ${splitSize}`);
-        const split = this.splitObject(balanceMapJson["claims"], splitSize); //780);
-        console.log("done")
-
-        //add to ipfs
-        const cids = await this.addObjectsToIpfs(split);
-        let dag = this.dagFromCids(cids);
-        let hash = await this.putDag(dag)
-        hash = await this.wrapInDirectory(hash, "data");
-        dag = await this.getDag(hash);
-
-        //create index
-        const index = this.indexFromCids(cids);
-        this.index = index
-
-        //add to ipfs
-        dag = await this.addObjectToDag(dag, index, "index.json");
-        dag = await this.addObjectToDag(dag, metaData, "metadata.json");
-        const newHashWithIndex = await this.putDag(dag)
-
-        this.dropsRootHash = newHashWithIndex;
-        this.message(`claims index ipfs hash: ${newHashWithIndex}`)
-        return this.dropsRootHash
-    }
-
-    async createClaimData(treeDump, allProofs,balancesAsCsv,splitSize=500, uiHash="Qmd9khr3UjLjvYNZoLZnd7W2yeDXDQhp1pdh5hb6KGrBro") {//uiHash:oct7
-        const treeDumpHash = (await this.addToIpfs(JSON.stringify(treeDump), "treeDump.json"))["Hash"]
-        const rootDirHash = await this.wrapInDirectory(treeDumpHash, "treeDump.json")
-        let rootDirDag = await this.getDag(rootDirHash);
-        rootDirDag = await this.addHashToDag(uiHash,"ui", rootDirDag)
-        let allProofsDag = {"Data": {"/":{"bytes": "CAE"}},"Links":[]}
-        //console.log(allProofs.proofPerAddress)
-        let indexHasPerNftAddr = {}
-        for (const nftAddr in allProofs.proofPerAddress) {
-            const split = this.splitObject(allProofs.proofPerAddress[nftAddr].ids,splitSize)
-            const cids = await this.addObjectsToIpfs(split);
-            let dag = this.dagFromCids(cids);
-            let hash = await this.putDag(dag)
-            hash = await this.wrapInDirectory(hash, "data");
-            dag = await this.getDag(hash);
-
-            //create index
-            const index = this.indexFromCids(cids);
-            this.indexes.push(index)
-
-            //add to ipfs
-            dag = await this.addObjectToDag(dag, index, "index.json");
-            const newHashWithIndex = await this.putDag(dag)
-            indexHasPerNftAddr[nftAddr] = newHashWithIndex;
-            this.addHashToDag(newHashWithIndex,`${nftAddr}`,allProofsDag)
-        }
-        
-        allProofsDag = await this.addObjectToDag(allProofsDag,indexHasPerNftAddr,"index.json")
-        
-        rootDirDag = await this.addHashToDag(await this.putDag(allProofsDag),"allProofs", rootDirDag)
-        rootDirDag = await this.addHashToDag((await this.addToIpfs(balancesAsCsv))["Hash"],"balances.csv", rootDirDag)
-        this.dropsRootHash = await this.putDag(rootDirDag)
-        return this.dropsRootHash
-
-        //root
-            //ui folder
-                //ui shit
-            
-            //treedump.json                     <= {the entire tree}
-            //balances.csv                      <= [[nftAddr,id,amout],etc] (as csv ofc)
-            //metaData.json                     <= {nftAddrs:[], eligibleIds:{"0x1":[],"0x2":[]} }
-
-            //allProofs
-                //allProofsIndex.json           <= {"0x1":"HashOf-0x1-index.json"}
-                //0x1
-                    //0x1-index.json
-                    //data
-                        //0-100-0x1.json 
-                        //100-200-0x1.json
-                //0x2
-                    //0x2-index.json            <= [{"start":0, "stop":100, "hash":"hashOf_0-100-0x2.json"}, etc]
-                    //data
-                        //0-100-0x2.json
-                        //100-200-0x2.json      <= {"100":{"proof":["bytes32",etc]}, etc }
-
-
-    }
-
     async addHashToDag(hash,name,dag) {
         dag.Links.push({"Hash":{"/":hash},"Name":name})
         return dag
@@ -313,6 +225,7 @@ class ipfsIndexer{
     async getHashFromIpfsPath(path) {
         let pathL = path.split("/");
         let hash = pathL[0];
+        if (pathL.length<2){return hash}
         let currentDag = await this.getDag(hash);
         for (let i=1; i<pathL.length; i++) {
             for (let j=0; j<currentDag['Links'].length; j++) {
@@ -349,17 +262,13 @@ class ipfsIndexer{
         }
     }
 
-    async getIdFromIndex(id) {
+    async getIdFromIndex(id, index=this.index) {
         console.log(`getting id: ${id}`)
         let obj = {};
-        for (let i=0; i<this.index.length; i++) {
-            if (parseInt(this.index[i].start) <= id &&  parseInt(this.index[i].stop) >= id ) {
-                console.log(`fetching id: ${id} from index at ${this.index[i].hash}`)
-                if (this.isGateway==true) {
-                    obj = await this.getWithGateWayIpfs(this.index[i].hash);
-                } else {
-                    obj = await this.getWithCatIpfs(this.index[i].hash);
-                } 
+        for (let i=0; i<index.length; i++) {
+            if (parseInt(index[i].start) <= id &&  parseInt(index[i].stop) >= id ) {
+                console.log(`fetching id: ${id} from index at ${index[i].hash}`)
+                obj = await this.getIpfs(index[i].hash)
                 return obj[id.toString()];
             }
         }
@@ -367,7 +276,85 @@ class ipfsIndexer{
         return null;
     }
 
+    async createMiladyDropClaimData(treeDump, allProofs,balancesAsCsv,splitSize=500, uiHash="Qmd9khr3UjLjvYNZoLZnd7W2yeDXDQhp1pdh5hb6KGrBro") {//uiHash:oct7
+        const treeDumpHash = (await this.addToIpfs(JSON.stringify(treeDump), "treeDump.json"))["Hash"]
+        const rootDirHash = await this.wrapInDirectory(treeDumpHash, "treeDump.json")
+        let rootDirDag = await this.getDag(rootDirHash);
+        rootDirDag = await this.addHashToDag(uiHash,"ui", rootDirDag)
+        let allProofsDag = {"Data": {"/":{"bytes": "CAE"}},"Links":[]}
+        //console.log(allProofs.proofPerAddress)
+        let indexHasPerNftAddr = {}
+        for (const nftAddr in allProofs.proofPerAddress) {
+            const split = this.splitObject(allProofs.proofPerAddress[nftAddr].ids,splitSize)
+            const cids = await this.addObjectsToIpfs(split);
+            let dag = this.dagFromCids(cids);
+            let hash = await this.putDag(dag)
+            hash = await this.wrapInDirectory(hash, "data");
+            dag = await this.getDag(hash);
+
+            //create index
+            const index = this.indexFromCids(cids);
+            this.indexes.push(index)
+
+            //add to ipfs
+            dag = await this.addObjectToDag(dag, index, "index.json");
+            const newHashWithIndex = await this.putDag(dag)
+            indexHasPerNftAddr[nftAddr] = newHashWithIndex;
+            this.addHashToDag(newHashWithIndex,`${nftAddr}`,allProofsDag)
+        }
+        
+        allProofsDag = await this.addObjectToDag(allProofsDag,indexHasPerNftAddr,"index.json")
+        
+        rootDirDag = await this.addHashToDag(await this.putDag(allProofsDag),"allProofs", rootDirDag)
+        rootDirDag = await this.addHashToDag((await this.addToIpfs(balancesAsCsv))["Hash"],"balances.csv", rootDirDag)
+        this.MiladyDropClaimDataHash = await this.putDag(rootDirDag)
+        return this.MiladyDropClaimDataHash
+
+        //root
+            //ui folder
+                //ui shit
+            
+            //treedump.json                     <= {the entire tree}
+            //balances.csv                      <= [[nftAddr,id,amout],etc] (as csv ofc)
+            //metaData.json                     <= {nftAddrs:[], eligibleIds:{"0x1":[],"0x2":[]} }
+
+            //allProofs
+                //index.json           <= {"0x1":"HashOf-0x1-index.json"}
+                //0x1
+                    //index.json
+                    //data
+                        //0-100.json 
+                        //100-200.json
+                //0x2
+                    //index.json            <= [{"start":0, "stop":100, "hash":"hashOf_0-100-0x2.json"}, etc]
+                    //data
+                        //0-100.json
+                        //100-200.json      <= {"100":{"proof":["bytes32",etc]}, etc }
 
 
+    }   
 
+    async getIpfs(hashPath){
+        let jsonObj
+        if (this.isGateway==true) {
+            jsonObj= await this.getWithGateWayIpfs(hashPath);
+        } else {
+            jsonObj = await this.getWithCatIpfs((await this.getHashFromIpfsPath(hashPath)));
+        }
+        return jsonObj
+    }
+
+    async loadIndexMiladyDropClaimData(dropsRootHash) {
+        this.MiladyDropClaimDataHash = dropsRootHash;
+        this.allProofsIndex = await this.getIpfs(dropsRootHash+"/allProofs/index.json");
+    }
+
+    getAllNftAddrs() {
+        return Object.keys(this.allProofsIndex)
+    }
+
+    async getProof(nftAddr, id) {
+        const proofsIndex = await this.getIpfs(this.allProofsIndex[nftAddr]+"/index.json")
+        return await this.getIdFromIndex(id, proofsIndex)
+    }
 }
