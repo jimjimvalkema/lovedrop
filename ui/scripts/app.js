@@ -466,7 +466,7 @@ async function loadNft() {
 
     const nftAddressInput = ethers.utils.getAddress(document.getElementById("nftAddressAttributeSelector").value)
     const nftContract = await getNftContract(provider, nftAddressInput);
-    window.URI = await new uriHandler(nftContract, window.ipfsGateway,true, "./scripts/extraUriMetaDataFile.json")
+    window.URI = await new uriHandler(nftContract, window.ipfsGateway,true, "./scripts/extraUriMetaDataFile.json", window.provider)
     window.baseURI = await window.URI.getBaseURI()
     let fullUrl = "nonstandard tokenURI function TODO"
     if (!(await window.URI.extraUriMetaData).everyAttributeCbor && (!localStorage.hasOwnProperty(window.URI.contractObj.address))) {
