@@ -61,7 +61,7 @@ async function displayNFTSForClaims(URI, ids) {
     for (let i = 0; i < ids.length; i++ ) {
         console.log(ids[i])
         url = await URI.getImage(ids[i])
-        let claimData = await ipfsIndex.getIdFromIndex(ids[i])
+        let claimData = await window.ipfsIndex.getIdFromIndex(ids[i])
         if (claimData===null) {
             noClaimImagesHTML += `<div id="NFT${ids[i]}" style="position: relative; margin: 2px; border:5px solid black; width: 20%; display: inline-block;" >
                 <img src="${url}" style="max-width: 100%; max-height: 100%;">\n 
@@ -92,6 +92,38 @@ async function displayNFTSForClaims(URI, ids) {
     document.getElementById("nftImages").innerHTML = unClaimedImagesHTML + claimedImagesHTML + noClaimImagesHTML;
 } 
 
+
+async function displayAllUserNfts(userAddress, allUriHandlers=window.allUriHandlers,startBlockEventScan=0) {
+    const ticker ="TODO"
+    let html = ""
+    let collectionHtmlsArr = []
+    let allIds = allUriHandlers.map((nftHandler)=> nftHandler.getIdsOfowner(userAddress, startBlockEventScan))
+    allIds =await Promise.all(allIds);
+    console.log(allIds)
+    for (const i in allUriHandlers) {
+        const nftHandler = allUriHandlers[i]
+        const nftAddr = nftHandler.contractObj.address
+        let collectionHtml = `<p>${nftAddr}</p><div id=display-${nftAddr}>`
+        for (const id of allIds[i]) {
+            const amount = "TODO"
+            const imgUrl = await nftHandler.getImage(id)
+            collectionHtml +=`<div id="${nftAddr}-${id}" onclick="toggleClaim(${nftAddr},${id})" style="position: relative; margin: 2px; cursor:pointer; border:5px solid green; width: 20%; display: inline-block;" >\n
+                        <img src="${imgUrl}" style="max-width: 100%; max-height: 100%;">\n 
+                        <div  style="float: right; position: absolute; left: 0px; bottom: 0px; z-index: 1; background-color: rgba(20, 200, 20, 0.8); padding: 5px; color: #FFFFFF; font-weight: bold;">\n
+                            ${amount} ${ticker} claimable :D\n
+                        </div>\n
+                    </div>\n`
+
+        }
+        collectionHtml += `</div>`
+        collectionHtmlsArr.push(collectionHtml)
+    }
+
+    document.getElementById("nftImages").innerHTML = collectionHtmlsArr[0]
+
+}
+window.displayAllUserNfts = displayAllUserNfts
+
 function toggleUsersChosenIdsToClaim(id) {
     //TODO add remove as function
 
@@ -107,6 +139,7 @@ function toggleUsersChosenIdsToClaim(id) {
         document.getElementById(`NFT${id}`).style.border = "5px solid blue";
     }
 }
+window.toggleUsersChosenIdsToClaim = toggleUsersChosenIdsToClaim
 
 async function runOnLoad() {
     await loadAllContracts()
@@ -136,9 +169,9 @@ async function loadAllContracts() {
 
     //get all nft contracts
     window.allNftAddresses = await window.ipfsIndex.getAllNftAddrs()
-    window.allNftContractObj = allNftAddresses.map((address)=> new ethers.Contract(address, ERC721ABI, window.provider))
-    Promise.all(allNftContractObj)
-    window.allUriHandlers = allNftContractObj.map((contractObj)=>new uriHandler(contractObj,window.ipfsGateway,true, "../../scripts/extraUriMetaDataFile.json",window.provider ))
+    window.allNftContractObjs = allNftAddresses.map((address)=> new ethers.Contract(address, ERC721ABI, window.provider))
+    Promise.all(window.allNftContractObjs)
+    window.allUriHandlers = window.allNftContractObjs.map((contractObj)=>new uriHandler(contractObj,window.ipfsGateway,true, "../../scripts/extraUriMetaDataFile.json",window.provider ))
 
 
 }
@@ -147,7 +180,7 @@ window.loadAllContracts = loadAllContracts
 async function test() {
     const ids = await window.allUriHandlers[0].getIdsOfowner(await window.signer.getAddress())
     console.log(ids)
-    console.log(await ipfsIndex.getProof("0xbf4a480D3009348FDF523A43Ba33220566fC1e4E",ids[0]))
+    console.log(await ipfsIndex.getProof(window.allNftAddresses[0],ids[0]))
 
 }
 window.test = test
