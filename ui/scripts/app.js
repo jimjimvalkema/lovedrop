@@ -1,6 +1,7 @@
 import { uriHandler } from "./uriHandler.js";
 import  {ethers} from "../scripts/ethers-5.2.esm.min.js"
 import { MerkleBuilder } from "./MerkleBuilder.js";
+import { IpfsIndexer } from "../scripts/IpfsIndexer.js";
 
 
 
@@ -244,7 +245,7 @@ window.claimIndexIpfsFromCsv = claimIndexIpfsFromCsv
 //TODO remove default value
 async function deployDropContract(requiredNFTAddress = ["0xd9C63956E65E7484bB513535d675f549AD480F6d", "0x906125935407a8754a83eA01D396Ac43c8116288"], airDropTokenAddress = "0xc526526197d3027923afe3C1009F69f016940C14", ipfsIndex = window.ipfsIndex) {
     const merkleRoot = window.merkleBuilder.merkleRoot//ipfsIndex.metaData.merkleRoot;
-    const claimDataIpfs = "TODO"//ipfsIndex.dropsRootHash;
+    const claimDataIpfs = window.claimDataIpfs//ipfsIndex.dropsRootHash;
 
 
     if (isWalletConnected()) {
@@ -541,13 +542,19 @@ async function buildTreeAndProofsIpfs(balances) {
     window.merkleBuilder = new MerkleBuilder(balances,window.provider)
     setTimeout(function(){(document.getElementById("progressProofGen").innerText = (`done building tree, calculating all ${balances.length} proofs`))},100)
     await window.merkleBuilder.getAllProofsInChunks()
-    console.log("done generating proofs")
+    document.getElementById("progressProofGen").innerText = "done calculating proofs adding to ipfs"
+
+    //add to ipfs
+    const csvString = await merkleBuilder.exportBalancesCsv("",true)
+    const hash = await ipfsIndex.createMiladyDropClaimData(merkleBuilder.tree.dump(),merkleBuilder.allProofs, csvString ,500)
+    document.getElementById("progressProofGen").innerText = `added claim to ipfs at: ${hash}`
+    window.claimDataIpfs = hash
 }
 
 async function generateMerkleFromCsvFile() {
     const csvString = await currentFile.text()
     await setTimeout(function(){(document.getElementById("progressProofGen").innerText = (`parsing csv`))})
-    const balances = Papa.parse(csvString)["data"].map((line)=>line.slice(1)).filter((line)=>line.length!==0) //remove contract names
+    const balances = Papa.parse(csvString)["data"].map((line)=>line.slice(1)).filter((line)=>line.length!==0) //remove contract names and empty lines
     await buildTreeAndProofsIpfs(balances)
 }
 window.generateMerkleFromCsvFile = generateMerkleFromCsvFile
@@ -676,7 +683,7 @@ async function runOnLoad() {
     }
 
     console.log(window.auth)
-    window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth, true);
+    window.ipfsIndex = new IpfsIndexer(window.ipfsApi, window.auth, false);
 
     await loadAllContracts()
     //test()
@@ -692,9 +699,5 @@ async function loadAllContracts() {
     window.miladyDropFactoryContractWithSigner = await window.miladyDropFactoryContract.connect(window.signer);
     //on claim ui -> window.nftContract = await getNftContract(provider, "0xbAa9CBDAc7A1E3f376192dFAC0d41FcE4FC4a564");
     window.nftContract = await getNftContract(provider, urlVars["nft"]);
-    //load indexer
-    //claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
-    //window.ipfsIndex = new ipfsIndexer(window.ipfsApi, window.auth , isGateway=false);
-    //await window.ipfsIndex.loadIndex(claimDataIpfsHash);
 }
 window.loadAllContracts = loadAllContracts

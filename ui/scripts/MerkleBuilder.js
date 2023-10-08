@@ -11909,7 +11909,7 @@ export class MerkleBuilder {
   }
   exportSingleProofSolidity(filePath = "") {
   }
-  async exportBalancesCsv(fileDest, prettyPrint = 0) {
+  async exportBalancesCsv(fileDest="",justString=false) {
     const abi = [
       {
         inputs: [],
@@ -11927,12 +11927,14 @@ export class MerkleBuilder {
     ];
     let addrToNameMap = {};
     for (const addr of this.allContractAddrs) {
-      console.log(addr);
       const constractObj = new ethers.Contract(addr, abi, this.provider);
+      console.log(addr)
       addrToNameMap[addr] = await constractObj.name();
     }
-    const balancesWithNftName = this.balances.map((x) => [addrToNameMap[ethers.utils.getAddress(x[0])], ...x]);
-    this.exportObjAsFile(Papa.unparse(balancesWithNftName), fileDest, prettyPrint);
+    const balancesWithNftName = this.balances.map((x) => [...x,addrToNameMap[ethers.utils.getAddress(x[0])]]);
+    const csvString = Papa.unparse(balancesWithNftName)
+    if(justString) {return csvString}
+    this.exportObjAsFile(csvString, fileDest);
   }
   async exportTree(dest, prettyPrint = 0) {
     await this.exportObjAsFile(this.tree.dump(), dest, prettyPrint);
