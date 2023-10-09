@@ -11824,6 +11824,9 @@ export class MerkleBuilder {
     }
     return indexes;
   }
+  loadTreeDump(treeDumpObj) {
+    this.tree = merkle_tree.StandardMerkleTree.load(treeDumpObj);
+  }
   getMultiProof(idsPerNftAddr) {
     return this.tree.getMultiProof(this.getTreeIndexes(idsPerNftAddr));
   }

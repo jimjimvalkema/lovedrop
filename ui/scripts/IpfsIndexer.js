@@ -362,4 +362,8 @@ export class IpfsIndexer{
     async getIdsPerCollection() {
         return await this.getIpfs(this.MiladyDropClaimDataHash+"/idsPerCollection.json")
     }
+
+    async getTreeDump() {
+        return await this.getIpfs(this.MiladyDropClaimDataHash+"/treeDump.json")
+    }
 }
