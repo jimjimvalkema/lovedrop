@@ -1065,6 +1065,8 @@ export class uriHandler {
     async getIdsOfownerWithOwnerByindex(ownerAddres, nftContrObj = this.contractObj) {
         let foundIds = []
         const balance = await nftContrObj.balanceOf(ownerAddres);
+        //test if it works so we error early
+        if (balance) {await this.contractObj.tokenOfOwnerByIndex(ownerAddres, i)}
         for (let i = 0; i < balance; i++) {
             foundIds.push(this.contractObj.tokenOfOwnerByIndex(ownerAddres, i))
         }
