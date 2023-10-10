@@ -195,9 +195,12 @@ async function loadAllContracts() {
     //abis
     const mildayDropAbi = await (await fetch("../abi/mildayDropAbi.json")).json()//update mildayDropAbi.json
     const ERC721ABI = await (await fetch("../abi/ERC721ABI.json")).json()
+    const ER20ABI = await (await fetch("../abi/ERC20ABI.json")).json()
 
     //miladyDrop Contract
     window.mildayDropContract = new ethers.Contract(window.urlVars["mildayDropAddress"], mildayDropAbi, window.provider);
+    window.airdropTokenContract = new ethers.Contract( await mildayDropContract.airdropTokenAddress(), ER20ABI, window.provider)
+    window.ticker = await window.airdropTokenContract.symbol()
 
 
     //load ipfs data
@@ -211,24 +214,32 @@ async function loadAllContracts() {
     for (const nftAddr of window.allNftAddresses) {
         window.selectedIds[nftAddr] = new Set()
     }
-    window.allEligibleIds = await window.ipfsIndex.getIdsPerCollection()
+    //window.allEligibleIds = window.ipfsIndex.getIdsPerCollection()
 
     window.allNftContractObjs = allNftAddresses.map((address) => new ethers.Contract(address, ERC721ABI, window.provider))
     await Promise.all(window.allNftContractObjs)
     window.allUriHandlers = window.allNftContractObjs.map((contractObj) => new uriHandler(contractObj, window.ipfsGateway, true, "../../scripts/extraUriMetaDataFile.json", window.provider))
+
     connectSigner()
-    window.treeDump = window.ipfsIndex.getTreeDump()
+    window.merkleBuilder = loadMerkleBuilder()
+    window.idsPerCollection = window.ipfsIndex.getIdsPerCollection()
 }
 window.loadAllContracts = loadAllContracts
 
-async function getMultiProof(idsPerNftAddr) {
+async function loadMerkleBuilder() {
+    console.log("started loading merkle tree")
     if (!window.merkleBuilder) {
+        const tree = await window.ipfsIndex.getTreeDump()
         window.merkleBuilder = new MerkleBuilder()
-        window.merkleBuilder.loadTreeDump(await window.treeDump)
+        window.merkleBuilder.loadTreeDump(tree)
     }
+    console.log("done loading merkle tree")
+    return window.merkleBuilder
+}
+async function getMultiProof(idsPerNftAddr) {
     let idsPerNftAddrWithArrays = {}
     Object.keys(idsPerNftAddr).map((x) => idsPerNftAddrWithArrays[x] = [...idsPerNftAddr[x]])
-    return window.merkleBuilder.getMultiProof(idsPerNftAddrWithArrays)
+    return (await window.merkleBuilder).getMultiProof(idsPerNftAddrWithArrays)
 }
 
 async function resetSelection() {
@@ -252,13 +263,14 @@ async function claimSelected() {
         const nftAddresses = leaves.map((x) => ethers.utils.getAddress(x[0]))
         const ids = leaves.map((x) => x[1])
         const amounts = leaves.map((x) => x[2])
+        console.log(ids)
         //console.log(`"${JSON.stringify(proof).replaceAll("\"","")}" "${JSON.stringify(proofFlags).replaceAll("\"","")}" "${JSON.stringify(ids).replaceAll("\"","")}" "${JSON.stringify(amounts).replaceAll("\"","")}"  "${JSON.stringify(nftAddresses).replaceAll("\"","")}"`)
         let tx = await mildayDropWithSigner.claimMultiple(proof, proofFlags, ids, amounts, nftAddresses)
         let receipt = await tx.wait(1)
         message("claimed :)")
-        window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, window.allEligibleIds)
+        window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, await window.idsPerCollection)
         resetSelection()
-        window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, window.allEligibleIds)
+        window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, await window.idsPerCollection)
         displayAllUserNfts(signer.address)
     } else {
         const nftAddr = Object.keys(window.selectedIds).find((x)=>window.selectedIds[x].size)
@@ -273,7 +285,7 @@ async function claimSelected() {
         let tx = await mildayDropWithSigner.claim(proof,id,amount,nftAddr)
         let receipt = await tx.wait(1)
         message("claimed :)")
-        window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, window.allEligibleIds)
+        window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, await window.idsPerCollection)
         resetSelection()
 
     }
@@ -284,10 +296,11 @@ async function isClaimed(nftAddr, id) {
     return await window.mildayDropContract.isClaimed(nftAddr, id)
 }
 
-function setIdClaimableStatus(nftAddr, ids, claimableStatus) {
+async function setIdClaimableStatus(nftAddr, ids, claimableStatus) {
     for (const id of ids) {
         const elementId = `claimableStatus-${nftAddr}-${id}`
         const rootDivId = `${nftAddr}-${id}`
+        let amount = undefined; 
         switch (claimableStatus) {
             case "ineligible":
                 document.getElementById(elementId).innerText = `not eligible :(`
@@ -304,14 +317,16 @@ function setIdClaimableStatus(nftAddr, ids, claimableStatus) {
                 document.getElementById(rootDivId).style.cursor = "default"
                 break;
             case "claimable":
-                document.getElementById(elementId).innerText = `claimable :D`
+                amount = ethers.utils.formatEther((await window.idsPerCollection)[nftAddr][id])
+                document.getElementById(elementId).innerText = `${amount} ${window.ticker}\nclaimable :D`
                 document.getElementById(elementId).style.backgroundColor = "rgba(20, 200, 20, 0.8)"
                 document.getElementById(rootDivId).style.borderColor = "rgba(20, 200, 20, 0.8)"
                 document.getElementById(rootDivId).onclick = function () { toggleClaim(structuredClone(nftAddr), structuredClone(id)) }
                 document.getElementById(rootDivId).style.cursor = "pointer"
                 break;
             case "selected":
-                document.getElementById(elementId).innerText = `selected\nclick to undo`
+                amount = ethers.utils.formatEther((await window.idsPerCollection)[nftAddr][id])
+                document.getElementById(elementId).innerText = `${amount} ${window.ticker}\nselected :0`
                 document.getElementById(elementId).style.backgroundColor = "rgba(20, 20, 150, 0.8)"
                 document.getElementById(rootDivId).style.borderColor = "rgba(20, 20, 150, 0.8)"
                 document.getElementById(rootDivId).onclick = function () { toggleClaim(structuredClone(nftAddr), structuredClone(id)) }
@@ -347,7 +362,7 @@ function selectAll() {
 }
 window.selectAll = selectAll
 
-async function getClaimableStatus(allUserIds = window.allUserIds, allEligibleIds = window.allEligibleIds) {
+async function getClaimableStatus(allUserIds = window.allUserIds, allEligibleIds) {
     let idsByClaimableStatus = {}
     for (const nftAddr of (await window.ipfsIndex.getAllNftAddrs())) {
         const EligibleIdsCurrentNft = Object.keys(allEligibleIds[nftAddr])
@@ -381,7 +396,7 @@ window.getAllUserBalances = getAllUserBalances
 async function test() {
     const userAddress = await window.signer.getAddress()
     window.allUserIds = await getAllUserBalances(userAddress, window.allUriHandlers)
-    window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, window.allEligibleIds)
+    window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, await window.idsPerCollection)
     await displayAllUserNfts(userAddress)
 
 }
