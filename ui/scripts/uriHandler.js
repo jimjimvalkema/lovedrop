@@ -148,7 +148,7 @@ export class uriHandler {
         if (this.useCustomCompressedImages && ((await this.extraUriMetaData).baseUriCompressed)) {
             let extension = ".jpg"
             if ("imageFileExtesion" in (await this.extraUriMetaData)) {
-                console.log( await (this.extraUriMetaData).imageFileExtesion)
+                //console.log( await (this.extraUriMetaData).imageFileExtesion)
                 extension = (await this.extraUriMetaData).imageFileExtesion
             }
             return `${await this.getCompressedImages()}/${id}${extension}`;
@@ -1066,7 +1066,7 @@ export class uriHandler {
         let foundIds = []
         const balance = await nftContrObj.balanceOf(ownerAddres);
         //test if it works so we error early
-        if (balance) {await this.contractObj.tokenOfOwnerByIndex(ownerAddres, i)}
+        if (balance) {await this.contractObj.tokenOfOwnerByIndex(ownerAddres, 0)}
         for (let i = 0; i < balance; i++) {
             foundIds.push(this.contractObj.tokenOfOwnerByIndex(ownerAddres, i))
         }
