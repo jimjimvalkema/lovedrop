@@ -5,12 +5,12 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import {IMiladyDrop} from "./interfaces/IMiladyDrop.sol";
+import {ILoveDrop} from "./interfaces/ILoveDrop.sol";
 
 error AlreadyClaimed();
 error InvalidProof();
 
-contract MiladyDrop is IMiladyDrop,Initializable {
+contract LoveDrop is ILoveDrop,Initializable {
     using SafeERC20 for IERC20;
 
     //mapping(uint16 => address) public requiredNFTAddresses;

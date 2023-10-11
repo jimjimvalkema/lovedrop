@@ -2,7 +2,7 @@
 pragma solidity >=0.5.0;
 
 // Allows anyone to claim a token if they exist in a merkle root.
-interface IMiladyDrop {
+interface ILoveDrop {
     function claimDataIpfs() external view returns (string calldata);
 
     //TODO interface for the public mappings
