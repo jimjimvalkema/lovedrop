@@ -25,7 +25,7 @@
         "everyAttributeCbor":"ipfs://bafkreidwkpbcw2gzxufhnjyamfkl3izdkfzwugzlerzrodr5xldr6ikwwq",
         "imageFileExtesion":".png"
     },
-    "0x5af0d9827e0c53e4799bb226655a1de152a425a5" : {
+    "0x5Af0D9827E0c53E4799BB226655A1de152A425a5" : {
         "type": "milady",
         "name": "miladyMainnet",
         "correctedMetaDataSeparatedFiles":"bafybeiawqw7zaoliz2rjgiqwzyykwzjsmr24i3a6paazalmqijsldtfg7i",
@@ -37,7 +37,7 @@
         
     },
 
-    "0x67b5ee6e29a4230177dda07ad7848e42d89cf9a0" : {
+    "0x67B5eE6e29a4230177Dda07AD7848e42d89cF9a0" : {
         "type": "standard",
         "name": "mifairymaker",
         "idStartsAt":1,

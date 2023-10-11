@@ -1,7 +1,7 @@
 
 //const { error } = require("console");
 
-//import  {ethers} from "../scripts/ethers-5.2.esm.min.js"
+import  {ethers} from "../scripts/ethers-5.2.esm.min.js"
 /**
  * This function allow you to modify a JS Promise by adding some status properties.
  * Based on: http://stackoverflow.com/questions/21485545/is-there-a-way-to-tell-if-an-es6-promise-is-fulfilled-rejected-resolved
@@ -252,7 +252,6 @@ export class uriHandler {
     async getExtraUriMetaData(contractObj, extraUriMetaDataFile) {
         let extraUriMetaData = await (await fetch(extraUriMetaDataFile)).json();
         const contractAddr = (await contractObj.address)
-        console.log(contractAddr, Object.keys(extraUriMetaData))
         if (contractAddr in extraUriMetaData) {
             return extraUriMetaData[contractAddr]
         } else {
@@ -354,7 +353,6 @@ export class uriHandler {
         // }
         Object.assign(allUris, allUrisFulFilled)
         allUris = await Promise.all(allUris)
-        console.log(allUris)
         return allUris
     }
 
@@ -443,7 +441,7 @@ export class uriHandler {
         }
 
         //const URI =  await (await this.getUrlByProtocol()).json()
-        while (retries < 4) {
+        while (retries < 2) {
             try {
                 //await (await fetch("https://arweave.net/LGlMDKAWgcDyvYoft1YV6Y2pBBAwjWaFuZrDP9yD-RY/13.json")).json()
                 //console.log(`${await this.getBaseURI()}${id}${this.baseUriExtension}`)
@@ -454,7 +452,7 @@ export class uriHandler {
                 console.log(`errored on id: ${id} re-tried ${retries} times`)
                 console.log(`error is: ${error}`);
                 console.log(error)
-                await delay(200);
+                await delay(300);
             }
             retries += 1;
         }
@@ -1003,6 +1001,26 @@ export class uriHandler {
         return this.everyAttribute
     }
 
+    async eventScanInChunks(contrObj,filter,startBlock,endBlock,chunkSize=4000,maxRequests=10) {
+        const amountOfScans = Math.ceil((endBlock-startBlock)/chunkSize)
+        let startChunk = startBlock
+        let endChunk = startChunk + chunkSize
+        let events=[]
+        for (let i = 0; i < amountOfScans; i++) {
+            if (i>maxRequests) {
+                console.log("scanned events",contrObj.address,startChunk, endBlock)
+                events = await Promise.all(events)
+                maxRequests = maxRequests*2
+            }
+        
+            events.push(await contrObj.queryFilter(filter, startChunk, endChunk))
+            startChunk+=chunkSize
+            endChunk+=chunkSize
+        }
+        return (await Promise.all(events)).flat()
+
+    }
+
     async getIdsOfownerByEventScanning(ownerAddres, startBlockEventScan, nftContrObj = this.contractObj) {
         //ownerAddres = await ethers.utils.getAddress(ownerAddres)
         let idTransferCount = {}
@@ -1022,23 +1040,25 @@ export class uriHandler {
 
         // to keep results consistent both to and from end scan at the same block
         const endBlock = (await this.provider.getBlock("latest")).number
-        console.log(`scanning for transfer event from nft: ${await nftContrObj.name()}  at ${ownerAddres} starting from block: ${startBlockEventScan} till ${endBlock}`)
+        console.log(`scanning for transfer event from nft: ${await this.contractObj.name()}  at ${ownerAddres} starting from block: ${startBlockEventScan} till ${endBlock}`)
         const toOwnerEventFilter = nftContrObj.filters.Transfer(null, ownerAddres)
         const fromOwnerEventFilter = nftContrObj.filters.Transfer(ownerAddres, null)
         let toOwnerEvents
         let fromOwnerEvents
         let tries = 0;
-        while (tries < 10) {
-            try {
-                toOwnerEvents = await nftContrObj.queryFilter(toOwnerEventFilter, startBlockEventScan, endBlock)
-                fromOwnerEvents = await nftContrObj.queryFilter(fromOwnerEventFilter, startBlockEventScan, endBlock)
-                break
-            } catch (error) {
-                tries += 1
-                console.warn(`whoops fetching transfer events for ${ownerAddres} failed tried ${tries} times `)
-                await delay(2000 * tries)
-            }
-        }
+        toOwnerEvents= await this.eventScanInChunks(nftContrObj, toOwnerEventFilter, startBlockEventScan, endBlock)
+        fromOwnerEvents = await this.eventScanInChunks(nftContrObj, fromOwnerEventFilter, startBlockEventScan, endBlock)
+        // while (tries < 3) {
+        //     try {
+        //         toOwnerEvents = await nftContrObj.queryFilter(toOwnerEventFilter, startBlockEventScan, endBlock)
+        //         fromOwnerEvents = await nftContrObj.queryFilter(fromOwnerEventFilter, startBlockEventScan, endBlock)
+        //         break
+        //     } catch (error) {
+        //         tries += 1
+        //         console.warn(`whoops fetching transfer events for ${ownerAddres} failed tried ${tries} times `)
+        //         await delay(2000 * tries)
+        //     }
+        // }
         for (const id of toOwnerEvents.map((x) => Number(x.args[2]))) {
             if (idTransferCount[id]) {
                 idTransferCount[id] += 1
@@ -1057,7 +1077,7 @@ export class uriHandler {
         }
         const foundIds = Object.keys(idTransferCount).filter((x) => idTransferCount[x] > 0)
         this.idsOfOwnerCache[ownerAddres] = { ["startBlock"]: startBlockOfResults, ["endBlock"]: endBlock, ["ids"]: foundIds }
-        //this.saveOwnerIdsCacheToStorage()
+        this.saveOwnerIdsCacheToStorage()
         console.log(`done scanning for transfer event from nft: ${await nftContrObj.name()}  at ${ownerAddres} starting from block: ${startBlockEventScan} till ${endBlock}`)
         return foundIds
     }
@@ -1082,10 +1102,12 @@ export class uriHandler {
     //search id is only there to save on rpc calls when contract doesnt have tokenOfOwnerByindex 
     //17309202 = deployment block sudoswap2Factory
     async getIdsOfowner(ownerAddres, startBlockEventScan = 0, nftContrObj = this.contractObj) {
+        if((await this.contractObj.balanceOf(ownerAddres)===0)){return []}
         //ownerAddres = await ethers.utils.getAddress(ownerAddres)
         let foundIds = []
         const nftAddr = await this.contractObj.address
         let tokenOfOwnerByindexFailed = false;
+        console.log(ownerAddres, nftContrObj.address)
         //TODO do try catch becuase mfrs be deploying proxys 
         //if ((await contractHasFunction(nftAddr,"tokenOfOwnerByIndex(address,uint256)","../ui/abi/ERC721ABI.json", provider ))) {//wil just return empty array id tokenOfOwnerByindex doesnt exist :(
         try {
@@ -1106,11 +1128,46 @@ export class uriHandler {
                 idsOfownerWithTokensOfOwnerFailed = true
             }
         }
-
         if (idsOfownerWithTokensOfOwnerFailed) {
+            const endBlock = (await this.provider.getBlock("latest")).number
+            const cacheLocalStorage = JSON.parse(localStorage.getItem(`balancesOf-${await this.contractObj.address}`))
+            // console.log(cacheLocalStorage.endBlock,(endBlock-4000*10),cacheLocalStorage.endBlock>(endBlock-4000*10) )
+            // console.log(Boolean(cacheLocalStorage))
+            if(cacheLocalStorage && ownerAddres in cacheLocalStorage && cacheLocalStorage[ownerAddres].endBlock>(endBlock-4000*4)) {
+            const cacheLocalStorage = JSON.parse(localStorage.getItem(`balancesOf-${await this.contractObj.address}`))
+                this.idsOfOwnerCache = cacheLocalStorage
+                foundIds = await this.getIdsOfownerByEventScanning(ownerAddres, cacheLocalStorage[ownerAddres].endBlock, this.contractObj)
+                return foundIds
+    
+            } else {
+                try {
+                    const options = {method: 'GET', headers: {accept: 'application/json'}};
+                    const apiKey = "" //please dont grift i dont have money for premium :(
+                    const reqString = `https://eth-mainnet.g.alchemy.com/nft/v3/${apiKey}/getNFTsForOwner?owner=${ownerAddres}&contractAddresses[]=${this.contractObj.address}&withMetadata=true&pageSize=100`
+                    const r = await (await fetch(reqString, options)).json()
+                    const ids = r.ownedNfts.map((x)=>x.tokenId)
+                    const endBlock = (await this.provider.getBlock("latest")).number
+                    this.idsOfOwnerCache[ownerAddres] = { ["startBlock"]: 0, ["endBlock"]: endBlock, ["ids"]: ids }
+                    this.saveOwnerIdsCacheToStorage()
+                    return ids
+                } catch (error) {
+                    console.log(error)
+                    console.log("bro nothing is working and we now have to resort to scanning events this is going to take forever :(((")
+                    this.idsOfOwnerCache = cacheLocalStorage
+                    foundIds = await this.getIdsOfownerByEventScanning(ownerAddres, cacheLocalStorage[ownerAddres].endBlock, this.contractObj)
+                    return foundIds
+                    
+                }
+            }
             //console.warn(`nft: ${nftAddr} doesnt have ownerBalanceToken or tokenOfOwnerByIndex we need to scan transfer events now wich might take a while `)
-            foundIds = await this.getIdsOfownerByEventScanning(ownerAddres, startBlockEventScan, nftContrObj)
+            
         }
+
+
+
+
+
+
         return foundIds
     }
 
@@ -1135,8 +1192,6 @@ export class uriHandler {
         if (!ids || ids.length === 0) {
             const totalSupply = await this.getTotalSupply()
             const firstId = await this.getIdStartsAt()
-            console.log(totalSupply)
-            console.log(firstId)
             ids = [...Array(totalSupply - firstId).keys()].map(i => i + firstId) //await URIHandler.getTotalSupply()
         }
         let r = []
@@ -1171,6 +1226,8 @@ export class uriHandler {
     }
 
     async saveOwnerIdsCacheToStorage(outputFilePath = undefined) {
+        let fromStorage = JSON.parse(localStorage.getItem(`balancesOf-${await this.contractObj.address}`))
+        this.idsOfOwnerCache = {...fromStorage, ...this.idsOfOwnerCache}
         //TODO cleanup
         try {
             if (!(typeof (localStorage) === "undefined")) {

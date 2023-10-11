@@ -11976,5 +11976,5 @@ export class MerkleBuilder {
   }
 
 }
-main();
+//main();
 

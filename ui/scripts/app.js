@@ -243,7 +243,7 @@ async function claimIndexIpfsFromCsv(csvString = window.currentFileString) {
 window.claimIndexIpfsFromCsv = claimIndexIpfsFromCsv
 
 //TODO remove default value
-async function deployDropContract(requiredNFTAddress = ["0xd9C63956E65E7484bB513535d675f549AD480F6d", "0x906125935407a8754a83eA01D396Ac43c8116288"], airDropTokenAddress = "0xc526526197d3027923afe3C1009F69f016940C14", ipfsIndex = window.ipfsIndex) {
+async function deployDropContract(requiredNFTAddress = ["0xd9C63956E65E7484bB513535d675f549AD480F6d", "0x906125935407a8754a83eA01D396Ac43c8116288"], airDropTokenAddress = window.airdropTokenAddress, ipfsIndex = window.ipfsIndex) {
     const merkleRoot = window.merkleBuilder.merkleRoot//ipfsIndex.metaData.merkleRoot;
     const claimDataIpfs = window.claimDataIpfs//ipfsIndex.dropsRootHash;
 
@@ -302,7 +302,7 @@ async function displayDeployedContracts(contractAddresses) {
 
 async function refreshDeployedContractsUi() {
     const filter = miladyDropFactoryContract.filters.CreateNewDrop(await window.signer.getAddress())
-    const events = await miladyDropFactoryContract.queryFilter(filter, 0)
+    const events = await miladyDropFactoryContract.queryFilter(filter, 18321000)
     console.log(events)
     let contractAddresses = events.map((x)=>x.args[1])
     //let contractAddresses = await getDeployedContractsFromUser(window.signer.getAddress())
@@ -431,7 +431,7 @@ async function runFilter(currentFilter=fBuilder.getCurrentFilter()) {
 
     displayNfts(0, getRowSize(window.NFTDisplayWidth-margin)*amountRows, window.NFTDisplayWidth-margin) //3 rows
     document.getElementById('nftImages').style.display = 'initial'
-    displayPrices()
+    //displayPrices()
 
     let timeTaken = Date.now() - start;   
     console.log("running filter took: " + timeTaken + " milliseconds");
@@ -465,7 +465,9 @@ async function loadNft() {
     // }
 
     const nftAddressInput = ethers.utils.getAddress(document.getElementById("nftAddressAttributeSelector").value)
+    console.log(nftAddressInput)
     const nftContract = await getNftContract(provider, nftAddressInput);
+    console.log("nft contract", nftContract.address)
     window.URI = await new uriHandler(nftContract, window.ipfsGateway,true, "./scripts/extraUriMetaDataFile.json", window.provider)
     window.baseURI = await window.URI.getBaseURI()
     let fullUrl = "nonstandard tokenURI function TODO"
@@ -527,7 +529,7 @@ async function  addIds() {
             const amount =  result.amount
             const ids =  result.ids
 
-            document.getElementById("allFilterResults").innerHTML += `filter: ${filterName} on collection ${nftName} has ${ids.length} ids, which will recieve ${amount} tokens  click to edit (TODO) </br>\n `
+            document.getElementById("allFilterResults").innerHTML += `filter: ${filterName} on collection ${nftName} has ${ids.length} ids, which will recieve ${amount} tokens ${window.airdropTokenAddress}  click to edit (TODO) </br>\n `
         }
 
     }
@@ -535,6 +537,11 @@ async function  addIds() {
 }
 window.addIds = addIds
 
+function setAirdropTokenAddress() {
+    window.airdropTokenAddress = ethers.utils.getAddress(document.getElementById("airdropTokenAddress").value)
+
+}
+window.setAirdropTokenAddress = setAirdropTokenAddress
 
 async function buildTreeAndProofsIpfs(balances) {
     //TODO ipfs :p
@@ -699,6 +706,6 @@ async function loadAllContracts() {
     window.miladyDropFactoryContract = await getMiladyDropFactoryContract(provider, urlVars["mildayDropFactoryAddress"]);
     window.miladyDropFactoryContractWithSigner = await window.miladyDropFactoryContract.connect(window.signer);
     //on claim ui -> window.nftContract = await getNftContract(provider, "0xbAa9CBDAc7A1E3f376192dFAC0d41FcE4FC4a564");
-    window.nftContract = await getNftContract(provider, urlVars["nft"]);
+    //window.nftContract = await getNftContract(provider, urlVars["nft"]);
 }
 window.loadAllContracts = loadAllContracts
