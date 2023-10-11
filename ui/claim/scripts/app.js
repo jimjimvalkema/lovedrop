@@ -74,15 +74,32 @@ async function getUrlVars() {
 
 
 async function selectPage(currentPage, maxPerPage, nftAddr) {
+    const nftHandler = window.allUriHandlers.find((x) => x.contractObj.address === nftAddr)
+    cancelAllLoadingImages(window.currentPage, maxPerPage, nftHandler, window.idsByClaimableStatus)
     window.currentPage=currentPage
     window.maxPerPage=maxPerPage
-    const nftHandler = window.allUriHandlers.find((x) => x.contractObj.address === nftAddr)
+    
     const idsToDisplay = { [nftAddr]: await buildPage(currentPage, maxPerPage, nftHandler, window.idsByClaimableStatus) }
+    
     setClaimStatusPage(currentPage, maxPerPage, nftHandler, window.idsByClaimableStatus, idsToDisplay)
 
 }
 window.selectPage = selectPage
 
+function cancelLoadingImage(elementId) {
+    console.log(elementId)
+    try {document.getElementById(elementId).src = ""}catch (error) { console.log(error)}
+}
+
+function cancelAllLoadingImages(currentPage, maxPerPage, nftHandler, idsByClaimableStatus) {
+    const firstItemIndex = currentPage * maxPerPage
+    const lastItemIndex = (currentPage + 1) * maxPerPage
+    const nftAddr = nftHandler.contractObj.address
+    let ids = [...idsByClaimableStatus[nftAddr].claimable, ...idsByClaimableStatus[nftAddr].claimed, ...idsByClaimableStatus[nftAddr].ineligible]
+    for (const id of ids.slice(firstItemIndex, lastItemIndex)) {
+        cancelLoadingImage(`image-${nftAddr}-${id}`)
+    }
+}
 async function buildPage(currentPage, maxPerPage, nftHandler, idsByClaimableStatus) {
     const firstItemIndex = currentPage * maxPerPage
     const lastItemIndex = (currentPage + 1) * maxPerPage
@@ -99,10 +116,12 @@ async function buildPage(currentPage, maxPerPage, nftHandler, idsByClaimableStat
 
     const pageInfo = `<div></br><a>${nftName}<a></br><a style="font-size:0.8em ">${nftAddr}</a></div>`
     let collectionHtml = `<div width=100vw id=display-${nftAddr}>${pageInfo}${pageSelecter}`
+    //await cancelAllLoadingImages(ids.slice(firstItemIndex, lastItemIndex), nftAddr)
+
     for (const id of ids.slice(firstItemIndex, lastItemIndex)) {
         const imgUrl = await nftHandler.getImage(id)
         collectionHtml += `<div id="${nftAddr}-${id}" style="position: relative; border:3px solid green; width: 15%; display: inline-block;" >\n
-                    <img src="${imgUrl}" style="max-width: 100%;">\n 
+                    <img id="image-${nftAddr}-${id}" src="${imgUrl}" style="max-width: 100%;">\n 
                     <div id="claimableStatus-${nftAddr}-${id}"   style="float: right; position: absolute; left: 0px; bottom: 0px; z-index: 1; background-color: rgba(20, 200, 20, 0.8); padding: 5px; color: #FFFFFF; font-weight: bold;">\n
                         checking rn!\n
                     </div>\n
@@ -206,6 +225,9 @@ window.onload = runOnLoad;
 async function loadAllContracts() {
     window.urlVars = await getUrlVars();
     window.ipfsGateway = window.urlVars["ipfsGateway"]
+    if (!window.ipfsGateway) {
+        window.ipfsGateway = "http://127.0.0.1:48084" //no grifting pls thank :)
+    }
 
     //abis
     const mildayDropAbi = await (await fetch("../abi/mildayDropAbi.json")).json()//update mildayDropAbi.json
@@ -220,7 +242,7 @@ async function loadAllContracts() {
 
     //load ipfs data
     window.claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
-    window.ipfsIndex = new IpfsIndexer(window.urlVars["ipfsGateway"], null, true)
+    window.ipfsIndex = new IpfsIndexer(window.ipfsGateway, null, true)
     await window.ipfsIndex.loadIndexMiladyDropClaimData(window.claimDataIpfsHash )
 
     //get all nft contracts

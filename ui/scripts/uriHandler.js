@@ -130,6 +130,9 @@ export class uriHandler {
                     case "milady":
                         this.totalSupply = 9999 //contract is bugged and gives a total supply that too large
                         break;
+                    case "blockedCors":
+                        this.uriCache = await this.syncUriCache();
+                        break;
                     default:
                         break;
                 }
@@ -1102,7 +1105,7 @@ export class uriHandler {
     //search id is only there to save on rpc calls when contract doesnt have tokenOfOwnerByindex 
     //17309202 = deployment block sudoswap2Factory
     async getIdsOfowner(ownerAddres, startBlockEventScan = 0, nftContrObj = this.contractObj) {
-        if((await this.contractObj.balanceOf(ownerAddres)===0)){return []}
+        if((await this.contractObj.balanceOf(ownerAddres)).toNumber()===0){return []}
         //ownerAddres = await ethers.utils.getAddress(ownerAddres)
         let foundIds = []
         const nftAddr = await this.contractObj.address

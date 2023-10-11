@@ -2,6 +2,7 @@ import { uriHandler } from "./uriHandler.js";
 import  {ethers} from "../scripts/ethers-5.2.esm.min.js"
 import { MerkleBuilder } from "./MerkleBuilder.js";
 import { IpfsIndexer } from "../scripts/IpfsIndexer.js";
+window.uriHandler = uriHandler
 
 
 
@@ -97,16 +98,16 @@ async function getMiladyDropFactoryContract(provider, mildayDropFactoryAddress, 
     return mildayDropFactoryContract;
 }
 
-async function getAirdropTokenContract(provider, nftAddress) {
-    const airDropTokenAddress = await mildayDropContract.airdropTokenAddress();
-    // The ERC-20 Contract ABI, which is a common contract interface
-    // for tokens (this is the Human-Readable ABI format)
-    // The Contract object
-    const airdropTokenContract = new ethers.Contract(airDropTokenAddress, ERC20ABI,window.provider);
-    return airdropTokenContract;
-}
-//TODO do event listeners
-window.getAirdropTokenContract = getAirdropTokenContract
+// async function getAirdropTokenContract(provider, nftAddress) {
+//     const airDropTokenAddress = await mildayDropContract.airdropTokenAddress();
+//     // The ERC-20 Contract ABI, which is a common contract interface
+//     // for tokens (this is the Human-Readable ABI format)
+//     // The Contract object
+//     const airdropTokenContract = new ethers.Contract(airDropTokenAddress, ERC20ABI,window.provider);
+//     return airdropTokenContract;
+// }
+// //TODO do event listeners
+// window.getAirdropTokenContract = getAirdropTokenContract
 
 async function getNftContract(provider, nftContractAddress) {
     // The Contract object
@@ -471,7 +472,7 @@ async function loadNft() {
     window.URI = await new uriHandler(nftContract, window.ipfsGateway,true, "./scripts/extraUriMetaDataFile.json", window.provider)
     window.baseURI = await window.URI.getBaseURI()
     let fullUrl = "nonstandard tokenURI function TODO"
-    if (!(await window.URI.extraUriMetaData).everyAttributeCbor && (!localStorage.hasOwnProperty(window.URI.contractObj.address))) {
+    if (!(await window.URI.extraUriMetaData).everyAttributeCbor && !(await window.URI.extraUriMetaData).everyAttribute  && (!localStorage.hasOwnProperty(window.URI.contractObj.address))) {
         
         let comment = "note: fetching large amount of data from external providers can cause rate limiting"
         if(window.baseURI !== undefined) {
@@ -506,9 +507,14 @@ async function loadNft() {
 window.loadNft = loadNft
 window.filterResults = {}
 async function  addIds() {
+    setAirdropTokenAddress()
+    console.log(window.airdropTokenAddress)
+    if (!window.airdropTokenAddress) {message("airdrop token address is not set!!");console.warn("airdrop token address is not set!!"); return 0}
+    message("")
     //bit excessive with structuredClone but these values shouldnt change since it can effect the resulting merkle tree
     const amount = structuredClone(document.getElementById("nftAmountAirdrop").value)
     const ids = structuredClone(window.currentIdsDisplay)
+    window.totalAmountDropValue = (ids.length)*amount
     const nftAddress = structuredClone(window.URI.contractObj.address)
     const allFilters = structuredClone(window.fBuilder.allFilters)
     const filterIndex = structuredClone(window.fBuilder.currentFilterIndex)
@@ -527,8 +533,7 @@ async function  addIds() {
             const nftName = result.nftName
             const filterName = result.allFilters[result.filterIndex].filterName
             const amount =  result.amount
-            const ids =  result.ids
-
+            const ids =  result.ids 
             document.getElementById("allFilterResults").innerHTML += `filter: ${filterName} on collection ${nftName} has ${ids.length} ids, which will recieve ${amount} tokens ${window.airdropTokenAddress}  click to edit (TODO) </br>\n `
         }
 
@@ -538,7 +543,14 @@ async function  addIds() {
 window.addIds = addIds
 
 function setAirdropTokenAddress() {
-    window.airdropTokenAddress = ethers.utils.getAddress(document.getElementById("airdropTokenAddress").value)
+    if (document.getElementById("airdropTokenAddressInput")) {
+        window.airdropTokenAddress = ethers.utils.getAddress(document.getElementById("airdropTokenAddressInput").value)
+
+    } else {
+        window.airdropTokenAddress  = undefined
+
+    }
+   
 
 }
 window.setAirdropTokenAddress = setAirdropTokenAddress
@@ -557,6 +569,9 @@ async function buildTreeAndProofsIpfs(balances) {
     const hash = await ipfsIndex.createMiladyDropClaimData(merkleBuilder.tree.dump(),merkleBuilder.allProofs, csvString,idsPerCollection,500)
     document.getElementById("progressProofGen").innerText = `added claim to ipfs at: ${hash}`
     window.claimDataIpfs = hash
+    let amounts = merkleBuilder.balances.map((x)=>_ethers.utils.formatEther( x[2]).toString())
+    totalTokens = amounts.map((x)=>parseFloat(x)).reduce((sum, number) => sum + number)
+    document.getElementById("totalAmountDrop").innerText = `total amount of tokens is: ${totalTokens} TODO do this with bigNumber math`
 }
 
 async function generateMerkleFromCsvFile() {
@@ -617,6 +632,7 @@ async function getFilterBuilderUi(URI,fullUrl="") {
     document.getElementById("message").innerHTML = `this may take between 1min to 10min</br> fetching from ${fullUrl}
     <div id='messageProgress'></div>`
     await URI.fetchAllExtraMetaData()
+    console.log(URI.uriCache)
     
     window.fBuilder = await new FilterBuilder(window.URI, structuredClone([window.emptyFilter,f1,f2, window.BlueHair, window.BlueEyesAndHair]))
     //fBuilder.displayFilter(0)

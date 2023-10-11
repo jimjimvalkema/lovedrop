@@ -37,6 +37,16 @@
         
     },
 
+    "0xe2461caf2FfEf37bFC5a41555600Dbe65737e1bD" : {
+        "type": "blockedCors",
+        "name": "CHWO",
+        "correctedMetaDataSeparatedFiles":"QmNvyYsgbqdBDQTXMdLk6h4LuvUCgkSKgJFLyUVSYvGV1j",
+        "scrapedUriData" : "ipfs://bafybeiabyaop3lmrv5c7amwijfr74uqbiwegiars3kcvqkwjbe6mpjjufa",
+        "everyAttribute": "ipfs://bafkreifhraqwqwrdxc6qsz2dzhr53bfodon27fsvqia62sr3jpsofshqyq",
+        "everyAttributeCbor":"ipfs://bafkreiaruwgujisqg5527vdpegplimycp5da7b5ra52jtk4nmmq6ekpxmi"
+        
+    },
+
     "0x67B5eE6e29a4230177Dda07AD7848e42d89cF9a0" : {
         "type": "standard",
         "name": "mifairymaker",

@@ -71,7 +71,7 @@
 
     /* .dropdown a:hover {background-color: #ddd;} */
     * {
-        font-size: 0.6cm;
+        font-size: 0.5cm;
         font-family: Arial;
     }
 
@@ -99,11 +99,12 @@
     <button onclick="deployDropContract()">deploy</button></br>
     <div id="progressProofGen">progressProofGen</div>
     <div id="message2">message2</div>
+    <div id="totalAmountDrop" style="border-style: solid; border-color:black;">total amount airdrop: 0</div>
     <div id="allFilterResults"></div>
 
-    <input type="text" id="nftAddressAttributeSelector" value="0xbf4a480D3009348FDF523A43Ba33220566fC1e4E"><button onclick="loadNft()">load NFT</button>
+    <input type="text" id="nftAddressAttributeSelector" value="0x5Af0D9827E0c53E4799BB226655A1de152A425a5"><button onclick="loadNft()">load NFT</button>
     <a>amount: </a><input type="number" id="nftAmountAirdrop" value="1"><button onclick="addIds()">set for current ids</button>
-    <input type="text" id="airdropTokenAddress"><button onclick="setAirdropTokenAddress()">set airdrop token address (TODO)</button>
+    <input type="text" id="airdropTokenAddressInput"><button onclick="setAirdropTokenAddress()">set airdrop token address (TODO)</button>
     <button onclick="generateMerkleFromFilterResults()">generate merkle from results</button>
     <div id="deployedDropsList"></div></br>
     <div id="FilterBuilder"></div></br>
@@ -116,7 +117,7 @@
         </div>
     </div>
     <!-- <div id="test" style="height: 100px;"></div></br> -->
-    <div id="nftImages" style="width:85vw;float:left;"></div></br>
+    <div id="nftImages" style="width:40vw;float:left;"></div></br>
     
 </body>
     <script src="./scripts/cbor.js" type="text/javascript"></script>
