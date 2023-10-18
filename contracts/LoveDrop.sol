@@ -13,23 +13,13 @@ error InvalidProof();
 contract LoveDrop is ILoveDrop,Initializable {
     using SafeERC20 for IERC20;
 
-    //mapping(uint16 => address) public requiredNFTAddresses;
-    //immutable is not supported yet on strings
     string public override claimDataIpfs;
 
     address public override airdropTokenAddress;
-    //TODO is there a way it can be immutable when using initialize?
     bytes32 public override merkleRoot;
-    //TODO is there a way it can be immutable when using initialize?
 
     // This is a packed array of booleans per each requiredNftIndex.
     mapping(address => mapping(uint256 => uint256)) private claimedBitMapPerNftIndex;
-
-    // constructor(address _airdropTokenAddress, bytes32 _merkleRoot, string memory _claimDataIpfs) {
-    //     airdropTokenAddress = _airdropTokenAddress;
-    //     merkleRoot = _merkleRoot;
-    //     claimDataIpfs = _claimDataIpfs;
-    // }
 
     function initialize(address _airdropTokenAddress, bytes32 _merkleRoot, string memory _claimDataIpfs) public initializer {
         airdropTokenAddress = _airdropTokenAddress;
@@ -66,7 +56,7 @@ contract LoveDrop is ILoveDrop,Initializable {
         require(
             IERC721(nftAddress).ownerOf(id) == msg.sender,
             "nft isnt owned by claimant"
-        ); //msg.sender bad?
+        ); 
 
         bytes32 leaf = keccak256(
             bytes.concat(keccak256(abi.encode(nftAddress, id, amount)))
@@ -77,7 +67,6 @@ contract LoveDrop is ILoveDrop,Initializable {
         );
     }
 
-    //proof, id, amount, nftIndex
     function claim(
         bytes32[] calldata merkleProof,
         uint256 id,
@@ -111,27 +100,23 @@ contract LoveDrop is ILoveDrop,Initializable {
             uint256 amount = amounts[index];
             uint256 id = ids[index];
             address nftAddress = nftAddresses[index];
-            //TODO keep claiming even if 1 fails (idk might be bad for gas though)
             if (isClaimed(nftAddress, id)) revert AlreadyClaimed();
 
             require(
                 IERC721(nftAddress).ownerOf(id) ==
                     msg.sender,
                 "one or more of these nfts isnt owned by claimant"
-            ); //msg.sender bad?
-            _setClaimed(nftAddress, id); //TODO is it save to use id as index? is that gas efficient?
+            ); 
+            _setClaimed(nftAddress, id); 
             leaves[index] = keccak256(
                 bytes.concat(keccak256(abi.encode(nftAddress, id, amount)))
             );
-            //TODO prevent overflow. if thats neccesarry? cant the ui prevent it since noone should want to make a airdrop that is larger then the overflow value?
             totalAmount += amount;
         }
 
         return (leaves, totalAmount);
     }
 
-    //TODO maybe passing a struct with ids, amounts, nftIndexes is more efficient
-    //the arrays are dynamicly sized so i doubt it :(
     function claimMultiple(
         bytes32[] calldata _proof,
         bool[] calldata _proofFlags,
@@ -139,8 +124,6 @@ contract LoveDrop is ILoveDrop,Initializable {
         uint256[] calldata amounts,
         address[] calldata nftAddresses
     ) public {
-        //apparently doing this in a function adds 82 gas :(
-        //_buildLeavesAndTotalAmount also checks if msg.sender == ownerOf(id) + isClaimed(id)
         (
             bytes32[] memory leaves,
             uint256 totalAmount
