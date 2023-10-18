@@ -51,6 +51,7 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 
 //TODO maybe attibute finder is better name? or maybe split classes
 export class uriHandler {
+    alchemyApiKey = ""
     contractObj = undefined;
     provider = undefined
     extraUriMetaData = undefined;
@@ -1145,7 +1146,7 @@ export class uriHandler {
             } else {
                 try {
                     const options = {method: 'GET', headers: {accept: 'application/json'}};
-                    const apiKey = "" //please dont grift i dont have money for premium :(
+                    const apiKey = this.alchemyApiKey //please dont grift i dont have money for premium :(
                     const reqString = `https://eth-mainnet.g.alchemy.com/nft/v3/${apiKey}/getNFTsForOwner?owner=${ownerAddres}&contractAddresses[]=${this.contractObj.address}&withMetadata=true&pageSize=100`
                     const r = await (await fetch(reqString, options)).json()
                     const ids = r.ownedNfts.map((x)=>x.tokenId)

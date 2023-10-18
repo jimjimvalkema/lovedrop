@@ -84,7 +84,7 @@ async function connectSigner() {
 window.connectSigner = connectSigner
 
 async function getMiladyDropContract(provider, urlVars) {
-    mildayDropAddress = urlVars["mildayDropAddress"]
+    mildayDropAddress = urlVars["lovedrop"]
     //const mildayDropAbi = 
     // The Contract object
     mildayDropContract = new ethers.Contract(mildayDropAddress, mildayDropAbi,window.provider);

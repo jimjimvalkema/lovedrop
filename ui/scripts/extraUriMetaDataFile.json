@@ -34,7 +34,7 @@
         "scrapedUriDataCbor": "ipfs://bafybeic7f5slx2tqmkt3uj6573cvdtfgwk3pg3xyuu2jra7klyohkh2sii",
         "everyAttribute": "ipfs://bafybeicgayygxqzdsz37hkn3shfpsxrbyyiemodpyrpkoazxbb3p5khc5m",
         "everyAttributeCbor":"ipfs://bafybeigey4mq6pxl7zk77rwls7glb46pjzxhm5rf33eu6fbzfh4pwoktmy"
-        
+
     },
 
     "0xe2461caf2FfEf37bFC5a41555600Dbe65737e1bD" : {
@@ -43,7 +43,9 @@
         "correctedMetaDataSeparatedFiles":"QmNvyYsgbqdBDQTXMdLk6h4LuvUCgkSKgJFLyUVSYvGV1j",
         "scrapedUriData" : "ipfs://bafybeiabyaop3lmrv5c7amwijfr74uqbiwegiars3kcvqkwjbe6mpjjufa",
         "everyAttribute": "ipfs://bafkreifhraqwqwrdxc6qsz2dzhr53bfodon27fsvqia62sr3jpsofshqyq",
-        "everyAttributeCbor":"ipfs://bafkreiaruwgujisqg5527vdpegplimycp5da7b5ra52jtk4nmmq6ekpxmi"
+        "everyAttributeCbor":"ipfs://bafkreiaruwgujisqg5527vdpegplimycp5da7b5ra52jtk4nmmq6ekpxmi",
+        "baseUriCompressed":"https://reveal.cakehats.xyz/",
+        "imageFileExtesion":".png"
         
     },
 

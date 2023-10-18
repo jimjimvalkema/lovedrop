@@ -57,6 +57,9 @@ async function connectSigner() {
         message("")
         window.mildayDropWithSigner = await window.mildayDropContract.connect(signer);
         window.userAddress = await window.signer.getAddress()
+        for (const nftAddr of window.allNftAddresses) {
+            window.selectedIds[nftAddr] = new Set()
+        }
         test();
         return [provider, signer];
     }
@@ -105,6 +108,13 @@ async function buildPage(currentPage, maxPerPage, nftHandler, idsByClaimableStat
     const lastItemIndex = (currentPage + 1) * maxPerPage
     const nftAddr = await nftHandler.contractObj.address
     const nftName = await nftHandler.contractObj.name()
+    let imgCrossorigin = "crossorigin='anonymous'"
+    if ((await nftHandler.extraUriMetaData) && "type" in (await nftHandler.extraUriMetaData)) {
+        if ((await nftHandler.extraUriMetaData).type === "blockedCors") {
+            imgCrossorigin = ''
+        }
+        
+    }
     let ids = [...idsByClaimableStatus[nftAddr].claimable, ...idsByClaimableStatus[nftAddr].claimed, ...idsByClaimableStatus[nftAddr].ineligible]
     const amountPages = Math.ceil(ids.length / maxPerPage)
     const pageSelecter = `
@@ -121,7 +131,7 @@ async function buildPage(currentPage, maxPerPage, nftHandler, idsByClaimableStat
     for (const id of ids.slice(firstItemIndex, lastItemIndex)) {
         const imgUrl = await nftHandler.getImage(id)
         collectionHtml += `<div id="${nftAddr}-${id}" style="position: relative; border:3px solid green; width: 15%; display: inline-block;" >\n
-                    <img id="image-${nftAddr}-${id}" src="${imgUrl}" style="max-width: 100%;">\n 
+                    <img ${imgCrossorigin} id="image-${nftAddr}-${id}" src="${imgUrl}" style="max-width: 100%;">\n 
                     <div id="claimableStatus-${nftAddr}-${id}"   style="float: right; position: absolute; left: 0px; bottom: 0px; z-index: 1; background-color: rgba(20, 200, 20, 0.8); padding: 5px; color: #FFFFFF; font-weight: bold;">\n
                         checking rn!\n
                     </div>\n
@@ -235,7 +245,7 @@ async function loadAllContracts() {
     const ER20ABI = await (await fetch("../abi/ERC20ABI.json")).json()
 
     //miladyDrop Contract
-    window.mildayDropContract = new ethers.Contract(window.urlVars["mildayDropAddress"], mildayDropAbi, window.provider);
+    window.mildayDropContract = new ethers.Contract(window.urlVars["lovedrop"], mildayDropAbi, window.provider);
     window.airdropTokenContract = new ethers.Contract( await mildayDropContract.airdropTokenAddress(), ER20ABI, window.provider)
     window.ticker = await window.airdropTokenContract.symbol()
 
