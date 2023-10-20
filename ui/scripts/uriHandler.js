@@ -1,7 +1,10 @@
 
 //const { error } = require("console");
 
-import  {ethers} from "../scripts/ethers-5.2.esm.min.js"
+import { ethers } from "../scripts/ethers-5.2.esm.min.js"
+import allExtraMetaData  from "../scripts/extraUriMetaDataFile.json" assert { type: "json" };
+import ERC721ABI  from "../abi/ERC721ABI.json" assert { type: "json" };
+
 /**
  * This function allow you to modify a JS Promise by adding some status properties.
  * Based on: http://stackoverflow.com/questions/21485545/is-there-a-way-to-tell-if-an-es6-promise-is-fulfilled-rejected-resolved
@@ -51,10 +54,10 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 
 //TODO maybe attibute finder is better name? or maybe split classes
 export class uriHandler {
-    alchemyApiKey = ""
+    alchemyApiKey = "5hUqMLpX3qUN2PpvLhhmSZMmnlFdUd0W"
     contractObj = undefined;
     provider = undefined
-    extraUriMetaData = undefined;
+    extraMetaData = undefined;
 
     uriCache = []
     baseUriIsNonStandard = undefined;
@@ -73,17 +76,19 @@ export class uriHandler {
         valueKey: "value"
     } //TODO make this customizable with extraUriMetaDataFile
     //TODO fix naming
-    constructor(contractObj, _ipfsGateway = "http://localhost:48084", _customCompressedImages = true, _extraUriMetaDataFile = "./extraUriMetaDataFile.json", _provider, _extraUriMetaData = undefined) {
-        this.contractObj = contractObj;
+    constructor(
+        _contractAddr,
+        _provider,
+        _ipfsGateway = "http://localhost:48084",
+        _customCompressedImages = true
+        )
+        
+        {
+        this.contractObj = new ethers.Contract(_contractAddr, ERC721ABI, _provider);;
         this.ipfsGateway = _ipfsGateway;
         this.useCustomCompressedImages = _customCompressedImages;
         this.provider = _provider
-        if (_extraUriMetaDataFile) {
-            this.extraUriMetaData = this.getExtraUriMetaData(contractObj, _extraUriMetaDataFile)
-        } else {
-            this.extraUriMetaData = _extraUriMetaData
-        }
-
+        this.extraMetaData = this.getExtraUriMetaData(_contractAddr, allExtraMetaData);
     }
 
 
@@ -105,12 +110,11 @@ export class uriHandler {
     }
 
     async getCompressedImages() {
-        return await this.getUrlByProtocol(((await this.extraUriMetaData).baseUriCompressed), true);
+        return await this.getUrlByProtocol(( this.extraMetaData.baseUriCompressed), true);
 
     }
 
-    async fetchAllExtraMetaData(buildMissingData = true, extraUriMetaData = this.extraUriMetaData) {
-        this.extraUriMetaData = await extraUriMetaData
+    async fetchAllExtraMetaData(buildMissingData = true) {
         this.idsOfOwnerCache = await this.getCachedIdsOfOwner()
         if (!(typeof (localStorage) === "undefined") && localStorage.hasOwnProperty(await this.contractObj.address)) {
             console.log(`${this.contractObj.address} extraMetaDataFile was found in local storage :D`)
@@ -123,11 +127,11 @@ export class uriHandler {
             }
         } else if (buildMissingData) {
             await this.getEveryAttributeType();
-            if ("idStartsAt" in (await this.extraUriMetaData) && Number.isInteger((await this.extraUriMetaData).idStartsAt)) {
-                this.idStartsAt = (await this.extraUriMetaData).idStartsAt
+            if ("idStartsAt" in this.extraMetaData && Number.isInteger(this.extraMetaData.idStartsAt)) {
+                this.idStartsAt =  this.extraMetaData.idStartsAt
             }
-            if ("type" in (await this.extraUriMetaData)) {
-                switch ((await this.extraUriMetaData).type) {
+            if ("type" in this.extraMetaData) {
+                switch (this.extraMetaData.type) {
                     case "milady":
                         this.totalSupply = 9999 //contract is bugged and gives a total supply that too large
                         break;
@@ -149,17 +153,17 @@ export class uriHandler {
                 'Content-Type': '*'
             }
         }
-        if (this.useCustomCompressedImages && ((await this.extraUriMetaData).baseUriCompressed)) {
+        if (this.useCustomCompressedImages && ("baseUriCompressed" in this.extraMetaData)) {
             let extension = ".jpg"
-            if ("imageFileExtesion" in (await this.extraUriMetaData)) {
+            if ("imageFileExtesion" in (this.extraMetaData)) {
                 //console.log( await (this.extraUriMetaData).imageFileExtesion)
-                extension = (await this.extraUriMetaData).imageFileExtesion
+                extension = (this.extraMetaData).imageFileExtesion
             }
             return `${await this.getCompressedImages()}/${id}${extension}`;
         }
 
         let imgURL = "";
-        switch ((await this.extraUriMetaData).type) {
+        switch (this.extraMetaData.type) {
             case "standard":
                 imgURL = (await this.getUrlByProtocol((await this.getTokenUri(id))["image"], true)) //(await fetch(await this.contractObj.tokenURI(id), reqObj))["image"];
                 break;
@@ -186,13 +190,13 @@ export class uriHandler {
             let id = 0;
             try {
                 id = (await this.contractObj.totalSupply()).toNumber()
-                
+
             } catch (error) {
                 console.warn("uriHandeler had a error")
                 console.warn(error)
                 return undefined
             }
-    
+
             //of by 100 error fix :P
             for (let tries = 0; tries < 100; tries++)
                 try {
@@ -214,7 +218,7 @@ export class uriHandler {
         //TODO IPFS
         //TODO get base uri by striping result .getTokenUri() becuase scatter doesnt have baseURI exposed :(
         if (this.baseURICache == null) {
-            if ("type" in (await this.extraUriMetaData) && ((await this.extraUriMetaData).type === "milady")) {
+            if ("type" in  this.extraMetaData && ( this.extraMetaData.type === "milady")) {
                 baseUri = this.getUrlByProtocol("ipfs://bafybeiawqw7zaoliz2rjgiqwzyykwzjsmr24i3a6paazalmqijsldtfg7i/", true)
 
             } else {
@@ -253,14 +257,15 @@ export class uriHandler {
         return baseUri;
     }
 
-    async getExtraUriMetaData(contractObj, extraUriMetaDataFile) {
-        let extraUriMetaData = await (await fetch(extraUriMetaDataFile)).json();
-        const contractAddr = (await contractObj.address)
-        if (contractAddr in extraUriMetaData) {
-            return extraUriMetaData[contractAddr]
+    async getExtraUriMetaData(contractAddr, allExtraMetaData) {
+        if (contractAddr in allExtraMetaData) {
+            return allExtraMetaData[contractAddr]
         } else {
-            console.log(`Nft contract: ${contractAddr} not found in extraUriMetaDataFile: ${extraUriMetaDataFile}, setting to default values`)
-            return { "found": false }
+            console.log(`Nft contract: ${contractAddr} not found in extraUriMetaData:, setting to default values`)
+            return {
+                "type": "standard",
+                "idStartsAt":0 
+            }
         }
 
     }
@@ -398,8 +403,8 @@ export class uriHandler {
     async syncUriCache(startId = 0, endId = null, chunkSize = 200) {
         // const traitTypeKey = this.attributeFormat.traitTypeKey
         // const valueKey = this.attributeFormat.valueKey
-        if ((await this.extraUriMetaData).scrapedUriData) {
-            this.uriCache = await (await this.getUrlByProtocol((await this.extraUriMetaData).scrapedUriData)).json()
+        if ( this.extraMetaData.scrapedUriData) {
+            this.uriCache = await (await this.getUrlByProtocol( this.extraMetaData.scrapedUriData)).json()
         } else {
             console.log(`no premade metadata found for ntf contract: ${await this.contractObj.address} :( collecting attribute manually!`)
             //syncUriCacheByScraping already
@@ -979,10 +984,10 @@ export class uriHandler {
 
         //TODO make format global var
 
-        if (!forceResync && (await this.extraUriMetaData).everyAttributeCbor) {
-            if ((await this.extraUriMetaData).everyAttributeCbor) {
-                console.log(`found preprossed data for contract: ${this.contractObj.address}, at  ${(await this.extraUriMetaData).everyAttributeCbor}`)
-                const r = await this.getUrlByProtocol((await this.extraUriMetaData).everyAttributeCbor)
+        if (!forceResync &&  this.extraMetaData.everyAttributeCbor) {
+            if ( this.extraMetaData.everyAttributeCbor) {
+                console.log(`found preprossed data for contract: ${this.contractObj.address}, at  ${ this.extraMetaData.everyAttributeCbor}`)
+                const r = await this.getUrlByProtocol( this.extraMetaData.everyAttributeCbor)
                 this.everyAttribute = CBOR.decode(await r.arrayBuffer())
             }
 
@@ -1005,21 +1010,21 @@ export class uriHandler {
         return this.everyAttribute
     }
 
-    async eventScanInChunks(contrObj,filter,startBlock,endBlock,chunkSize=4000,maxRequests=10) {
-        const amountOfScans = Math.ceil((endBlock-startBlock)/chunkSize)
+    async eventScanInChunks(contrObj, filter, startBlock, endBlock, chunkSize = 4000, maxRequests = 10) {
+        const amountOfScans = Math.ceil((endBlock - startBlock) / chunkSize)
         let startChunk = startBlock
         let endChunk = startChunk + chunkSize
-        let events=[]
+        let events = []
         for (let i = 0; i < amountOfScans; i++) {
-            if (i>maxRequests) {
-                console.log("scanned events",contrObj.address,startChunk, endBlock)
+            if (i > maxRequests) {
+                console.log("scanned events", contrObj.address, startChunk, endBlock)
                 events = await Promise.all(events)
-                maxRequests = maxRequests*2
+                maxRequests = maxRequests * 2
             }
-        
+
             events.push(await contrObj.queryFilter(filter, startChunk, endChunk))
-            startChunk+=chunkSize
-            endChunk+=chunkSize
+            startChunk += chunkSize
+            endChunk += chunkSize
         }
         return (await Promise.all(events)).flat()
 
@@ -1050,7 +1055,7 @@ export class uriHandler {
         let toOwnerEvents
         let fromOwnerEvents
         let tries = 0;
-        toOwnerEvents= await this.eventScanInChunks(nftContrObj, toOwnerEventFilter, startBlockEventScan, endBlock)
+        toOwnerEvents = await this.eventScanInChunks(nftContrObj, toOwnerEventFilter, startBlockEventScan, endBlock)
         fromOwnerEvents = await this.eventScanInChunks(nftContrObj, fromOwnerEventFilter, startBlockEventScan, endBlock)
         // while (tries < 3) {
         //     try {
@@ -1090,7 +1095,7 @@ export class uriHandler {
         let foundIds = []
         const balance = await nftContrObj.balanceOf(ownerAddres);
         //test if it works so we error early
-        if (balance) {await this.contractObj.tokenOfOwnerByIndex(ownerAddres, 0)}
+        if (balance) { await this.contractObj.tokenOfOwnerByIndex(ownerAddres, 0) }
         for (let i = 0; i < balance; i++) {
             foundIds.push(this.contractObj.tokenOfOwnerByIndex(ownerAddres, i))
         }
@@ -1106,7 +1111,7 @@ export class uriHandler {
     //search id is only there to save on rpc calls when contract doesnt have tokenOfOwnerByindex 
     //17309202 = deployment block sudoswap2Factory
     async getIdsOfowner(ownerAddres, startBlockEventScan = 0, nftContrObj = this.contractObj) {
-        if((await this.contractObj.balanceOf(ownerAddres)).toNumber()===0){return []}
+        if ((await this.contractObj.balanceOf(ownerAddres)).toNumber() === 0) { return [] }
         //ownerAddres = await ethers.utils.getAddress(ownerAddres)
         let foundIds = []
         const nftAddr = await this.contractObj.address
@@ -1137,19 +1142,19 @@ export class uriHandler {
             const cacheLocalStorage = JSON.parse(localStorage.getItem(`balancesOf-${await this.contractObj.address}`))
             // console.log(cacheLocalStorage.endBlock,(endBlock-4000*10),cacheLocalStorage.endBlock>(endBlock-4000*10) )
             // console.log(Boolean(cacheLocalStorage))
-            if(cacheLocalStorage && ownerAddres in cacheLocalStorage && cacheLocalStorage[ownerAddres].endBlock>(endBlock-4000*4)) {
-            const cacheLocalStorage = JSON.parse(localStorage.getItem(`balancesOf-${await this.contractObj.address}`))
+            if (cacheLocalStorage && ownerAddres in cacheLocalStorage && cacheLocalStorage[ownerAddres].endBlock > (endBlock - 4000 * 4)) {
+                const cacheLocalStorage = JSON.parse(localStorage.getItem(`balancesOf-${await this.contractObj.address}`))
                 this.idsOfOwnerCache = cacheLocalStorage
                 foundIds = await this.getIdsOfownerByEventScanning(ownerAddres, cacheLocalStorage[ownerAddres].endBlock, this.contractObj)
                 return foundIds
-    
+
             } else {
                 try {
-                    const options = {method: 'GET', headers: {accept: 'application/json'}};
+                    const options = { method: 'GET', headers: { accept: 'application/json' } };
                     const apiKey = this.alchemyApiKey //please dont grift i dont have money for premium :(
                     const reqString = `https://eth-mainnet.g.alchemy.com/nft/v3/${apiKey}/getNFTsForOwner?owner=${ownerAddres}&contractAddresses[]=${this.contractObj.address}&withMetadata=true&pageSize=100`
                     const r = await (await fetch(reqString, options)).json()
-                    const ids = r.ownedNfts.map((x)=>x.tokenId)
+                    const ids = r.ownedNfts.map((x) => x.tokenId)
                     const endBlock = (await this.provider.getBlock("latest")).number
                     this.idsOfOwnerCache[ownerAddres] = { ["startBlock"]: 0, ["endBlock"]: endBlock, ["ids"]: ids }
                     this.saveOwnerIdsCacheToStorage()
@@ -1157,14 +1162,14 @@ export class uriHandler {
                 } catch (error) {
                     console.log(error)
                     console.log("bro nothing is working and we now have to resort to scanning events this is going to take forever :(((")
-                    this.idsOfOwnerCache = cacheLocalStorage
-                    foundIds = await this.getIdsOfownerByEventScanning(ownerAddres, cacheLocalStorage[ownerAddres].endBlock, this.contractObj)
+                    //this.idsOfOwnerCache = cacheLocalStorage
+                    foundIds = await this.getIdsOfownerByEventScanning(ownerAddres, startBlockEventScan, this.contractObj)
                     return foundIds
-                    
+
                 }
             }
             //console.warn(`nft: ${nftAddr} doesnt have ownerBalanceToken or tokenOfOwnerByIndex we need to scan transfer events now wich might take a while `)
-            
+
         }
 
 
@@ -1176,7 +1181,7 @@ export class uriHandler {
     }
 
 
-    async getCachedIdsOfOwner(source = this.extraUriMetaData.idsOfOwner) {
+    async getCachedIdsOfOwner(source = this.extraMetaData.idsOfOwner) {
         console.log(`fetching id from ${source}`)
         if (Object.keys(this.idsOfOwnerCache).length) {
             return this.idsOfOwnerCache
@@ -1231,7 +1236,7 @@ export class uriHandler {
 
     async saveOwnerIdsCacheToStorage(outputFilePath = undefined) {
         let fromStorage = JSON.parse(localStorage.getItem(`balancesOf-${await this.contractObj.address}`))
-        this.idsOfOwnerCache = {...fromStorage, ...this.idsOfOwnerCache}
+        this.idsOfOwnerCache = { ...fromStorage, ...this.idsOfOwnerCache }
         //TODO cleanup
         try {
             if (!(typeof (localStorage) === "undefined")) {
