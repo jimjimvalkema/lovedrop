@@ -1,8 +1,8 @@
 
 //const { error } = require("console");
 
-import { ethers } from "../scripts/ethers-5.2.esm.min.js"
-import allExtraMetaData  from "../scripts/extraUriMetaDataFile.json" assert { type: "json" };
+import { ethers } from "./ethers-5.2.esm.min.js"
+import allExtraMetaData  from "./extraUriMetaDataFile.json" assert { type: "json" };
 import ERC721ABI  from "../abi/ERC721ABI.json" assert { type: "json" };
 
 /**
@@ -40,7 +40,6 @@ export function MakeQuerablePromise(promise) {
     return result;
 }
 
-//TODO put this into URIHandler
 export function isFulfilled(x) {
     if (x !== undefined) {
         return x.isFulfilled()
@@ -52,8 +51,7 @@ export function isFulfilled(x) {
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
-//TODO maybe attibute finder is better name? or maybe split classes
-export class uriHandler {
+export class NftMetaDataCollector {
     alchemyApiKey = "5hUqMLpX3qUN2PpvLhhmSZMmnlFdUd0W"
     contractObj = undefined;
     provider = undefined
@@ -64,11 +62,10 @@ export class uriHandler {
     totalSupply = undefined
     baseURICache = undefined;
     ipfsGateway = undefined;
-    everyAttribute = undefined;
-    useCustomCompressedImages;
+    idsPerAttribute = undefined;
+    useCustomCompressedImages = false;
     idStartsAt = undefined;
     idsOfOwnerCache = {};
-    ERC721ArchetypeScatterABI = undefined;
     baseUriExtension = "";
     attributeFormat = {
         pathToAttributeList: ["attributes"],
@@ -91,6 +88,17 @@ export class uriHandler {
         this.extraMetaData = this.getExtraUriMetaData(_contractAddr, allExtraMetaData);
     }
 
+    getExtraUriMetaData(contractAddr, allExtraMetaData) {
+        if (contractAddr in allExtraMetaData) {
+            return allExtraMetaData[contractAddr]
+        } else {
+            console.log(`Nft contract: ${contractAddr} not found in extraUriMetaData:, setting to default values`)
+            return {
+                "type": "standard"
+            }
+        }
+    }
+
 
     async getIdStartsAt() {
         //cheeky way to check for off by one errors :p
@@ -110,7 +118,7 @@ export class uriHandler {
     }
 
     async getCompressedImages() {
-        return await this.getUrlByProtocol(( this.extraMetaData.baseUriCompressed), true);
+        return await this.getUrlByProtocol(( this.extraMetaData.compressedImages), true);
 
     }
 
@@ -119,14 +127,14 @@ export class uriHandler {
         if (!(typeof (localStorage) === "undefined") && localStorage.hasOwnProperty(await this.contractObj.address)) {
             console.log(`${this.contractObj.address} extraMetaDataFile was found in local storage :D`)
             const data = JSON.parse(localStorage.getItem(await this.contractObj.address));
-            this.everyAttribute = data.everyAttribute;
+            this.idsPerAttribute = data.idsPerAttribute;
             this.idStartsAt = data.idStartsAt;
             if ("totalsupply" in data) {
                 this.totalSupply = parseInt(data.totalsupply)
 
             }
         } else if (buildMissingData) {
-            await this.getEveryAttributeType();
+            await this.getIdsPerAttribute();
             if ("idStartsAt" in this.extraMetaData && Number.isInteger(this.extraMetaData.idStartsAt)) {
                 this.idStartsAt =  this.extraMetaData.idStartsAt
             }
@@ -153,7 +161,7 @@ export class uriHandler {
                 'Content-Type': '*'
             }
         }
-        if (this.useCustomCompressedImages && ("baseUriCompressed" in this.extraMetaData)) {
+        if (this.useCustomCompressedImages && ("compressedImages" in this.extraMetaData)) {
             let extension = ".jpg"
             if ("imageFileExtesion" in (this.extraMetaData)) {
                 //console.log( await (this.extraUriMetaData).imageFileExtesion)
@@ -255,19 +263,6 @@ export class uriHandler {
         }
         this.baseURICache = baseUri
         return baseUri;
-    }
-
-    async getExtraUriMetaData(contractAddr, allExtraMetaData) {
-        if (contractAddr in allExtraMetaData) {
-            return allExtraMetaData[contractAddr]
-        } else {
-            console.log(`Nft contract: ${contractAddr} not found in extraUriMetaData:, setting to default values`)
-            return {
-                "type": "standard",
-                "idStartsAt":0 
-            }
-        }
-
     }
 
     async getUrisInBulk(startId = 0, endId = null, idList = null) {
@@ -403,8 +398,8 @@ export class uriHandler {
     async syncUriCache(startId = 0, endId = null, chunkSize = 200) {
         // const traitTypeKey = this.attributeFormat.traitTypeKey
         // const valueKey = this.attributeFormat.valueKey
-        if ( this.extraMetaData.scrapedUriData) {
-            this.uriCache = await (await this.getUrlByProtocol( this.extraMetaData.scrapedUriData)).json()
+        if ( this.extraMetaData.metaDataArray) {
+            this.uriCache = await (await this.getUrlByProtocol( this.extraMetaData.metaDataArray)).json()
         } else {
             console.log(`no premade metadata found for ntf contract: ${await this.contractObj.address} :( collecting attribute manually!`)
             //syncUriCacheByScraping already
@@ -505,30 +500,30 @@ export class uriHandler {
         return false
     }
 
-    hasAttributeWithEveryAttribute(id, attribute) {
+    hasAttributeWithIdsPerAttribute(id, attribute) {
         const traitTypeKey = this.attributeFormat.traitTypeKey;
         const valueKey = this.attributeFormat.valueKey;
         const traitType = attribute[traitTypeKey]
         const value = attribute[valueKey]
-        const index = this.everyAttribute[traitType].attributes[value].ids.indexOf(JSON.stringify(id))
+        const index = this.idsPerAttribute[traitType].attributes[value].ids.indexOf(JSON.stringify(id))
         return index !== -1
 
     }
 
     async hasAttribute(id, attribute) {
-        if (this.everyAttribute) {
-            return this.hasAttributeWithEveryAttribute(id, attribute)
+        if (this.idsPerAttribute) {
+            return this.hasAttributeWithIdsPerAttribute(id, attribute)
         } else {
             return await this.hasAttributeWithTokenUri(id, attribute)
         }
     }
 
-    getIdsWithEveryAtrribureObj(attribute) {
-        if (!this.everyAttribute) {
-            throw Error(`everyAttribute is: ${this.everyAttribute}`)
+    getIdsWithIdsPerAttribute(attribute) {
+        if (!this.idsPerAttribute) {
+            throw Error(`idsPerAttribute is: ${this.idsPerAttribute}`)
         } else {
 
-            return this.everyAttribute[attribute[this.attributeFormat.traitTypeKey]].attributes[attribute[this.attributeFormat.valueKey]].ids
+            return this.idsPerAttribute[attribute[this.attributeFormat.traitTypeKey]].attributes[attribute[this.attributeFormat.valueKey]].ids
         }
     }
 
@@ -559,8 +554,8 @@ export class uriHandler {
                 endId = await this.getTotalSupply()
             }
 
-            if (this.everyAttribute) {
-                let allIds = this.getIdsWithEveryAtrribureObj(attribute)
+            if (this.idsPerAttribute) {
+                let allIds = this.getIdsWithIdsPerAttribute(attribute)
                 if (startId === 0 && endId === await this.getTotalSupply()) {
                     matchingIds = new Set([...allIds])
                 } else {
@@ -575,8 +570,8 @@ export class uriHandler {
                 }
             }
         } else {
-            if (this.everyAttribute) {
-                let allIds = this.getIdsWithEveryAtrribureObj(attribute)
+            if (this.idsPerAttribute) {
+                let allIds = this.getIdsWithIdsPerAttribute(attribute)
                 matchingIds = this.setIntersection(idSet, new Set([...allIds]))
 
             } else {
@@ -898,14 +893,14 @@ export class uriHandler {
         return this.processCondition(structuredClone(filterObj))
     }
 
-    async getEveryAttributeTypeFromUriCache(uriCache, keepIds = true) {
+    async buildIdsPerAttributeFromUriCache(uriCache, keepIds = true) {
 
         if (!uriCache || !uriCache.length) {
             uriCache = await this.syncUriCache()
         }
         this.totalSupply = uriCache.length - 1
 
-        let everyAttribute = {}
+        let idsPerAttribute = {}
         const uriKeys = Object.keys(uriCache).map(((x) => parseInt(x)));
 
         for (let id = 0; id < uriCache.length; id++) {
@@ -915,40 +910,40 @@ export class uriHandler {
                     const traitType = attr[this.attributeFormat.traitTypeKey]
                     const value = attr[this.attributeFormat.valueKey]
 
-                    if (!(traitType in everyAttribute)) {
+                    if (!(traitType in idsPerAttribute)) {
                         const valueAsFloat = parseFloat(value)
                         if (isNaN(valueAsFloat)) { //check if value is number
-                            everyAttribute[traitType] = { "dataType": "string", "attributes": {} };
+                            idsPerAttribute[traitType] = { "dataType": "string", "attributes": {} };
                         } else {
-                            everyAttribute[traitType] = { "dataType": "number", "min": valueAsFloat, "max": valueAsFloat, "attributes": {} };
+                            idsPerAttribute[traitType] = { "dataType": "number", "min": valueAsFloat, "max": valueAsFloat, "attributes": {} };
                         }
 
-                        everyAttribute[traitType]["attributes"][value] = { "amount": 1 }
+                        idsPerAttribute[traitType]["attributes"][value] = { "amount": 1 }
                         if (keepIds) {
-                            everyAttribute[traitType]["attributes"][value]["ids"] = [id];
+                            idsPerAttribute[traitType]["attributes"][value]["ids"] = [id];
                         }
                     } else {
-                        if (!(value in everyAttribute[traitType]["attributes"])) { //checks if value is in list
-                            if (everyAttribute[traitType]["dataType"] == "number") {
+                        if (!(value in idsPerAttribute[traitType]["attributes"])) { //checks if value is in list
+                            if (idsPerAttribute[traitType]["dataType"] == "number") {
                                 const valueAsFloat = parseFloat(value)
                                 if (isNaN(valueAsFloat)) {
-                                    everyAttribute[traitType]["dataType"] = "string";
-                                    delete everyAttribute[traitType].min
-                                    delete everyAttribute[traitType].max
+                                    idsPerAttribute[traitType]["dataType"] = "string";
+                                    delete idsPerAttribute[traitType].min
+                                    delete idsPerAttribute[traitType].max
                                 } else {
-                                    everyAttribute[traitType].min = Math.min(everyAttribute[traitType].min, valueAsFloat);
-                                    everyAttribute[traitType].max = Math.max(everyAttribute[traitType].max, valueAsFloat);
+                                    idsPerAttribute[traitType].min = Math.min(idsPerAttribute[traitType].min, valueAsFloat);
+                                    idsPerAttribute[traitType].max = Math.max(idsPerAttribute[traitType].max, valueAsFloat);
                                 }
                             }
-                            everyAttribute[traitType]["attributes"][value] = { "amount": 1 };
+                            idsPerAttribute[traitType]["attributes"][value] = { "amount": 1 };
 
                             if (keepIds) {
-                                everyAttribute[traitType]["attributes"][value]["ids"] = [id];
+                                idsPerAttribute[traitType]["attributes"][value]["ids"] = [id];
                             }
                         } else {
-                            everyAttribute[traitType]["attributes"][value]["amount"] += 1;
+                            idsPerAttribute[traitType]["attributes"][value]["amount"] += 1;
                             if (keepIds) {
-                                everyAttribute[traitType]["attributes"][value]["ids"].push(id);
+                                idsPerAttribute[traitType]["attributes"][value]["ids"].push(id);
                             }
 
                         }
@@ -956,13 +951,13 @@ export class uriHandler {
                     }
                 }
             } else {
-                if (!("noAttributes" in everyAttribute)) {
-                    everyAttribute["noAttributes"] = { "attributes": { "nothing": { "ids": [id] } } }
-                    everyAttribute["noAttributes"]["attributes"]["nothing"]["amount"] = 1
-                    everyAttribute["noAttributes"]["dataType"] = "string"
+                if (!("noAttributes" in idsPerAttribute)) {
+                    idsPerAttribute["noAttributes"] = { "attributes": { "nothing": { "ids": [id] } } }
+                    idsPerAttribute["noAttributes"]["attributes"]["nothing"]["amount"] = 1
+                    idsPerAttribute["noAttributes"]["dataType"] = "string"
                 } else {
-                    everyAttribute.noAttributes.attributes.nothing.ids.push(id)
-                    everyAttribute["noAttributes"]["attributes"]["nothing"]["amount"] += 1
+                    idsPerAttribute.noAttributes.attributes.nothing.ids.push(id)
+                    idsPerAttribute["noAttributes"]["attributes"]["nothing"]["amount"] += 1
                 }
 
             }
@@ -971,7 +966,7 @@ export class uriHandler {
                 this.totalSupply = id - 1
             }
         }
-        return everyAttribute
+        return idsPerAttribute
 
     }
 
@@ -979,25 +974,25 @@ export class uriHandler {
     /**TODO handle when urichache possible to fetch
      * @returns {Object} attributes
      */
-    async getEveryAttributeType(forceResync = false, keepIds = true, uriCache = this.uriCache) {
+    async getIdsPerAttribute(forceResync = false, keepIds = true, uriCache = this.uriCache) {
 
 
         //TODO make format global var
 
-        if (!forceResync &&  this.extraMetaData.everyAttributeCbor) {
-            if ( this.extraMetaData.everyAttributeCbor) {
-                console.log(`found preprossed data for contract: ${this.contractObj.address}, at  ${ this.extraMetaData.everyAttributeCbor}`)
-                const r = await this.getUrlByProtocol( this.extraMetaData.everyAttributeCbor)
-                this.everyAttribute = CBOR.decode(await r.arrayBuffer())
+        if (!forceResync &&  this.extraMetaData.idsPerAttributeCbor) {
+            if ( this.extraMetaData.idsPerAttributeCbor) {
+                console.log(`found preprossed data for contract: ${this.contractObj.address}, at  ${ this.extraMetaData.idsPerAttributeCbor}`)
+                const r = await this.getUrlByProtocol( this.extraMetaData.idsPerAttributeCbor)
+                this.idsPerAttribute = CBOR.decode(await r.arrayBuffer())
             }
 
-            //this.everyAttribute = await (await this.getUrlByProtocol((await this.extraUriMetaData).everyAttribute)).json()
+            //this.idsPerAttribute = await (await this.getUrlByProtocol((await this.extraUriMetaData).idsPerAttribute)).json()
         } else {
             console.log(`no premade metadata found for ntf contract: ${await this.contractObj.address} :( collecting attributes manually!`)
-            this.everyAttribute = await this.getEveryAttributeTypeFromUriCache(uriCache, keepIds)
+            this.idsPerAttribute = await this.buildIdsPerAttributeFromUriCache(uriCache, keepIds)
             try {
                 if (!(typeof (localStorage) === "undefined")) {
-                    localStorage.setItem(await this.contractObj.address, JSON.stringify({ "idStartsAt": this.idStartsAt, "totalsupply": (await this.getTotalSupply()), "everyAttribute": this.everyAttribute }));
+                    localStorage.setItem(await this.contractObj.address, JSON.stringify({ "idStartsAt": this.idStartsAt, "totalsupply": (await this.getTotalSupply()), "idsPerAttribute": this.idsPerAttribute }));
 
                 }
 
@@ -1007,7 +1002,7 @@ export class uriHandler {
             }
 
         }
-        return this.everyAttribute
+        return this.idsPerAttribute
     }
 
     async eventScanInChunks(contrObj, filter, startBlock, endBlock, chunkSize = 4000, maxRequests = 10) {

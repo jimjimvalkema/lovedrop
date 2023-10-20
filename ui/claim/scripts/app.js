@@ -1,8 +1,7 @@
-import { uriHandler } from "../../scripts/uriHandler.js";
+import { NftMetaDataCollector } from "../../scripts/NftMetaDataCollector.js";
 import { IpfsIndexer } from "../../scripts/IpfsIndexer.js";
 import { ethers } from "../../scripts/ethers-5.2.esm.min.js";
 import { MerkleBuilder } from "../../scripts/MerkleBuilder.js"
-window.uriHandler = uriHandler
 
 // A Web3Provider wraps a standard Web3 provider, which is
 // what MetaMask injects as window.ethereum into each page
@@ -52,6 +51,7 @@ async function connectSigner() {
     // MetaMask requires requesting permission to connect users accounts
     provider.send("eth_requestAccounts", []);
     window.signer = await provider.getSigner();
+    message("please connect wallet :)")
     if (isWalletConnected()) {
         await resolveTillConnected()
         message("")
@@ -77,14 +77,14 @@ async function getUrlVars() {
 
 
 async function selectPage(currentPage, maxPerPage, nftAddr) {
-    const nftHandler = window.allUriHandlers.find((x) => x.contractObj.address === nftAddr)
-    cancelAllLoadingImages(window.currentPage, maxPerPage, nftHandler, window.idsByClaimableStatus)
+    const nftMetaData = window.metaDataAllNfts.find((x) => x.contractObj.address === nftAddr)
+    cancelAllLoadingImages(window.currentPage, maxPerPage, nftMetaData, window.idsByClaimableStatus)
     window.currentPage=currentPage
     window.maxPerPage=maxPerPage
     
-    const idsToDisplay = { [nftAddr]: await buildPage(currentPage, maxPerPage, nftHandler, window.idsByClaimableStatus) }
+    const idsToDisplay = { [nftAddr]: await buildPage(currentPage, maxPerPage, nftMetaData, window.idsByClaimableStatus) }
     
-    setClaimStatusPage(currentPage, maxPerPage, nftHandler, window.idsByClaimableStatus, idsToDisplay)
+    setClaimStatusPage(currentPage, maxPerPage, nftMetaData, window.idsByClaimableStatus, idsToDisplay)
 
 }
 window.selectPage = selectPage
@@ -94,27 +94,25 @@ function cancelLoadingImage(elementId) {
     try {document.getElementById(elementId).src = ""}catch (error) { console.log(error)}
 }
 
-function cancelAllLoadingImages(currentPage, maxPerPage, nftHandler, idsByClaimableStatus) {
+function cancelAllLoadingImages(currentPage, maxPerPage, nftMetaData, idsByClaimableStatus) {
     const firstItemIndex = currentPage * maxPerPage
     const lastItemIndex = (currentPage + 1) * maxPerPage
-    const nftAddr = nftHandler.contractObj.address
+    const nftAddr = nftMetaData.contractObj.address
     let ids = [...idsByClaimableStatus[nftAddr].claimable, ...idsByClaimableStatus[nftAddr].claimed, ...idsByClaimableStatus[nftAddr].ineligible]
     for (const id of ids.slice(firstItemIndex, lastItemIndex)) {
         cancelLoadingImage(`image-${nftAddr}-${id}`)
     }
 }
-async function buildPage(currentPage, maxPerPage, nftHandler, idsByClaimableStatus) {
+async function buildPage(currentPage, maxPerPage, nftMetaData, idsByClaimableStatus) {
     const firstItemIndex = currentPage * maxPerPage
     const lastItemIndex = (currentPage + 1) * maxPerPage
-    const nftAddr = await nftHandler.contractObj.address
-    const nftName = await nftHandler.contractObj.name()
+    const nftAddr = await nftMetaData.contractObj.address
+    const nftName = await nftMetaData.contractObj.name()
     let imgCrossorigin = "crossorigin='anonymous'"
-    if ((await nftHandler.extraUriMetaData) && "type" in (await nftHandler.extraUriMetaData)) {
-        if ((await nftHandler.extraUriMetaData).type === "blockedCors") {
-            imgCrossorigin = ''
-        }
-        
+    if (nftMetaData.extraMetaData.type === "blockedCors") {
+        imgCrossorigin = ''
     }
+
     let ids = [...idsByClaimableStatus[nftAddr].claimable, ...idsByClaimableStatus[nftAddr].claimed, ...idsByClaimableStatus[nftAddr].ineligible]
     const amountPages = Math.ceil(ids.length / maxPerPage)
     const pageSelecter = `
@@ -129,7 +127,7 @@ async function buildPage(currentPage, maxPerPage, nftHandler, idsByClaimableStat
     //await cancelAllLoadingImages(ids.slice(firstItemIndex, lastItemIndex), nftAddr)
 
     for (const id of ids.slice(firstItemIndex, lastItemIndex)) {
-        const imgUrl = await nftHandler.getImage(id)
+        const imgUrl = await nftMetaData.getImage(id)
         collectionHtml += `<div id="${nftAddr}-${id}" style="position: relative; border:3px solid green; width: 15%; display: inline-block;" >\n
                     <img ${imgCrossorigin} id="image-${nftAddr}-${id}" src="${imgUrl}" style="max-width: 100%;">\n 
                     <div id="claimableStatus-${nftAddr}-${id}"   style="float: right; position: absolute; left: 0px; bottom: 0px; z-index: 1; background-color: rgba(20, 200, 20, 0.8); padding: 5px; color: #FFFFFF; font-weight: bold;">\n
@@ -149,8 +147,8 @@ async function buildPage(currentPage, maxPerPage, nftHandler, idsByClaimableStat
     return ids
 }
 
-async function setClaimStatusPage(currentPage, maxPerPage, nftHandler, idsByClaimableStatus, idsToDisplay) {
-    const nftAddr = nftHandler.contractObj.address
+async function setClaimStatusPage(currentPage, maxPerPage, nftMetaData, idsByClaimableStatus, idsToDisplay) {
+    const nftAddr = nftMetaData.contractObj.address
     const firstItemIndex = currentPage * maxPerPage
     const lastItemIndex = (currentPage + 1) * maxPerPage
     let { claimable, claimed, ineligible } = idsByClaimableStatus[nftAddr]
@@ -172,7 +170,7 @@ async function setClaimStatusPage(currentPage, maxPerPage, nftHandler, idsByClai
 
 }
 
-async function displayAllUserNfts(userAddress, allUriHandlers = window.allUriHandlers, startBlockEventScan = 0) {
+async function displayAllUserNfts(userAddress, metaDataAllNfts = window.metaDataAllNfts, startBlockEventScan = 0) {
     let html = ""
     let collectionHtmlsArr = []
     let allIds = window.allUserIds
@@ -181,12 +179,12 @@ async function displayAllUserNfts(userAddress, allUriHandlers = window.allUriHan
     window.currentPage=currentPage
     window.maxPerPage=maxPerPage
     let idsToDisplay = {}
-    for (const i in allUriHandlers) {
-        const nftHandler = allUriHandlers[i]
-        const nftAddr = await nftHandler.contractObj.address
+    for (const i in metaDataAllNfts) {
+        const nftMetaData = metaDataAllNfts[i]
+        const nftAddr = await nftMetaData.contractObj.address
         if (allUserIds[nftAddr].length===0) {
             idsToDisplay[nftAddr] = []
-            const nftName = await nftHandler.contractObj.name()
+            const nftName = await nftMetaData.contractObj.name()
             const pageInfo = `<div></br><a>${nftName}<a></br><a style="font-size:0.8em ">${nftAddr}</a></div>`
             let collectionHtml =`<div style="border-style: solid; border:3px" id=display-${nftAddr}>${pageInfo}\nno nfts found for this wallet :(</div>`
             if (document.getElementById(`display-${nftAddr}`)) {
@@ -195,15 +193,15 @@ async function displayAllUserNfts(userAddress, allUriHandlers = window.allUriHan
                 document.getElementById("nftImages").innerHTML += collectionHtml
             }
         } else {
-            const ids = await buildPage(currentPage, maxPerPage, nftHandler, window.idsByClaimableStatus)
+            const ids = await buildPage(currentPage, maxPerPage, nftMetaData, window.idsByClaimableStatus)
 
             idsToDisplay[nftAddr] = ids
 
         }
     }
 
-    for (const nftHandler of allUriHandlers) {
-        setClaimStatusPage(currentPage, maxPerPage, nftHandler, window.idsByClaimableStatus, idsToDisplay)
+    for (const nftMetaData of metaDataAllNfts) {
+        setClaimStatusPage(currentPage, maxPerPage, nftMetaData, window.idsByClaimableStatus, idsToDisplay)
     }
 
 }
@@ -225,53 +223,6 @@ function toggleUsersChosenIdsToClaim(id) {
     }
 }
 window.toggleUsersChosenIdsToClaim = toggleUsersChosenIdsToClaim
-
-async function runOnLoad() {
-    message("please connect wallet :)")
-    await loadAllContracts()
-}
-window.onload = runOnLoad;
-
-async function loadAllContracts() {
-    window.urlVars = await getUrlVars();
-    window.ipfsGateway = window.urlVars["ipfsGateway"]
-    if (!window.ipfsGateway) {
-        window.ipfsGateway = "http://127.0.0.1:48084" //no grifting pls thank :)
-    }
-
-    //abis
-    const mildayDropAbi = await (await fetch("../abi/mildayDropAbi.json")).json()//update mildayDropAbi.json
-    const ERC721ABI = await (await fetch("../abi/ERC721ABI.json")).json()
-    const ER20ABI = await (await fetch("../abi/ERC20ABI.json")).json()
-
-    //miladyDrop Contract
-    window.mildayDropContract = new ethers.Contract(window.urlVars["lovedrop"], mildayDropAbi, window.provider);
-    window.airdropTokenContract = new ethers.Contract( await mildayDropContract.airdropTokenAddress(), ER20ABI, window.provider)
-    window.ticker = await window.airdropTokenContract.symbol()
-
-
-    //load ipfs data
-    window.claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
-    window.ipfsIndex = new IpfsIndexer(window.ipfsGateway, null, true)
-    await window.ipfsIndex.loadIndexMiladyDropClaimData(window.claimDataIpfsHash )
-
-    //get all nft contracts
-    window.allNftAddresses = await window.ipfsIndex.getAllNftAddrs()
-    window.selectedIds = {}
-    for (const nftAddr of window.allNftAddresses) {
-        window.selectedIds[nftAddr] = new Set()
-    }
-    //window.allEligibleIds = window.ipfsIndex.getIdsPerCollection()
-
-    window.allNftContractObjs = allNftAddresses.map((address) => new ethers.Contract(address, ERC721ABI, window.provider))
-    await Promise.all(window.allNftContractObjs)
-    window.allUriHandlers = window.allNftContractObjs.map((contractObj) => new uriHandler(contractObj, window.ipfsGateway, true, "../../scripts/extraUriMetaDataFile.json", window.provider))
-    window.tree = window.ipfsIndex.getTreeDump()
-    connectSigner()
-
-    window.idsPerCollection = window.ipfsIndex.getIdsPerCollection()
-}
-window.loadAllContracts = loadAllContracts
 
 async function loadMerkleBuilder() {
     console.log("started loading merkle tree")
@@ -407,8 +358,8 @@ function toggleClaim(nftAddr, id) {
 window.toggleClaim = toggleClaim
 
 function selectAll() {
-    for (const nftHandler of window.allUriHandlers) {
-        const nftAddr = nftHandler.contractObj.address
+    for (const nftMetaData of window.metaDataAllNfts) {
+        const nftAddr = nftMetaData.contractObj.address
         window.selectedIds[nftAddr] = new Set([...window.idsByClaimableStatus[nftAddr].claimable])
         selectPage(window.currentPage, window.maxPerPage, nftAddr)
     }
@@ -434,15 +385,15 @@ async function getClaimableStatus(allUserIds = window.allUserIds, allEligibleIds
 }
 
 
-async function getAllUserBalances(userAddress=window.userAddress, allNftHandlers) {
+async function getAllUserBalances(userAddress=window.userAddress, metaDataAllNfts) {
     let userBalances = []
     let nftAddrs = []
-    if (!allNftHandlers) {
-        allNftHandlers = await window.allUriHandlers
+    if (!metaDataAllNfts) {
+        metaDataAllNfts = await window.metaDataAllNfts
     }
-    for (const nftHandler of (await window.allUriHandlers)) {
-        nftAddrs.push(nftHandler.contractObj.address)
-        userBalances.push(nftHandler.getIdsOfowner(userAddress,13090020)) //TODO!!! very bad assumption that milady is the first nft ever :p
+    for (const nftMetaData of (await window.metaDataAllNfts)) {
+        nftAddrs.push(nftMetaData.contractObj.address)
+        userBalances.push(nftMetaData.getIdsOfowner(userAddress,18368653)) //TODO!!! very bad assumption that milady is the first nft ever :p
     }
 
     userBalances = await Promise.all(userBalances)
@@ -451,10 +402,54 @@ async function getAllUserBalances(userAddress=window.userAddress, allNftHandlers
 }
 window.getAllUserBalances = getAllUserBalances
 
+async function runOnLoad() {
+    await loadAllContracts()
+}
+window.onload = runOnLoad;
+
+async function loadAllContracts() {
+    window.urlVars = await getUrlVars();
+    window.ipfsGateway = window.urlVars["ipfsGateway"]
+    if (!window.ipfsGateway) {
+        window.ipfsGateway = "http://127.0.0.1:48084" //no grifting pls thank :)
+    }
+
+    //abis
+    const mildayDropAbi = await (await fetch("../abi/mildayDropAbi.json")).json()//update mildayDropAbi.json
+    const ERC721ABI = await (await fetch("../abi/ERC721ABI.json")).json()
+    const ER20ABI = await (await fetch("../abi/ERC20ABI.json")).json()
+
+    //miladyDrop Contract
+    window.mildayDropContract = new ethers.Contract(window.urlVars["lovedrop"], mildayDropAbi, window.provider);
+    window.airdropTokenContract = new ethers.Contract( await mildayDropContract.airdropTokenAddress(), ER20ABI, window.provider)
+    window.ticker = await window.airdropTokenContract.symbol()
+
+
+    //load ipfs data
+    window.claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
+    window.ipfsIndex = new IpfsIndexer(window.ipfsGateway, null, true)
+    await window.ipfsIndex.loadIndexMiladyDropClaimData(window.claimDataIpfsHash )
+
+    //get all nft contracts
+    window.allNftAddresses = await window.ipfsIndex.getAllNftAddrs()
+    window.selectedIds = {}
+    for (const nftAddr of window.allNftAddresses) {
+        window.selectedIds[nftAddr] = new Set()
+    }
+    //window.allEligibleIds = window.ipfsIndex.getIdsPerCollection()
+    window.metaDataAllNfts = allNftAddresses.map((address) => new NftMetaDataCollector(address, window.provider, window.ipfsGateway))
+    window.tree = window.ipfsIndex.getTreeDump()
+    connectSigner()
+
+    window.idsPerCollection = window.ipfsIndex.getIdsPerCollection()
+}
+window.loadAllContracts = loadAllContracts
+
 async function test() {
-    window.allUserIds = await getAllUserBalances(await window.userAddress,await window.allUriHandlers)
+    window.allUserIds = await getAllUserBalances(await window.userAddress,await window.metaDataAllNfts)
     window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, await window.idsPerCollection)
     await displayAllUserNfts(userAddress)
+
 
 }
 window.test = test
