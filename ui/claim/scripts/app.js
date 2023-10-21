@@ -2,6 +2,7 @@ import { NftMetaDataCollector } from "../../scripts/NftMetaDataCollector.js";
 import { IpfsIndexer } from "../../scripts/IpfsIndexer.js";
 import { ethers } from "../../scripts/ethers-5.2.esm.min.js";
 import { MerkleBuilder } from "../../scripts/MerkleBuilder.js"
+import { NftDisplay } from "./NftDisplay.js";
 
 // A Web3Provider wraps a standard Web3 provider, which is
 // what MetaMask injects as window.ethereum into each page
@@ -446,6 +447,8 @@ async function loadAllContracts() {
 window.loadAllContracts = loadAllContracts
 
 async function test() {
+    window.t = new NftDisplay("0xafe12842e3703a3cC3A71d9463389b1bF2c5BC1C",window.provider,"test",[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21])
+    await t.createDisplay(window.signer.address)
     window.allUserIds = await getAllUserBalances(await window.userAddress,await window.metaDataAllNfts)
     window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, await window.idsPerCollection)
     await displayAllUserNfts(userAddress)
