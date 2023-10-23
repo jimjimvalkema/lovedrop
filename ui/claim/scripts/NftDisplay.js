@@ -1,4 +1,3 @@
-import { ethers } from "ethers";
 import {NftMetaDataCollector} from "../../scripts/NftMetaDataCollector.js";
 
 
@@ -6,6 +5,13 @@ export class NftDisplay {
     collectionAddress;
     nftMetaData;
     targetDivId;
+    ids;
+
+    currentPage=1
+    rowSize=7 
+    amountRows=3
+    borderWidth="5px";
+    borderColor = "black";
 
     /**
      * initializes with the nft collection and ids if given
@@ -46,7 +52,7 @@ export class NftDisplay {
      * @param {string} collectionAddress 
      * @returns 
      */
-    #createBorderDiv(id, index,borderWidth, borderColor, collectionAddress=this.collectionAddress) {
+    #createBorderDiv(id, index,borderWidth, borderColor, rowSize, collectionAddress=this.collectionAddress) {
         let imgBorderDiv = document.createElement("div")
         imgBorderDiv.style = `border-bottom: solid; border-right: solid;`
         imgBorderDiv.id = `borderDiv-${id}-${collectionAddress}`
@@ -63,34 +69,93 @@ export class NftDisplay {
      * fetches contract name and address 
      * @param {string} collectionAddress 
      * @param {NftMetaDataCollector} nftMetaData 
+     * @param {number} amountItems
      */
-    async #createInfoDiv(collectionAddress=this.collectionAddress, nftMetaData=this.nftMetaData) {
+    async #createInfoDiv(collectionAddress=this.collectionAddress, nftMetaData=this.nftMetaData, amountItems) {
         let infoDiv = document.createElement("div")
         infoDiv.id = `info-${collectionAddress}`
         infoDiv.innerHTML = `
-            <a style="font-weight: bold;">${await nftMetaData.contractObj.name()}</a><br>
-            <a style="font-size:0.8em">${collectionAddress}</a>
+            <span style="font-weight: bold;">${await nftMetaData.contractObj.name()}</span> <span style="font-size:0.8em">${amountItems} items</span></br>
+            <span style="font-size:0.8em">${collectionAddress}</span>
             `
+        return infoDiv
+    }
+
+    createPageSelector(currentPage=this.currentPage, rowSize=this.rowSize, amountRows=this.amountRows, ids=this.ids) {
+        const maxPerPage = rowSize*amountRows
+        const lastPage = Math.ceil(ids.length/maxPerPage)
+        //{["targetElementId"]:targetElementId, ["rowSize"]:rowSize, ["amountRows"]:amountRows, ["currentPage"]:currentPage, ["ids"]:ids, ["borderWidth"]:borderWidth, ["borderColor"]:borderColor}
+
+        const prevPageFunc  =  (e) => {this.selectPage(Math.max(currentPage-1, 1))} //, targetElementId, rowSize, amountRows, ids, borderWidth, borderColor)}
+        const nextPageFunc  =  (e) => {this.selectPage(Math.min(currentPage+1,lastPage))} //, targetElementId, rowSize, amountRows, ids, borderWidth, borderColor)}
+        const firstPageFunc =  (e) => {this.selectPage(1)} //, targetElementId, rowSize, amountRows, ids, borderWidth, borderColor)};
+        const lastPageFunc  =  (e) => {this.selectPage(lastPage)} //, targetElementId, rowSize, amountRows, ids, borderWidth, borderColor)};
+
+        let prevPageButton = document.createElement("button")
+        Object.assign(prevPageButton, {["onclick"]: prevPageFunc,   ["innerText"]: "prev"})
+
+        let nextPageButton = document.createElement("button")
+        Object.assign(nextPageButton, {["onclick"]: nextPageFunc,   ["innerText"]: "next"})
+        
+        let firstPageButton = document.createElement("button")
+        Object.assign(firstPageButton, {["onclick"]: firstPageFunc, ["innerText"]: "first"})
+        
+        let lastPageButton = document.createElement("button")
+        Object.assign(lastPageButton, {["onclick"]: lastPageFunc,   ["innerText"]: "last"})
+
+        let selectorDiv = document.createElement("div")
+
+        selectorDiv.append(prevPageButton,nextPageButton,firstPageButton,lastPageButton,` page ${currentPage} of ${lastPage} pages`)
+        return selectorDiv
+    }
+
+    /**
+     * set all currently displayed img.src tags to ""
+     * @param {number} currentPage 
+     * @param {null} rowSize 
+     * @param {number} amountRows 
+     * @param {number[]} ids 
+     */
+    #cancelLoadingImages(currentPage = this.currentPage, rowSize=this.rowSize,amountRows=this.amountRows, ids=this.ids) {
+        const maxPerPage = rowSize*amountRows
+        const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
+        for (const [index, id] of idsCurrentPage.entries()) {
+            let imgElement = document.getElementById(`img-${id}-${this.collectionAddress}`) 
+            imgElement.src = ""
+        }
+
     }
 
 
     /**
-     * creates a display of nft images at the specified elementId
+     * redraws the page with new page selector and images
+     * @param {number} page 
      * @param {string} targetElementId 
-     * @param {number} rowSize 
-     * @param {number} amountRows 
-     * @param {number} currentPage 
-     * @param {string} borderWidth 
-     * @param {string} borderColor 
      */
-    async createDisplay(targetElementId=this.targetDivId, rowSize=5, amountRows=2, currentPage=2, ids=this.ids, borderWidth="5px",borderColor = "black") {
+    async selectPage(page, targetElementId=this.targetDivId) {
+        let targetDiv = document.getElementById(targetElementId)
+
+        document.getElementById(`pageSelector-${this.collectionAddress}`).outerHTML = ""
+        let newPageSelectorDiv = this.createPageSelector(page)
+        newPageSelectorDiv.id = `pageSelector-${this.collectionAddress}`
+        targetDiv.append(newPageSelectorDiv)
+
+        this.#cancelLoadingImages(this.currentPage);
+        this.currentPage = page;
+        document.getElementById(`imagesRaster-${this.collectionAddress}`).outerHTML = ""
+
+        let newRasterDiv = await this.createImagesRaster(page) //await new Promise((resolve, reject) => {
+        newRasterDiv.id = `imagesRaster-${this.collectionAddress}`
+        targetDiv.append(newRasterDiv)
+
+    }
+
+    async createImagesRaster(currentPage=this.currentPage, rowSize=this.rowSize, amountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor) {
         const maxPerPage = rowSize*amountRows
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
         const imageWidth = Math.floor(100/(rowSize))
-        let targetDiv = document.getElementById(targetElementId)
         
         let allImagesDiv = document.createElement("div")
-        allImagesDiv.id = `images-${this.collectionAddress}`
         allImagesDiv.style=`width: 100%; border-left: solid; border-width: ${borderWidth}; border-color: ${borderColor}`
 
         for (const [index, id] of idsCurrentPage.entries()) {
@@ -106,18 +171,38 @@ export class NftDisplay {
             let imageDiv = document.createElement("div")
             imageDiv.id = `imageDiv-${id}-${this.collectionAddress}`
 
-            const imgBorderDiv = this.#createBorderDiv(id,index,borderWidth,borderColor,this.collectionAddress)
+            const imgBorderDiv = this.#createBorderDiv(id,index,borderWidth,borderColor,rowSize,this.collectionAddress)
             
             imageDiv.append(img)
             imgBorderDiv.append(imageDiv)
             imgRootDiv.append(imgBorderDiv)
             allImagesDiv.append(imgRootDiv)
         }
+        return allImagesDiv
+    }
+    /**
+     * creates a display of nft images at the specified elementId
+     * @param {number} currentPage 
+     * @param {string} targetElementId 
+     * @param {number} rowSize 
+     * @param {number} amountRows 
+     * @param {number[]} ids
+     * @param {string} borderWidth 
+     * @param {string} borderColor 
+     */
+    async createDisplay(currentPage=this.currentPage, targetElementId=this.targetDivId, rowSize=this.rowSize, amountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor) {
+        this.currentPage = currentPage
 
+        const infoDiv =  this.#createInfoDiv(this.collectionAddress,this.nftMetaData, ids.length)
 
-        const infoDiv = await this.#createInfoDiv(this.collectionAddress,this.nftMetaData)
+        let imagesRasterDiv = await this.createImagesRaster(currentPage, rowSize, amountRows, ids, borderWidth, borderColor)
+        imagesRasterDiv.id = `imagesRaster-${this.collectionAddress}`
 
-        targetDiv.append(infoDiv, allImagesDiv)
+        let pageSelectorDiv = this.createPageSelector(currentPage, rowSize, amountRows, ids)
+        pageSelectorDiv.id = `pageSelector-${this.collectionAddress}`
+
+        let targetDiv = document.getElementById(targetElementId)
+        targetDiv.append(await infoDiv,pageSelectorDiv, imagesRasterDiv)
     }
 
 }

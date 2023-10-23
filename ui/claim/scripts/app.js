@@ -448,10 +448,13 @@ window.loadAllContracts = loadAllContracts
 
 async function test() {
     window.t = new NftDisplay("0xafe12842e3703a3cC3A71d9463389b1bF2c5BC1C",window.provider,"test",[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21])
-    await t.createDisplay(window.signer.address)
+    console.log(await signer.getAddress())
+    await t.setIdsFromOwner("0xe524f93E5dAB234DfA56EF67F846119400df8cEe")
+    t.createDisplay()
+
     window.allUserIds = await getAllUserBalances(await window.userAddress,await window.metaDataAllNfts)
     window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, await window.idsPerCollection)
-    await displayAllUserNfts(userAddress)
+    //await displayAllUserNfts(userAddress)
 
 
 }
