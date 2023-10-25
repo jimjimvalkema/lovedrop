@@ -13,6 +13,9 @@ export class NftDisplay {
     borderWidth="5px";
     borderColor = "black";
 
+    imgOnclickFunction;
+    divFunctions=[function(id){let d = document.createElement("div"); d.style = "position: absolute; float: top-right; top: 0px; right: 0px; color: white"; d.innerText = id; return d }];
+
     /**
      * initializes with the nft collection and ids if given
      * @param {string} collectionAddress 
@@ -34,12 +37,58 @@ export class NftDisplay {
     setId(ids) {
         this.ids = ids
     }
+
     /**
      * sets the ids to all ids that the owner of the ethereum address owns
      * @param {string} ownerAddress 
      */
     async setIdsFromOwner(ownerAddress) {
-        this.ids = await this.nftMetaData.getIdsOfowner(ownerAddress)
+        this.ids = (await this.nftMetaData.getIdsOfowner(ownerAddress)).map((x)=>Number(x))//bignumber fix
+    }
+
+    /**
+     * set onclick function to all images 
+     *  the first function parameters are: event, nftId
+     * @param {function} imgOnclickFunction 
+     */
+    setImgOnclickFunction(imgOnclickFunction=this.imgOnclickFunction) {
+        this.imgOnclickFunction = imgOnclickFunction
+        this.#addFunctionToCurrentImages(this.imgOnclickFunction)
+    }
+
+    #addFunctionToCurrentImages(onclickFunction = this.imgOnclickFunction, ids=this.ids, currentPage = this.currentPage, rowSize=this.rowSize, amountRows=this.amountRows) {
+        const maxPerPage = rowSize*amountRows
+        const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
+        for (const [index, id] of idsCurrentPage.entries()) {
+            let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
+            imageDiv.onclick  = function(e,){onclickFunction(e,id)}
+            imageDiv.style.cursor = "pointer"
+        }
+
+    }
+
+    /**
+     * divFunction should return a Array of DOM elements . 
+     * input params are: nftId
+     * @param {function[]} divFunctions
+     */
+    setImageDivsFunction(divFunctions=this.divFunctions) {
+        this.divFunctions = divFunctions
+        this.#applyDivFuntionOnCurrentIds(divFunctions)
+    }
+
+    /**
+     * 
+     * @param {Element[]} divs
+     */
+    #applyDivFuntionOnCurrentIds(divFunctions=this.divFunctions, ids=this.ids, currentPage = this.currentPage, rowSize=this.rowSize, amountRows=this.amountRows) {
+        const maxPerPage = rowSize*amountRows
+        const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
+        for (const [index, id] of idsCurrentPage.entries()) {
+            let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
+            imageDiv.append(...divFunctions.map((x)=>x(id)))
+        }
+
     }
 
     /**
@@ -148,6 +197,8 @@ export class NftDisplay {
         newRasterDiv.id = `imagesRaster-${this.collectionAddress}`
         targetDiv.append(newRasterDiv)
 
+        this.#applyDivFuntionOnCurrentIds()
+
     }
 
     async createImagesRaster(currentPage=this.currentPage, rowSize=this.rowSize, amountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor) {
@@ -170,6 +221,7 @@ export class NftDisplay {
 
             let imageDiv = document.createElement("div")
             imageDiv.id = `imageDiv-${id}-${this.collectionAddress}`
+            imageDiv.style.position = "relative"
 
             const imgBorderDiv = this.#createBorderDiv(id,index,borderWidth,borderColor,rowSize,this.collectionAddress)
             
@@ -180,6 +232,7 @@ export class NftDisplay {
         }
         return allImagesDiv
     }
+
     /**
      * creates a display of nft images at the specified elementId
      * @param {number} currentPage 
@@ -203,6 +256,8 @@ export class NftDisplay {
 
         let targetDiv = document.getElementById(targetElementId)
         targetDiv.append(await infoDiv,pageSelectorDiv, imagesRasterDiv)
+
+        this.#applyDivFuntionOnCurrentIds()
     }
 
 }
