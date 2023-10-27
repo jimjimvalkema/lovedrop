@@ -14,8 +14,9 @@ export class NftDisplay {
     borderColor = "black";
 
     imgOnclickFunction;
-    divFunctions=[function(id){let d = document.createElement("div"); d.style = "position: absolute; float: top-right; top: 0px; right: 0px; color: white"; d.innerText = id; return d }];
+    divFunctions=[function id(id){let d = document.createElement("div"); d.style = "position: absolute; float: top-right; top: 0px; right: 0px; color: white"; d.innerText = id; return d }];
 
+    selection = []
     /**
      * initializes with the nft collection and ids if given
      * @param {string} collectionAddress 
@@ -48,45 +49,87 @@ export class NftDisplay {
 
     /**
      * set onclick function to all images 
-     *  the first function parameters are: event, nftId
+     *  the first function parameters are: this, event, nftId
      * @param {function} imgOnclickFunction 
      */
     setImgOnclickFunction(imgOnclickFunction=this.imgOnclickFunction) {
         this.imgOnclickFunction = imgOnclickFunction
-        this.#addFunctionToCurrentImages(this.imgOnclickFunction)
+        this.#addOnclickFunctionToCurrentImages(this.imgOnclickFunction)
     }
 
-    #addFunctionToCurrentImages(onclickFunction = this.imgOnclickFunction, ids=this.ids, currentPage = this.currentPage, rowSize=this.rowSize, amountRows=this.amountRows) {
+    #addOnclickFunctionToCurrentImages(onclickFunction = this.imgOnclickFunction, ids=this.ids, currentPage = this.currentPage, rowSize=this.rowSize, amountRows=this.amountRows) {
         const maxPerPage = rowSize*amountRows
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
         for (const [index, id] of idsCurrentPage.entries()) {
             let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
-            imageDiv.onclick  = function(e,){onclickFunction(e,id)}
+            imageDiv.onclick  = (e)=>{onclickFunction(e, id)}
             imageDiv.style.cursor = "pointer"
         }
 
     }
 
     /**
-     * divFunction should return a Array of DOM elements . 
-     * input params are: nftId
+     * divFunctions should be a Array of functions that return DOM elements . 
+     * input first input params of all funvtions are: nftId
      * @param {function[]} divFunctions
      */
-    setImageDivsFunction(divFunctions=this.divFunctions) {
+    setImageDivsFunctions(divFunctions=this.divFunctions) {
         this.divFunctions = divFunctions
-        this.#applyDivFuntionOnCurrentIds(divFunctions)
+        this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
     }
+
+    /**
+     * adds divFunction to the list
+     * and updates the display
+     * 
+     * the divFunction should return a DOM element.
+     * input first input params of all funvtions are: nftId 
+     *
+     * @param {function} func
+     */
+    addImageDivsFunction(func) {
+        this.divFunctions.push(func)
+        //TODO remove only the div created by that function that needs to be removed
+        this.#removeAllDivImageDiv();
+        this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
+    }
+
+    /**
+     * remove divFunction from the list by name
+     * and updates the display
+     * @param {string} functionName
+     */
+    removeImageDivsFunction(functionName) {
+        this.divFunctions = this.divFunctions.filter((x)=>x.name!==functionName)
+        //TODO remove only the div created by that function that needs to be removed
+        this.#removeAllDivImageDiv();
+        this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
+    }
+
+    #removeAllDivImageDiv(ids=this.ids, currentPage = this.currentPage, rowSize=this.rowSize, amountRows=this.amountRows) {
+        const maxPerPage = rowSize*amountRows
+        const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
+        for (const [index, id] of idsCurrentPage.entries()) {
+            let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
+            const removeableNodes = [...imageDiv.childNodes].slice(1)
+            removeableNodes.map((x)=>imageDiv.removeChild(x))
+        }
+
+    }
+
+
 
     /**
      * 
      * @param {Element[]} divs
      */
-    #applyDivFuntionOnCurrentIds(divFunctions=this.divFunctions, ids=this.ids, currentPage = this.currentPage, rowSize=this.rowSize, amountRows=this.amountRows) {
+    #applyDivFuntionsOnCurrentIds(divFunctions=this.divFunctions, ids=this.ids, currentPage = this.currentPage, rowSize=this.rowSize, amountRows=this.amountRows) {
         const maxPerPage = rowSize*amountRows
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
         for (const [index, id] of idsCurrentPage.entries()) {
             let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
-            imageDiv.append(...divFunctions.map((x)=>x(id)))
+            const results = divFunctions.map((x)=>x(id))
+            imageDiv.append(...results)
         }
 
     }
@@ -197,10 +240,20 @@ export class NftDisplay {
         newRasterDiv.id = `imagesRaster-${this.collectionAddress}`
         targetDiv.append(newRasterDiv)
 
-        this.#applyDivFuntionOnCurrentIds()
+        this.#applyDivFuntionsOnCurrentIds()
 
     }
 
+    /**
+     * 
+     * @param {number} currentPage 
+     * @param {number} rowSize 
+     * @param {number} amountRows 
+     * @param {number[]} ids 
+     * @param {string} borderWidth 
+     * @param {string} borderColor 
+     * @returns 
+     */
     async createImagesRaster(currentPage=this.currentPage, rowSize=this.rowSize, amountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor) {
         const maxPerPage = rowSize*amountRows
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
@@ -257,7 +310,37 @@ export class NftDisplay {
         let targetDiv = document.getElementById(targetElementId)
         targetDiv.append(await infoDiv,pageSelectorDiv, imagesRasterDiv)
 
-        this.#applyDivFuntionOnCurrentIds()
+        this.#applyDivFuntionsOnCurrentIds()
+    }
+
+    #toggleSelect(e, id) {
+        const idIndex = this.selection.indexOf(id)
+        let selectionStatusDiv = document.getElementById(`selectedStatus-${id}-${this.collectionAddress}`)
+        if (idIndex===-1) {
+            this.selection.push(id)
+            selectionStatusDiv.innerText = "selected"
+        } else {
+            selectionStatusDiv.innerText = "click to select"
+            this.selection.splice(idIndex,1)
+        }
+
+    }
+
+    #selectedStatus(id, status="click to select") {
+        let div = document.createElement("div") 
+        div.innerText = status
+        div.id = `selectedStatus-${id}-${this.collectionAddress}`
+        return div
+
+    }
+
+    //assumes this.selected is empty
+    makeSelectable() {
+        const toggleSelect = (e, id) => this.#toggleSelect(e, id)
+        this.setImgOnclickFunction(toggleSelect)
+
+        const selectionStatus = (id)=>this.#selectedStatus(id)
+        this.addImageDivsFunction(selectionStatus)
     }
 
 }
