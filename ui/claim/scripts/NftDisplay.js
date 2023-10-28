@@ -14,9 +14,11 @@ export class NftDisplay {
     borderColor = "black";
 
     imgOnclickFunction;
-    divFunctions=[function id(id){let d = document.createElement("div"); d.style = "position: absolute; float: top-right; top: 0px; right: 0px; color: white"; d.innerText = id; return d }];
+    divFunctions=[];
 
     selection = []
+    notSelectable = []
+
     /**
      * initializes with the nft collection and ids if given
      * @param {string} collectionAddress 
@@ -61,9 +63,12 @@ export class NftDisplay {
         const maxPerPage = rowSize*amountRows
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
         for (const [index, id] of idsCurrentPage.entries()) {
-            let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
-            imageDiv.onclick  = (e)=>{onclickFunction(e, id)}
-            imageDiv.style.cursor = "pointer"
+            if (this.notSelectable.indexOf(id)===-1) {
+                let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
+                imageDiv.onclick  = (e)=>{onclickFunction(e, id)}
+                imageDiv.style.cursor = "pointer"
+
+            }
         }
 
     }
@@ -240,7 +245,14 @@ export class NftDisplay {
         newRasterDiv.id = `imagesRaster-${this.collectionAddress}`
         targetDiv.append(newRasterDiv)
 
-        this.#applyDivFuntionsOnCurrentIds()
+        if (this.divFunctions.length) {
+            this.#applyDivFuntionsOnCurrentIds()
+        }
+
+        if(this.imgOnclickFunction){
+            console.log(this.imgOnclickFunction)
+            this.#addOnclickFunctionToCurrentImages()
+        }
 
     }
 
@@ -314,33 +326,91 @@ export class NftDisplay {
     }
 
     #toggleSelect(e, id) {
+        console.log(id)
         const idIndex = this.selection.indexOf(id)
         let selectionStatusDiv = document.getElementById(`selectedStatus-${id}-${this.collectionAddress}`)
         if (idIndex===-1) {
             this.selection.push(id)
+            selectionStatusDiv.style.backgroundColor = "rgba(0, 0, 100, 0.78)"
             selectionStatusDiv.innerText = "selected"
         } else {
             selectionStatusDiv.innerText = "click to select"
+            selectionStatusDiv.style.backgroundColor = "rgba(0, 0, 0, 0.78)"
             this.selection.splice(idIndex,1)
         }
 
     }
 
-    #selectedStatus(id, status="click to select") {
-        let div = document.createElement("div") 
-        div.innerText = status
-        div.id = `selectedStatus-${id}-${this.collectionAddress}`
-        return div
+    #setSelectStatus(id,selectionStatusDiv) {
+        const idIndex = this.selection.indexOf(id)
+        if (idIndex===-1)  {
+            selectionStatusDiv.innerText = "click to select"
+            selectionStatusDiv.style.backgroundColor = "rgba(0, 0, 0, 0.78)"
+        } else {
+            selectionStatusDiv.style.backgroundColor = "rgba(0, 0, 100, 0.78)"
+            selectionStatusDiv.innerText = "selected"
+        }
+        return selectionStatusDiv
 
+    } 
+
+    #selectedStatus(id) {
+        let div = document.createElement("div")
+        if (this.notSelectable.indexOf(id)===-1) { 
+            div.innerText = "click to select"
+            div.id = `selectedStatus-${id}-${this.collectionAddress}`
+            div.style = "width: 100%; position: absolute; float: left; bottom: 0px; left: 0px; color: white; font-size:0.9em; background-color:  rgba(0, 0, 0, 0.78)"
+            this.#setSelectStatus(id, div)
+            return div
+        } else {
+            return ""
+        }
     }
 
-    //assumes this.selected is empty
-    makeSelectable() {
+    /**
+     * makes all selectable that arent in this.notSelectable TODO better name
+     */
+    makeAllSelectable() {
         const toggleSelect = (e, id) => this.#toggleSelect(e, id)
         this.setImgOnclickFunction(toggleSelect)
 
         const selectionStatus = (id)=>this.#selectedStatus(id)
         this.addImageDivsFunction(selectionStatus)
+
+    }
+
+    makeUnselectable(ids=[]){
+        for (const id of ids) {
+            let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
+            imageDiv.onclick = ""
+            imageDiv.style.cursor = "auto"
+
+            let selectedStatusDiv = document.getElementById(`selectedStatus-${id}-${this.collectionAddress}`)
+            imageDiv.removeChild(selectedStatusDiv)
+        }
+        this.notSelectable = [...this.notSelectable, ...ids]
+    }
+
+    /**
+     * makes speciefied ids selectable
+     * TODO assumes this.onclickFunction is either undefined or set to this.#toggleSelect
+     * @param {number[]} ids 
+     */
+    makeSelectable(ids=[]){
+        if(!this.onclickFunction) {
+            const toggleSelect = (e, id) => this.#toggleSelect(e, id)
+            this.imgOnclickFunction = toggleSelect
+        }
+
+        this.notSelectable = this.notSelectable.filter((x)=>ids.indexOf(x)===-1)
+        for (const id of ids) {
+            let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
+            const toggleSelect = (e, id) => this.#toggleSelect(e, id)
+            imageDiv.onclick = (e)=>{toggleSelect(e, id)} 
+
+            let selectedStatusDiv = this.#selectedStatus(id)
+            imageDiv.append(selectedStatusDiv)
+        }
     }
 
 }
