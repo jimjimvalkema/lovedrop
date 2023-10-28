@@ -37,13 +37,13 @@ function isWalletConnected() {
 const delay = ms => new Promise(res => setTimeout(res, ms));
 async function resolveTillConnected() {
     let amountAccounts = 0
-    while (amountAccounts===0) {
+    while (amountAccounts === 0) {
         //await delay(1000)
         const accounts = await new Promise((resolve, reject) => {
             setTimeout(() => {
-              resolve(ethereum.request({method: 'eth_accounts'}));
+                resolve(ethereum.request({ method: 'eth_accounts' }));
             }, 500);
-          });
+        });
         amountAccounts = accounts.length
     }
 }
@@ -80,11 +80,11 @@ async function getUrlVars() {
 async function selectPage(currentPage, maxPerPage, nftAddr) {
     const nftMetaData = window.metaDataAllNfts.find((x) => x.contractObj.address === nftAddr)
     cancelAllLoadingImages(window.currentPage, maxPerPage, nftMetaData, window.idsByClaimableStatus)
-    window.currentPage=currentPage
-    window.maxPerPage=maxPerPage
-    
+    window.currentPage = currentPage
+    window.maxPerPage = maxPerPage
+
     const idsToDisplay = { [nftAddr]: await buildPage(currentPage, maxPerPage, nftMetaData, window.idsByClaimableStatus) }
-    
+
     setClaimStatusPage(currentPage, maxPerPage, nftMetaData, window.idsByClaimableStatus, idsToDisplay)
 
 }
@@ -92,7 +92,7 @@ window.selectPage = selectPage
 
 function cancelLoadingImage(elementId) {
     console.log(elementId)
-    try {document.getElementById(elementId).src = ""}catch (error) { console.log(error)}
+    try { document.getElementById(elementId).src = "" } catch (error) { console.log(error) }
 }
 
 function cancelAllLoadingImages(currentPage, maxPerPage, nftMetaData, idsByClaimableStatus) {
@@ -163,7 +163,7 @@ async function setClaimStatusPage(currentPage, maxPerPage, nftMetaData, idsByCla
             idsClaimableStatusAsObj["ineligible"].push(id)
         }
     }
-    const currentSelectedIds = [...window.selectedIds[nftAddr]].filter((x)=>idsClaimableStatusAsObj["claimable"].indexOf(x)!==-1)
+    const currentSelectedIds = [...window.selectedIds[nftAddr]].filter((x) => idsClaimableStatusAsObj["claimable"].indexOf(x) !== -1)
     await setIdClaimableStatus(nftAddr, idsClaimableStatusAsObj["claimable"], "claimable")
     setIdClaimableStatus(nftAddr, idsClaimableStatusAsObj["claimed"], "claimed")
     setIdClaimableStatus(nftAddr, idsClaimableStatusAsObj["ineligible"], "ineligible")
@@ -177,17 +177,17 @@ async function displayAllUserNfts(userAddress, metaDataAllNfts = window.metaData
     let allIds = window.allUserIds
     const currentPage = 0
     const maxPerPage = 12
-    window.currentPage=currentPage
-    window.maxPerPage=maxPerPage
+    window.currentPage = currentPage
+    window.maxPerPage = maxPerPage
     let idsToDisplay = {}
     for (const i in metaDataAllNfts) {
         const nftMetaData = metaDataAllNfts[i]
         const nftAddr = await nftMetaData.contractObj.address
-        if (allUserIds[nftAddr].length===0) {
+        if (allUserIds[nftAddr].length === 0) {
             idsToDisplay[nftAddr] = []
             const nftName = await nftMetaData.contractObj.name()
             const pageInfo = `<div></br><a>${nftName}<a></br><a style="font-size:0.8em ">${nftAddr}</a></div>`
-            let collectionHtml =`<div style="border-style: solid; border:3px" id=display-${nftAddr}>${pageInfo}\nno nfts found for this wallet :(</div>`
+            let collectionHtml = `<div style="border-style: solid; border:3px" id=display-${nftAddr}>${pageInfo}\nno nfts found for this wallet :(</div>`
             if (document.getElementById(`display-${nftAddr}`)) {
                 document.getElementById(`display-${nftAddr}`).innerHTML = collectionHtml
             } else {
@@ -253,18 +253,18 @@ async function claimSelected() {
     const amountIds = Object.keys(window.selectedIds).reduce((a, v) => a + window.selectedIds[v].size, 0)
     if (amountIds > 1) {
         message("loading merkle tree (might take a minute on large drops)")
-        if(!window.merkleBuilder) {
+        if (!window.merkleBuilder) {
             window.merkleBuilder = await new Promise((resolve, reject) => {
                 setTimeout(() => {
-                  resolve(loadMerkleBuilder());
+                    resolve(loadMerkleBuilder());
                 }, 10);
-              });
+            });
         }
         const { leaves, proof, proofFlags } = await new Promise((resolve, reject) => {
             setTimeout(() => {
-              resolve(getMultiProof(window.selectedIds));
+                resolve(getMultiProof(window.selectedIds));
             }, 10);
-          });
+        });
         message("done")
         const nftAddresses = leaves.map((x) => ethers.utils.getAddress(x[0]))
         const ids = leaves.map((x) => x[1])
@@ -279,16 +279,16 @@ async function claimSelected() {
         window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, await window.idsPerCollection)
         displayAllUserNfts(signer.address)
     } else {
-        const nftAddr = Object.keys(window.selectedIds).find((x)=>window.selectedIds[x].size)
+        const nftAddr = Object.keys(window.selectedIds).find((x) => window.selectedIds[x].size)
         const id = [...window.selectedIds[nftAddr]][0]
         message("fetching proof from ipfs")
-        const {amount, proof} = await new Promise((resolve, reject) => {
+        const { amount, proof } = await new Promise((resolve, reject) => {
             setTimeout(() => {
-              resolve(window.ipfsIndex.getProof(nftAddr, id));
+                resolve(window.ipfsIndex.getProof(nftAddr, id));
             }, 10);
-          });
+        });
         message("done")
-        let tx = await mildayDropWithSigner.claim(proof,id,amount,nftAddr)
+        let tx = await mildayDropWithSigner.claim(proof, id, amount, nftAddr)
         let receipt = await tx.wait(1)
         message("claimed :)")
         window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, await window.idsPerCollection)
@@ -306,7 +306,7 @@ async function setIdClaimableStatus(nftAddr, ids, claimableStatus) {
     for (const id of ids) {
         const elementId = `claimableStatus-${nftAddr}-${id}`
         const rootDivId = `${nftAddr}-${id}`
-        let amount = undefined; 
+        let amount = undefined;
         switch (claimableStatus) {
             case "ineligible":
                 document.getElementById(elementId).innerText = `not eligible :(`
@@ -368,25 +368,28 @@ function selectAll() {
 }
 window.selectAll = selectAll
 
-async function getClaimableStatus(allUserIds = window.allUserIds, allEligibleIds) {
+async function getClaimableStatus(allUserIds = window.allUserIds, idsPerCollection=window.idsPerCollection) {
     let idsByClaimableStatus = {}
-    for (const nftAddr of (await window.ipfsIndex.getAllNftAddrs())) {
-        const EligibleIdsCurrentNft = Object.keys(allEligibleIds[nftAddr])
-        let ids = allUserIds[nftAddr].map((x)=>x.toString())
-        let eligibleUserIds = ids.filter((x) => EligibleIdsCurrentNft.indexOf(x) !== -1)
-        const ineligibleIds = ids.filter((x) => EligibleIdsCurrentNft.indexOf(x) === -1)
-        let eligibleIdsWithClaimedBool = eligibleUserIds.map((x) => isClaimed(nftAddr, x))
-        eligibleIdsWithClaimedBool = await Promise.all(eligibleIdsWithClaimedBool)
-        const allClaimedUserIds = eligibleUserIds.filter((x, i) => eligibleIdsWithClaimedBool[i])
-        eligibleUserIds = eligibleUserIds.filter((x, i) => !eligibleIdsWithClaimedBool[i])
 
-        idsByClaimableStatus[nftAddr] = { ["claimable"]: eligibleUserIds, ["claimed"]: allClaimedUserIds, ["ineligible"]: ineligibleIds }
+    for (const nftAddr of Object.keys(idsPerCollection)) {
+        const eligibleUserIdsEntries = Object.entries(idsPerCollection[nftAddr]).filter((x)=>allUserIds[nftAddr].indexOf(x[0])===-1)
+        let isIdClaimed = eligibleUserIdsEntries.map((x) => isClaimed(nftAddr, x[0].toString()))
+        isIdClaimed = await Promise.all(isIdClaimed)
+
+        const eligibleIds = Object.keys(idsPerCollection[nftAddr])
+
+        const claimableUserIds = Object.fromEntries(eligibleUserIdsEntries.filter((x)=>isIdClaimed[x[0]]===false))
+        const allClaimedUserIds = Object.fromEntries(eligibleUserIdsEntries.filter((x)=>isIdClaimed[x[0]]===true))
+        const ineligibleUserIds = Object.fromEntries((allUserIds[nftAddr].filter((x)=>eligibleIds.indexOf(x)===-1)).map((x)=>[x,0]))
+
+        idsByClaimableStatus[nftAddr] = { ["claimable"]: claimableUserIds, ["claimed"]: allClaimedUserIds, ["ineligible"]: ineligibleUserIds }
     }
     return idsByClaimableStatus
 }
+window.getClaimableStatus = getClaimableStatus
 
 
-async function getAllUserBalances(userAddress=window.userAddress, metaDataAllNfts) {
+async function getAllUserBalances(userAddress = window.userAddress, metaDataAllNfts) {
     let userBalances = []
     let nftAddrs = []
     if (!metaDataAllNfts) {
@@ -394,7 +397,7 @@ async function getAllUserBalances(userAddress=window.userAddress, metaDataAllNft
     }
     for (const nftMetaData of (await window.metaDataAllNfts)) {
         nftAddrs.push(nftMetaData.contractObj.address)
-        userBalances.push(nftMetaData.getIdsOfowner(userAddress,18368653)) //TODO!!! very bad assumption that milady is the first nft ever :p
+        userBalances.push(nftMetaData.getIdsOfowner(userAddress, 18368653)) //TODO!!! very bad assumption that milady is the first nft ever :p
     }
 
     userBalances = await Promise.all(userBalances)
@@ -422,14 +425,14 @@ async function loadAllContracts() {
 
     //miladyDrop Contract
     window.mildayDropContract = new ethers.Contract(window.urlVars["lovedrop"], mildayDropAbi, window.provider);
-    window.airdropTokenContract = new ethers.Contract( await mildayDropContract.airdropTokenAddress(), ER20ABI, window.provider)
+    window.airdropTokenContract = new ethers.Contract(await mildayDropContract.airdropTokenAddress(), ER20ABI, window.provider)
     window.ticker = await window.airdropTokenContract.symbol()
 
 
     //load ipfs data
     window.claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
     window.ipfsIndex = new IpfsIndexer(window.ipfsGateway, null, true)
-    await window.ipfsIndex.loadIndexMiladyDropClaimData(window.claimDataIpfsHash )
+    await window.ipfsIndex.loadIndexMiladyDropClaimData(window.claimDataIpfsHash)
 
     //get all nft contracts
     window.allNftAddresses = await window.ipfsIndex.getAllNftAddrs()
@@ -442,19 +445,32 @@ async function loadAllContracts() {
     window.tree = window.ipfsIndex.getTreeDump()
     connectSigner()
 
-    window.idsPerCollection = window.ipfsIndex.getIdsPerCollection()
+    window.idsPerCollection = await window.ipfsIndex.getIdsPerCollection()
 }
 window.loadAllContracts = loadAllContracts
 
-async function test() {
-    window.t = new NftDisplay("0xafe12842e3703a3cC3A71d9463389b1bF2c5BC1C",window.provider,"test",[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21])
-    console.log(await signer.getAddress())
-    await t.setIdsFromOwner("0xe524f93E5dAB234DfA56EF67F846119400df8cEe")
-    t.createDisplay()
+function displayTokens(id, idsByClaimableStatus=window.idsByClaimableStatus) {
+    amount = ethers.utils.formatEther((window.idsPerCollection)[nftAddr][id])
 
-    window.allUserIds = await getAllUserBalances(await window.userAddress,await window.metaDataAllNfts)
+    let d = document.createElement("div");
+    d.style = "position: absolute; float: top-right; top: 0px; right: 0px; font-size:1.2em; font-weight: bold; -webkit-text-fill-color: #ffffff; -webkit-text-stroke-width: 1.8px; -webkit-text-stroke-color: #000000;";
+    d.innerText =  ``
+    return d
+}
+
+async function test() {
+
+
+
+    window.allUserIds = await getAllUserBalances(await window.userAddress, await window.metaDataAllNfts)
     window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, await window.idsPerCollection)
     //await displayAllUserNfts(userAddress)
+
+    window.t = new NftDisplay("0xafe12842e3703a3cC3A71d9463389b1bF2c5BC1C", window.provider, "test")
+    console.log(await signer.getAddress())
+    await t.setIdsFromOwner("0xe524f93E5dAB234DfA56EF67F846119400df8cEe")
+    await t.createDisplay()
+    t.makeAllSelectable()
 
 
 }
