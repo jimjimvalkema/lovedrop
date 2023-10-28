@@ -8,8 +8,8 @@ export class NftDisplay {
     ids;
 
     currentPage=1
-    rowSize=7 
-    amountRows=3
+    rowSize=6
+    amountRows=2
     borderWidth="5px";
     borderColor = "black";
 
@@ -75,7 +75,7 @@ export class NftDisplay {
 
     /**
      * divFunctions should be a Array of functions that return DOM elements . 
-     * input first input params of all funvtions are: nftId
+     * input first input params of all funvtions are: nftId, this
      * @param {function[]} divFunctions
      */
     setImageDivsFunctions(divFunctions=this.divFunctions) {
@@ -88,7 +88,7 @@ export class NftDisplay {
      * and updates the display
      * 
      * the divFunction should return a DOM element.
-     * input first input params of all funvtions are: nftId 
+     * input first input params of all funvtions are: nftId, this 
      *
      * @param {function} func
      */
@@ -116,7 +116,8 @@ export class NftDisplay {
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
         for (const [index, id] of idsCurrentPage.entries()) {
             let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
-            const removeableNodes = [...imageDiv.childNodes].slice(1)
+            //keep 1st item since its the image 
+            const removeableNodes = [...imageDiv.childNodes].slice(1) //.filter((x)=>x.id!=="selectionStatus") 
             removeableNodes.map((x)=>imageDiv.removeChild(x))
         }
 
@@ -133,7 +134,7 @@ export class NftDisplay {
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
         for (const [index, id] of idsCurrentPage.entries()) {
             let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
-            const results = divFunctions.map((x)=>x(id))
+            const results = divFunctions.map((x)=>x(id, this))
             imageDiv.append(...results)
         }
 
@@ -245,8 +246,9 @@ export class NftDisplay {
         newRasterDiv.id = `imagesRaster-${this.collectionAddress}`
         targetDiv.append(newRasterDiv)
 
-        if (this.divFunctions.length) {
-            this.#applyDivFuntionsOnCurrentIds()
+        if (this.divFunctions.length>0) {
+            console.log(this.divFunctions)
+            this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
         }
 
         if(this.imgOnclickFunction){
@@ -313,14 +315,23 @@ export class NftDisplay {
 
         const infoDiv =  this.#createInfoDiv(this.collectionAddress,this.nftMetaData, ids.length)
 
-        let imagesRasterDiv = await this.createImagesRaster(currentPage, rowSize, amountRows, ids, borderWidth, borderColor)
-        imagesRasterDiv.id = `imagesRaster-${this.collectionAddress}`
-
-        let pageSelectorDiv = this.createPageSelector(currentPage, rowSize, amountRows, ids)
-        pageSelectorDiv.id = `pageSelector-${this.collectionAddress}`
-
         let targetDiv = document.getElementById(targetElementId)
-        targetDiv.append(await infoDiv,pageSelectorDiv, imagesRasterDiv)
+        if (ids.length>0) {
+            let imagesRasterDiv = await this.createImagesRaster(currentPage, rowSize, amountRows, ids, borderWidth, borderColor)
+            imagesRasterDiv.id = `imagesRaster-${this.collectionAddress}`
+
+            let pageSelectorDiv = this.createPageSelector(currentPage, rowSize, amountRows, ids)
+            pageSelectorDiv.id = `pageSelector-${this.collectionAddress}`
+
+            targetDiv.append(await infoDiv,pageSelectorDiv, imagesRasterDiv)
+
+        } else {
+            let noIdsMessage = document.createElement("div")
+            noIdsMessage.innerText = "no nfts found :("
+            targetDiv.append(await infoDiv,noIdsMessage)
+        }
+
+    
 
         this.#applyDivFuntionsOnCurrentIds()
     }
@@ -411,6 +422,24 @@ export class NftDisplay {
             let selectedStatusDiv = this.#selectedStatus(id)
             imageDiv.append(selectedStatusDiv)
         }
+    }
+
+    selectAll() {
+        this.selection = this.ids.filter((id)=>this.notSelectable.indexOf(id)===-1);
+        this.#removeAllDivImageDiv()
+        this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
+    }
+
+    clearSelection() {
+        this.selection = []
+        this.#removeAllDivImageDiv()
+        this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
+    }
+
+    refreshSelectableDisplay() {
+        this.#removeAllDivImageDiv()
+        this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
+        this.#addOnclickFunctionToCurrentImages(this.imgOnclickFunction)
     }
 
 }

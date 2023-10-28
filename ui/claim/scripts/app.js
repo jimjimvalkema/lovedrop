@@ -241,16 +241,16 @@ async function getMultiProof(idsPerNftAddr) {
     return (await window.merkleBuilder).getMultiProof(idsPerNftAddrWithArrays)
 }
 
-async function resetSelection() {
-    for (const nftAddr of Object.keys(window.selectedIds)) {
-        window.selectedIds[nftAddr] = new Set()
+async function clearSelection() {
+    for (const nftDisplay of window.nftDisplays) {
+        nftDisplay.clearSelection()
     }
-    displayAllUserNfts(signer.address)
 }
-window.resetSelection = resetSelection
+window.clearSelection = clearSelection
 
 async function claimSelected() {
-    const amountIds = Object.keys(window.selectedIds).reduce((a, v) => a + window.selectedIds[v].size, 0)
+    const selectedIds = Object.fromEntries(window.nftDisplays.map((x)=>[x.collectionAddress,x.selection]))
+    const amountIds = Object.keys(selectedIds).reduce((a, v) => a + selectedIds[v].length, 0)
     if (amountIds > 1) {
         message("loading merkle tree (might take a minute on large drops)")
         if (!window.merkleBuilder) {
@@ -262,7 +262,7 @@ async function claimSelected() {
         }
         const { leaves, proof, proofFlags } = await new Promise((resolve, reject) => {
             setTimeout(() => {
-                resolve(getMultiProof(window.selectedIds));
+                resolve(getMultiProof(selectedIds));
             }, 10);
         });
         message("done")
@@ -274,13 +274,20 @@ async function claimSelected() {
         let tx = await mildayDropWithSigner.claimMultiple(proof, proofFlags, ids, amounts, nftAddresses)
         let receipt = await tx.wait(1)
         message("claimed :)")
+
         window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, await window.idsPerCollection)
-        resetSelection()
-        window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, await window.idsPerCollection)
-        displayAllUserNfts(signer.address)
+        for (const display of window.nftDisplays) {
+            display.clearSelection()
+            const CurrentClaimableStatus = window.idsByClaimableStatus[display.collectionAddress]
+            display.notSelectable = [...Object.keys(CurrentClaimableStatus.claimed), ...Object.keys(CurrentClaimableStatus.ineligible)]
+            display.refreshSelectableDisplay()
+        }
+
     } else {
-        const nftAddr = Object.keys(window.selectedIds).find((x) => window.selectedIds[x].size)
-        const id = [...window.selectedIds[nftAddr]][0]
+        const nftAddr = Object.keys(selectedIds).find((x) => selectedIds[x].length)
+        console.log(nftAddr)
+        console.log(selectedIds)
+        const id = [...selectedIds[nftAddr]][0]
         message("fetching proof from ipfs")
         const { amount, proof } = await new Promise((resolve, reject) => {
             setTimeout(() => {
@@ -291,9 +298,14 @@ async function claimSelected() {
         let tx = await mildayDropWithSigner.claim(proof, id, amount, nftAddr)
         let receipt = await tx.wait(1)
         message("claimed :)")
-        window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, await window.idsPerCollection)
-        resetSelection()
 
+        window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, await window.idsPerCollection)
+        for (const display of window.nftDisplays) {
+            display.clearSelection()
+            const CurrentClaimableStatus = window.idsByClaimableStatus[display.collectionAddress]
+            display.notSelectable = [...Object.keys(CurrentClaimableStatus.claimed), ...Object.keys(CurrentClaimableStatus.ineligible)]
+            display.refreshSelectableDisplay()
+        }
     }
 }
 window.claimSelected = claimSelected
@@ -359,24 +371,22 @@ function toggleClaim(nftAddr, id) {
 window.toggleClaim = toggleClaim
 
 function selectAll() {
-    for (const nftMetaData of window.metaDataAllNfts) {
-        const nftAddr = nftMetaData.contractObj.address
-        window.selectedIds[nftAddr] = new Set([...window.idsByClaimableStatus[nftAddr].claimable])
-        selectPage(window.currentPage, window.maxPerPage, nftAddr)
+    for (const nftDisplay of window.nftDisplays) {
+        nftDisplay.selectAll()
     }
 
 }
 window.selectAll = selectAll
 
-async function getClaimableStatus(allUserIds = window.allUserIds, idsPerCollection=window.idsPerCollection) {
+async function getClaimableStatus(allUserIds = window.allUserIds, allEligableIds=window.idsPerCollection) {
     let idsByClaimableStatus = {}
+    for (const nftAddr of Object.keys(allEligableIds)) {
+        const eligibleUserIdsEntries = Object.entries(allEligableIds[nftAddr]).filter((x)=>allUserIds[nftAddr].indexOf(x[0])!==-1)
+        let isIdClaimed = eligibleUserIdsEntries.map((x) => isClaimed(nftAddr, x[0]))
+        isIdClaimed = (await Promise.all(isIdClaimed))
+        isIdClaimed = Object.fromEntries(eligibleUserIdsEntries.map((x, index) => [x[0], isIdClaimed[index]]))
 
-    for (const nftAddr of Object.keys(idsPerCollection)) {
-        const eligibleUserIdsEntries = Object.entries(idsPerCollection[nftAddr]).filter((x)=>allUserIds[nftAddr].indexOf(x[0])===-1)
-        let isIdClaimed = eligibleUserIdsEntries.map((x) => isClaimed(nftAddr, x[0].toString()))
-        isIdClaimed = await Promise.all(isIdClaimed)
-
-        const eligibleIds = Object.keys(idsPerCollection[nftAddr])
+        const eligibleIds = Object.keys(allEligableIds[nftAddr])
 
         const claimableUserIds = Object.fromEntries(eligibleUserIdsEntries.filter((x)=>isIdClaimed[x[0]]===false))
         const allClaimedUserIds = Object.fromEntries(eligibleUserIdsEntries.filter((x)=>isIdClaimed[x[0]]===true))
@@ -397,11 +407,11 @@ async function getAllUserBalances(userAddress = window.userAddress, metaDataAllN
     }
     for (const nftMetaData of (await window.metaDataAllNfts)) {
         nftAddrs.push(nftMetaData.contractObj.address)
-        userBalances.push(nftMetaData.getIdsOfowner(userAddress, 18368653)) //TODO!!! very bad assumption that milady is the first nft ever :p
+        userBalances.push(nftMetaData.getIdsOfowner(userAddress, 13090020)) //TODO!!! very bad assumption that milady is the first nft ever :p
     }
 
     userBalances = await Promise.all(userBalances)
-    return Object.fromEntries(nftAddrs.map((x, i) => [x, userBalances[i]]))
+    return Object.fromEntries(nftAddrs.map((x, i) => [x, userBalances[i].map((x)=>x.toString())]))
 
 }
 window.getAllUserBalances = getAllUserBalances
@@ -449,13 +459,32 @@ async function loadAllContracts() {
 }
 window.loadAllContracts = loadAllContracts
 
-function displayTokens(id, idsByClaimableStatus=window.idsByClaimableStatus) {
-    amount = ethers.utils.formatEther((window.idsPerCollection)[nftAddr][id])
-
+function displayTokens(id, nftDisplay) {
+    let amount = "";
     let d = document.createElement("div");
-    d.style = "position: absolute; float: top-right; top: 0px; right: 0px; font-size:1.2em; font-weight: bold; -webkit-text-fill-color: #ffffff; -webkit-text-stroke-width: 1.8px; -webkit-text-stroke-color: #000000;";
-    d.innerText =  ``
+    d.style = "position: absolute; float: top-right; top: 0px; right: 0px; font-size:1.4em; font-weight: bold; -webkit-text-fill-color: #ffffff; -webkit-text-stroke-width: 0.06em; -webkit-text-stroke-color: #000000;";
+    if (id in window.idsPerCollection[nftDisplay.collectionAddress]) {
+        amount = ethers.utils.formatEther(window.idsPerCollection[nftDisplay.collectionAddress][id])
+        d.innerText =  `${amount} ${window.ticker}`
+        if (id in window.idsByClaimableStatus[nftDisplay.collectionAddress].claimed) {
+            d.style.textDecoration = "line-through"
+        }
+    } else {
+        return ""
+    }
     return d
+}
+
+function makeIntoDivs(parentId, childIds) {
+    let parentElement = document.getElementById(parentId)
+    for (const childId of childIds) {
+        let childDiv = document.createElement("div");
+        childDiv.id = childId
+        childDiv.style.paddingTop = "1.5em"
+        parentElement.appendChild(childDiv)
+    }
+
+    return parentElement
 }
 
 async function test() {
@@ -464,14 +493,33 @@ async function test() {
 
     window.allUserIds = await getAllUserBalances(await window.userAddress, await window.metaDataAllNfts)
     window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, await window.idsPerCollection)
+    window.sortedUserIds = Object.fromEntries(Object.entries(window.idsByClaimableStatus).map(
+        (x)=>
+            [
+                x[0], 
+                [
+                    ...Object.keys(x[1].claimable),
+                    ...Object.keys(x[1].claimed),
+                    ...Object.keys(x[1].ineligible),
+                ]
+            ]
+        ))
+
+
     //await displayAllUserNfts(userAddress)
+    const nftAddresses = Object.keys(await window.idsPerCollection)
+    const nftDisplayElementIds = nftAddresses.map((x)=>`nftDisplay-${x}`)
+    makeIntoDivs("test", nftDisplayElementIds)
 
-    window.t = new NftDisplay("0xafe12842e3703a3cC3A71d9463389b1bF2c5BC1C", window.provider, "test")
-    console.log(await signer.getAddress())
-    await t.setIdsFromOwner("0xe524f93E5dAB234DfA56EF67F846119400df8cEe")
-    await t.createDisplay()
-    t.makeAllSelectable()
+    window.nftDisplays = nftAddresses.map((nftAddress)=> new NftDisplay(nftAddress, window.provider, `nftDisplay-${nftAddress}`, window.sortedUserIds[nftAddress]))
+    for (const display of nftDisplays) {
+        display.divFunctions.push(displayTokens)
+        await display.createDisplay()
+        const CurrentClaimableStatus = window.idsByClaimableStatus[display.collectionAddress]
+        display.notSelectable = [...Object.keys(CurrentClaimableStatus.claimed), ...Object.keys(CurrentClaimableStatus.ineligible)]
+        display.makeAllSelectable()
 
 
+    }
 }
 window.test = test
