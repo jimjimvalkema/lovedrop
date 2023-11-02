@@ -8,7 +8,7 @@ export class NftDisplay {
     ids;
 
     currentPage=1
-    rowSize=6
+    rowSize=8
     amountRows=2
     borderWidth="5px";
     borderColor = "black";
@@ -19,6 +19,8 @@ export class NftDisplay {
     selection = []
     notSelectable = []
 
+    ipfsGateway;
+
     /**
      * initializes with the nft collection and ids if given
      * @param {string} collectionAddress 
@@ -26,11 +28,12 @@ export class NftDisplay {
      * @param {string} targetDivId 
      * @param {number[]} ids 
      */
-    constructor(collectionAddress,provider, targetDivId="", ids=[]) {
+    constructor(collectionAddress,provider, targetDivId="", ids=[], ipfsGateway = "https://ipfs.io",) {
         this.collectionAddress = collectionAddress
         this.nftMetaData = new NftMetaDataCollector(collectionAddress,provider)
         this.ids = ids
-        this.targetDivId = targetDivId
+        this.targetDivId = targetDivId,
+        this.ipfsGateway = ipfsGateway
     }
 
     /**
@@ -46,7 +49,10 @@ export class NftDisplay {
      * @param {string} ownerAddress 
      */
     async setIdsFromOwner(ownerAddress) {
-        this.ids = (await this.nftMetaData.getIdsOfowner(ownerAddress)).map((x)=>Number(x))//bignumber fix
+        console.log(ownerAddress)
+        this.ids = (await this.nftMetaData.getIdsOfowner(ownerAddress)).map((x)=>x.toString())//bignumber fix
+        console.log(await this.nftMetaData.getIdsOfowner(ownerAddress))
+        return this.ids
     }
 
     /**

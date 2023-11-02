@@ -76,7 +76,7 @@ export class NftMetaDataCollector {
     constructor(
         _contractAddr,
         _provider,
-        _ipfsGateway = "http://localhost:48084",
+        _ipfsGateway = "https://ipfs.io",
         _customCompressedImages = true
         )
         
