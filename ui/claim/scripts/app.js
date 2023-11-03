@@ -2,7 +2,7 @@ import { NftMetaDataCollector } from "../../scripts/NftMetaDataCollector.js";
 import { IpfsIndexer } from "../../scripts/IpfsIndexer.js";
 import { ethers } from "../../scripts/ethers-5.2.esm.min.js";
 import { MerkleBuilder } from "../../scripts/MerkleBuilder.js"
-import { NftDisplay } from "./NftDisplay.js";
+import { NftDisplay } from "../../scripts/NftDisplay.js";
 
 // A Web3Provider wraps a standard Web3 provider, which is
 // what MetaMask injects as window.ethereum into each page
@@ -127,11 +127,16 @@ async function claimSelected() {
         let receipt = await tx.wait(1)
         message("claimed :)")
 
-        window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, await window.idsPerCollection)
         for (const display of window.nftDisplays) {
             display.clearSelection()
-            const CurrentClaimableStatus = window.idsByClaimableStatus[display.collectionAddress]
-            display.notSelectable = [...Object.keys(CurrentClaimableStatus.claimed), ...Object.keys(CurrentClaimableStatus.ineligible)]
+            
+            const nftAddr = display.collectionAddress
+            window.idsByClaimableStatus[nftAddr] =  await getClaimableStatus(display.ids, window.idsPerCollection[nftAddr], nftAddr)
+            const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddr]
+            console.log(display.notSelectable)
+            display.notSelectable = [...Object.keys(claimed), ...Object.keys(ineligible)]
+            console.log(display.notSelectable)
+
             display.refreshSelectableDisplay()
         }
 
@@ -145,21 +150,21 @@ async function claimSelected() {
             }, 10);
         });
         message("done")
-        console.log(proof,id,amount,nftAddr)
-        console.log(proof)
-        console.log(id)
-        console.log(amount)
-        console.log(nftAddr)
         let tx = await window.mildayDropWithSigner.claim(proof, id, amount, nftAddr)
         console.log("aaaaaaaaaa")
         let receipt = await tx.wait(1)
         message("claimed :)")
 
-        window.idsByClaimableStatus = await getClaimableStatus(window.allUserIds, await window.idsPerCollection)
         for (const display of window.nftDisplays) {
             display.clearSelection()
-            const CurrentClaimableStatus = window.idsByClaimableStatus[display.collectionAddress]
-            display.notSelectable = [...Object.keys(CurrentClaimableStatus.claimed), ...Object.keys(CurrentClaimableStatus.ineligible)]
+
+            const nftAddr = display.collectionAddress
+            window.idsByClaimableStatus[nftAddr] =  await getClaimableStatus(display.ids, window.idsPerCollection[nftAddr], nftAddr)
+            const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddr]
+            console.log(display.notSelectable)
+            display.notSelectable = [...Object.keys(claimed), ...Object.keys(ineligible)]
+            console.log(display.notSelectable)
+
             display.refreshSelectableDisplay()
         }
     }
@@ -196,24 +201,6 @@ async function getClaimableStatus(ids, eligableIds, nftAddr) {
 }
 window.getClaimableStatus = getClaimableStatus
 
-
-// async function getAllUserBalances(userAddress = window.userAddress, metaDataAllNfts) {
-//     let userBalances = []
-//     let nftAddrs = []
-//     if (!metaDataAllNfts) {
-//         metaDataAllNfts = await window.metaDataAllNfts
-//     }
-//     for (const nftMetaData of (await window.metaDataAllNfts)) {
-//         nftAddrs.push(nftMetaData.contractObj.address)
-//         userBalances.push(nftMetaData.getIdsOfowner(userAddress, 13090020)) //TODO!!! very bad assumption that milady is the first nft ever :p
-//     }
-
-//     userBalances = await Promise.all(userBalances)
-//     return Object.fromEntries(nftAddrs.map((x, i) => [x, userBalances[i].map((x)=>x.toString())]))
-
-// }
-// window.getAllUserBalances = getAllUserBalances
-
 async function runOnLoad() {
     await loadAllContracts()
 }
@@ -228,7 +215,7 @@ async function loadAllContracts() {
 
     //abis
     const mildayDropAbi = await (await fetch("../abi/mildayDropAbi.json")).json()//update mildayDropAbi.json
-    const ERC721ABI = await (await fetch("../abi/ERC721ABI.json")).json()
+    //const ERC721ABI = await (await fetch("../abi/ERC721ABI.json")).json()
     const ER20ABI = await (await fetch("../abi/ERC20ABI.json")).json()
 
     //miladyDrop Contract
@@ -259,7 +246,7 @@ window.loadAllContracts = loadAllContracts
 function displayTokens(id, nftDisplay) {
     let amount = "";
     let d = document.createElement("div");
-    d.style = "position: absolute; float: top-right; top: 0px; right: 0px; font-size:1.4em; font-weight: bold; -webkit-text-fill-color: #ffffff; -webkit-text-stroke-width: 0.06em; -webkit-text-stroke-color: #000000;";
+    d.className = "tokenDisplay"
     if (id in window.idsPerCollection[nftDisplay.collectionAddress]) {
         amount = ethers.utils.formatEther(window.idsPerCollection[nftDisplay.collectionAddress][id])
         d.innerText =  `${amount} ${window.ticker}`
@@ -267,7 +254,8 @@ function displayTokens(id, nftDisplay) {
             d.style.textDecoration = "line-through"
         }
     } else {
-        d.innerText =  `0 ${window.ticker} :(`
+        return ""
+        //d.innerText =  `0 ${window.ticker} :(`
     }
     return d
 }
@@ -290,7 +278,7 @@ async function test() {
 
     const nftAddresses = Object.keys(await window.idsPerCollection)
     const nftDisplayElementIds = nftAddresses.map((x)=>`nftDisplay-${x}`)
-    makeIntoDivs("test", nftDisplayElementIds)
+    makeIntoDivs("nfts", nftDisplayElementIds)
 
     //last thing loadAllContracts() needs to load
     while (!window.allNftDisplays) {
@@ -299,6 +287,7 @@ async function test() {
 
     window.nftDisplays = []
     window.idsByClaimableStatus = {}
+    document.getElementById("loading").innerText = "loading"
     for (const display of window.allNftDisplays) {
         const nftAddr = display.collectionAddress
 
@@ -321,6 +310,7 @@ async function test() {
         window.nftDisplays.push(display)
 
     }
+    document.getElementById("loading").innerText = ""
 
 }
 window.test = test
