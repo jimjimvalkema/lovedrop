@@ -80,13 +80,12 @@ async function loadMerkleBuilder() {
     console.log("started loading merkle tree")
     if (!window.merkleBuilder) {
         window.merkleBuilder = new MerkleBuilder()
-
         window.merkleBuilder.loadTreeDump(await window.tree);
     }
     console.log("done loading merkle tree")
     return window.merkleBuilder
 }
-async function getMultiProof(idsPerNftAddr) {
+async function buildMultiProof(idsPerNftAddr) {
     let idsPerNftAddrWithArrays = {}
     Object.keys(idsPerNftAddr).map((x) => idsPerNftAddrWithArrays[x] = [...idsPerNftAddr[x]])
     return (await window.merkleBuilder).getMultiProof(idsPerNftAddrWithArrays)
@@ -99,77 +98,102 @@ async function clearSelection() {
 }
 window.clearSelection = clearSelection
 
-async function claimSelected() {
-    const selectedIds = Object.fromEntries(window.nftDisplays.map((x)=>[x.collectionAddress,x.selection]))
-    const amountIds = Object.keys(selectedIds).reduce((a, v) => a + selectedIds[v].length, 0)
-    if (amountIds > 1) {
-        message("loading merkle tree (might take a minute on large drops)")
-        if (!window.merkleBuilder) {
-            window.merkleBuilder = await new Promise((resolve, reject) => {
-                setTimeout(() => {
-                    resolve(loadMerkleBuilder());
-                }, 10);
-            });
-        }
-        const { leaves, proof, proofFlags } = await new Promise((resolve, reject) => {
+async function LoadTreeAndBuildMultiProof(merkleBuilder,selectedIds) {
+    //load merkle tree
+    message("loading merkle tree (might take a minute on large drops)")
+    if (!merkleBuilder) {
+        merkleBuilder = await new Promise((resolve, reject) => {
             setTimeout(() => {
-                resolve(getMultiProof(selectedIds));
+                resolve(loadMerkleBuilder());
             }, 10);
         });
-        message("done")
-        const nftAddresses = leaves.map((x) => ethers.utils.getAddress(x[0]))
-        const ids = leaves.map((x) => x[1])
-        const amounts = leaves.map((x) => x[2])
+    }
 
-        //console.log(`"${JSON.stringify(proof).replaceAll("\"","")}" "${JSON.stringify(proofFlags).replaceAll("\"","")}" "${JSON.stringify(ids).replaceAll("\"","")}" "${JSON.stringify(amounts).replaceAll("\"","")}"  "${JSON.stringify(nftAddresses).replaceAll("\"","")}"`)
-        console.log(proof, proofFlags, ids, amounts, nftAddresses)
+    //build proof
+    const { leaves, proof, proofFlags } = await new Promise((resolve, reject) => {
+        setTimeout(() => {
+            resolve(buildMultiProof(selectedIds));
+        }, 10);
+    });
+    message("done")
+    const nftAddresses = leaves.map((x) => ethers.utils.getAddress(x[0]))
+    const ids = leaves.map((x) => x[1])
+    const amounts = leaves.map((x) => x[2])
+
+    return {proof, proofFlags, ids, amounts, nftAddresses}
+
+}
+
+async function fetchSingleProof(ipfsIndex,id,nftAddr) {
+    //get proof
+    message("fetching proof from ipfs")
+    const { amount, proof } = await new Promise((resolve, reject) => {
+        setTimeout(() => {
+            resolve(ipfsIndex.getProof(nftAddr, id));
+        }, 10);
+    });
+    message("done")
+
+    return { amount, proof } 
+}
+
+
+async function claimSelected() {
+    //get selected ids {nftAddr:[ids]}
+    const selectedIdsEntries = window.nftDisplays.map((x)=>[x.collectionAddress,x.selection]).filter((x)=>x[1].length>0)
+    const selectedIds = Object.fromEntries(selectedIdsEntries)
+
+    const amountIds = Object.keys(selectedIds).reduce((a, v) => a + selectedIds[v].length, 0)
+    if (amountIds > 1) {
+        //build multiproof
+        const {proof, proofFlags, ids, amounts, nftAddresses} = await LoadTreeAndBuildMultiProof(window.merkleBuilder, selectedIds)
+
+        //submit tx
         let tx = await window.mildayDropWithSigner.claimMultiple(proof, proofFlags, ids, amounts, nftAddresses)
         let receipt = await tx.wait(1)
         message("claimed :)")
 
-        for (const display of window.nftDisplays) {
-            display.clearSelection()
-            
-            const nftAddr = display.collectionAddress
-            window.idsByClaimableStatus[nftAddr] =  await getClaimableStatus(display.ids, window.idsPerCollection[nftAddr], nftAddr)
-            const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddr]
-            console.log(display.notSelectable)
-            display.notSelectable = [...Object.keys(claimed), ...Object.keys(ineligible)]
-            console.log(display.notSelectable)
-
-            display.refreshSelectableDisplay()
-        }
+        //update display
+        const selectedNftDisplays = window.nftDisplays.filter((display)=> nftAddresses.indexOf(display.collectionAddress)!==-1)
+        refreshDisplayedItems(selectedNftDisplays)
 
     } else {
+        //get selected item
         const nftAddr = Object.keys(selectedIds).find((x) => selectedIds[x].length)
-        const id = [...selectedIds[nftAddr]][0]
-        message("fetching proof from ipfs")
-        const { amount, proof } = await new Promise((resolve, reject) => {
-            setTimeout(() => {
-                resolve(window.ipfsIndex.getProof(nftAddr, id));
-            }, 10);
-        });
-        message("done")
+        const id = selectedIds[nftAddr][0]
+
+        //get proof
+        const { amount, proof } = await fetchSingleProof(window.ipfsIndex, id,nftAddr)
+
+        //submit tx
         let tx = await window.mildayDropWithSigner.claim(proof, id, amount, nftAddr)
         console.log("aaaaaaaaaa")
         let receipt = await tx.wait(1)
         message("claimed :)")
 
-        for (const display of window.nftDisplays) {
-            display.clearSelection()
+        //update display
+        const nftDisplay = window.allNftDisplays.find((display) => display.collectionAddress === nftAddr)
+        refreshDisplayedItems([nftDisplay])
 
-            const nftAddr = display.collectionAddress
-            window.idsByClaimableStatus[nftAddr] =  await getClaimableStatus(display.ids, window.idsPerCollection[nftAddr], nftAddr)
-            const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddr]
-            console.log(display.notSelectable)
-            display.notSelectable = [...Object.keys(claimed), ...Object.keys(ineligible)]
-            console.log(display.notSelectable)
-
-            display.refreshSelectableDisplay()
-        }
     }
 }
 window.claimSelected = claimSelected
+
+async function refreshDisplayedItems(displays) {
+    for (const display of displays) {
+        console.log(display)
+        display.clearSelection()
+
+        const nftAddr = display.collectionAddress
+        window.idsByClaimableStatus[nftAddr] =  await getClaimableStatus(display.ids, window.idsPerCollection[nftAddr], nftAddr)
+        const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddr]
+
+        display.notSelectable = [...Object.keys(claimed), ...Object.keys(ineligible)]
+        display.refreshSelectableDisplay()
+    }
+
+
+}
 
 async function isClaimed(nftAddr, id) {
     return await window.mildayDropContract.isClaimed(nftAddr, id)
@@ -224,11 +248,16 @@ async function loadAllContracts() {
     window.ticker = await window.airdropTokenContract.symbol()
 
 
-    //load ipfs data
+    //load ipfsIndex
     window.claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
     window.ipfsIndex = new IpfsIndexer(window.ipfsGateway, null, true)
     await window.ipfsIndex.loadIndexMiladyDropClaimData(window.claimDataIpfsHash)
+
+    //load data from ipfsIndex
+    window.tree = window.ipfsIndex.getTreeDump()
+    //loading the tree should also be done here but needs to be done in a worker
     window.idsPerCollection = await window.ipfsIndex.getIdsPerCollection()
+
 
     //get all nft contracts
     window.allNftAddresses = Object.keys(window.idsPerCollection)
@@ -236,7 +265,7 @@ async function loadAllContracts() {
 
     //window.allEligibleIds = window.ipfsIndex.getIdsPerCollection()
     window.allNftDisplays = allNftAddresses.map((nftAddr) => new NftDisplay(nftAddr, window.provider, `nftDisplay-${nftAddr}`, [], window.ipfsGateway))
-    window.tree = window.ipfsIndex.getTreeDump()
+
     connectSigner()
 
    
