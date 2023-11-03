@@ -1,4 +1,3 @@
-import { NftMetaDataCollector } from "../../scripts/NftMetaDataCollector.js";
 import { IpfsIndexer } from "../../scripts/IpfsIndexer.js";
 import { ethers } from "../../scripts/ethers-5.2.esm.min.js";
 import { MerkleBuilder } from "../../scripts/MerkleBuilder.js"
@@ -8,18 +7,20 @@ import { NftDisplay } from "../../scripts/NftDisplay.js";
 // what MetaMask injects as window.ethereum into each page
 const provider = new ethers.providers.Web3Provider(window.ethereum)
 
+async function getUrlVars() {
+    var vars = {};
+    var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
+        vars[key] = value;
+    });
+    return vars;
+}
+
 if (window.ethereum) {
     window.provider = new ethers.providers.Web3Provider(window.ethereum);
 } else {
     console.log("couldn't connect to inject ethereum provide, connecting to external provicer")
     window.provider = new ethers.providers.JsonRpcProvider('https://eth.llamarpc.com');
 }
-
-function message(message) {
-    console.log(message);
-    document.getElementById("message").innerText = message;
-}
-window.message = message
 
 function isWalletConnected() {
     let message = "";
@@ -33,11 +34,11 @@ function isWalletConnected() {
         return true;
     }
 }
-const delay = ms => new Promise(res => setTimeout(res, ms));
+
+
 async function resolveTillConnected() {
     let amountAccounts = 0
     while (amountAccounts === 0) {
-        //await delay(1000)
         const accounts = await new Promise((resolve, reject) => {
             setTimeout(() => {
                 resolve(ethereum.request({ method: 'eth_accounts' }));
@@ -63,14 +64,40 @@ async function connectSigner() {
 }
 window.connectSigner = connectSigner
 
-
-async function getUrlVars() {
-    var vars = {};
-    var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
-        vars[key] = value;
-    });
-    return vars;
+function message(message) {
+    console.log(message);
+    document.getElementById("message").innerText = message;
 }
+window.message = message
+
+async function isClaimed(nftAddr, id) {
+    return await window.mildayDropContract.isClaimed(nftAddr, id)
+}
+
+async function getClaimableStatus(ids, eligableIdsAmounts, nftAddr) {
+    //get all eligable user ids with amounts
+    const eligableUserIdsWithAmountsEntries = Object.entries(eligableIdsAmounts).filter((x)=>ids.indexOf(x[0])!==-1)
+
+    //eligable user ids, returns true if its already claimed 
+    let isIdClaimed = eligableUserIdsWithAmountsEntries.map((x) => isClaimed(nftAddr, x[0]))
+    isIdClaimed = (await Promise.all(isIdClaimed))
+    isIdClaimed = Object.fromEntries(eligableUserIdsWithAmountsEntries.map((x, index) => [x[0], isIdClaimed[index]]))
+
+    //all eligible ids
+    const eligibleIds = Object.keys(eligableIdsAmounts)
+
+    //seperate already claimed ids vs unclaimed from all eligable user ids (eligableUserIdsWithAmountsEntries)
+    const claimableUserIds = Object.fromEntries(eligableUserIdsWithAmountsEntries.filter((x)=>isIdClaimed[x[0]]===false))
+    const allClaimedUserIds = Object.fromEntries(eligableUserIdsWithAmountsEntries.filter((x)=>isIdClaimed[x[0]]===true))
+    
+    //filter out all user ids that never were eligable and set their amounts to 0
+    const ineligibleUserIds = Object.fromEntries((ids.filter((x)=>eligibleIds.indexOf(x)===-1)).map((x)=>[x,0]))
+
+    //result
+    const idsByClaimableStatus = { ["claimable"]: claimableUserIds, ["claimed"]: allClaimedUserIds, ["ineligible"]: ineligibleUserIds }
+    return idsByClaimableStatus
+}
+window.getClaimableStatus = getClaimableStatus
 
 async function loadMerkleBuilder() {
     console.log("started loading merkle tree")
@@ -81,20 +108,14 @@ async function loadMerkleBuilder() {
     console.log("done loading merkle tree")
     return window.merkleBuilder
 }
+
 async function buildMultiProof(idsPerNftAddr) {
     let idsPerNftAddrWithArrays = {}
     Object.keys(idsPerNftAddr).map((x) => idsPerNftAddrWithArrays[x] = [...idsPerNftAddr[x]])
     return (await window.merkleBuilder).getMultiProof(idsPerNftAddrWithArrays)
 }
 
-async function clearSelection() {
-    for (const nftDisplay of window.nftDisplays) {
-        nftDisplay.clearSelection()
-    }
-}
-window.clearSelection = clearSelection
-
-async function LoadTreeAndBuildMultiProof(merkleBuilder,selectedIds) {
+async function loadTreeAndBuildMultiProof(merkleBuilder,selectedIds) {
     //load merkle tree
     message("loading merkle tree (might take a minute on large drops)")
     if (!merkleBuilder) {
@@ -142,7 +163,7 @@ async function claimSelected() {
     const amountIds = Object.keys(selectedIds).reduce((a, v) => a + selectedIds[v].length, 0)
     if (amountIds > 1) {
         //build multiproof
-        const {proof, proofFlags, ids, amounts, nftAddresses} = await LoadTreeAndBuildMultiProof(window.merkleBuilder, selectedIds)
+        const {proof, proofFlags, ids, amounts, nftAddresses} = await loadTreeAndBuildMultiProof(window.merkleBuilder, selectedIds)
 
         //submit tx
         let tx = await window.mildayDropWithSigner.claimMultiple(proof, proofFlags, ids, amounts, nftAddresses)
@@ -151,7 +172,7 @@ async function claimSelected() {
 
         //update display
         const selectedNftDisplays = window.nftDisplays.filter((display)=> nftAddresses.indexOf(display.collectionAddress)!==-1)
-        refreshDisplayedItems(selectedNftDisplays)
+        refreshDisplay(selectedNftDisplays)
 
     } else {
         //get selected item
@@ -169,34 +190,18 @@ async function claimSelected() {
 
         //update display
         const nftDisplay = window.allNftDisplays.find((display) => display.collectionAddress === nftAddr)
-        refreshDisplayedItems([nftDisplay])
+        refreshDisplay([nftDisplay])
 
     }
 }
 window.claimSelected = claimSelected
 
-async function refreshDisplayedItems(displays) {
-    for (const display of displays) {
-        console.log(display)
-        display.clearSelection()
-
-        const nftAddr = display.collectionAddress
-        window.idsByClaimableStatus[nftAddr] =  await getClaimableStatus(display.ids, window.idsPerCollection[nftAddr], nftAddr)
-        const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddr]
-
-        display.notSelectable = [...Object.keys(claimed), ...Object.keys(ineligible)]
-        
-        //re-sort ids
-        display.ids = [...Object.keys(claimable), ...Object.keys(claimed), ...Object.keys(ineligible)]
-        display.refreshPage()
+async function clearSelection() {
+    for (const nftDisplay of window.nftDisplays) {
+        nftDisplay.clearSelection()
     }
-
-
 }
-
-async function isClaimed(nftAddr, id) {
-    return await window.mildayDropContract.isClaimed(nftAddr, id)
-}
+window.clearSelection = clearSelection
 
 function selectAll() {
     for (const nftDisplay of window.nftDisplays) {
@@ -206,81 +211,11 @@ function selectAll() {
 }
 window.selectAll = selectAll
 
-async function getClaimableStatus(ids, eligableIds, nftAddr) {
-
-    const eligibleUserIdsEntries = Object.entries(eligableIds).filter((x)=>ids.indexOf(x[0])!==-1)
-    let isIdClaimed = eligibleUserIdsEntries.map((x) => isClaimed(nftAddr, x[0]))
-    isIdClaimed = (await Promise.all(isIdClaimed))
-    isIdClaimed = Object.fromEntries(eligibleUserIdsEntries.map((x, index) => [x[0], isIdClaimed[index]]))
-
-    const eligibleIds = Object.keys(eligableIds)
-
-    const claimableUserIds = Object.fromEntries(eligibleUserIdsEntries.filter((x)=>isIdClaimed[x[0]]===false))
-    const allClaimedUserIds = Object.fromEntries(eligibleUserIdsEntries.filter((x)=>isIdClaimed[x[0]]===true))
-    const ineligibleUserIds = Object.fromEntries((ids.filter((x)=>eligibleIds.indexOf(x)===-1)).map((x)=>[x,0]))
-
-    const idsByClaimableStatus = { ["claimable"]: claimableUserIds, ["claimed"]: allClaimedUserIds, ["ineligible"]: ineligibleUserIds }
-    return idsByClaimableStatus
-}
-window.getClaimableStatus = getClaimableStatus
-
-async function runOnLoad() {
-    await loadAllContracts()
-}
-window.onload = runOnLoad;
-
-async function loadAllContracts() {
-    window.urlVars = await getUrlVars();
-    window.ipfsGateway = window.urlVars["ipfsGateway"]
-    if (!window.ipfsGateway) {
-        window.ipfsGateway = "http://127.0.0.1:48084" //no grifting pls thank :)
-    }
-
-    //abis
-    const mildayDropAbi = await (await fetch("../abi/mildayDropAbi.json")).json()//update mildayDropAbi.json
-    //const ERC721ABI = await (await fetch("../abi/ERC721ABI.json")).json()
-    const ER20ABI = await (await fetch("../abi/ERC20ABI.json")).json()
-
-    //miladyDrop Contract
-    window.mildayDropContract = new ethers.Contract(window.urlVars["lovedrop"], mildayDropAbi, window.provider);
-    
-
-
-
-    //load ipfsIndex
-    window.claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
-    window.ipfsIndex = new IpfsIndexer(window.ipfsGateway, null, true)
-    await window.ipfsIndex.loadIndexMiladyDropClaimData(window.claimDataIpfsHash)
-
-    //load data from ipfsIndex
-    window.tree = window.ipfsIndex.getTreeDump()
-    //loading the tree should also be done here but needs to be done in a worker
-    window.idsPerCollection = await window.ipfsIndex.getIdsPerCollection()
-    
-
-
-    //get all nft contracts
-    window.allNftAddresses = Object.keys(window.idsPerCollection)
-    window.selectedIds = {}
-
-    //window.allEligibleIds = window.ipfsIndex.getIdsPerCollection()
-    window.allNftDisplays = allNftAddresses.map((nftAddr) => new NftDisplay(nftAddr, window.provider, `nftDisplay-${nftAddr}`, [], window.ipfsGateway))
-
-    window.airdropTokenContract = new ethers.Contract(await mildayDropContract.airdropTokenAddress(), ER20ABI, window.provider)
-    window.ticker = await window.airdropTokenContract.symbol()
-
-    connectSigner()
-
-   
-}
-window.loadAllContracts = loadAllContracts
-
 function displayTokens(id, nftDisplay) {
-    let amount = "";
     let d = document.createElement("div");
     d.className = "tokenDisplay"
     if (id in window.idsPerCollection[nftDisplay.collectionAddress]) {
-        amount = ethers.utils.formatEther(window.idsPerCollection[nftDisplay.collectionAddress][id])
+        const amount = ethers.utils.formatEther(window.idsPerCollection[nftDisplay.collectionAddress][id])
         d.innerText =  `${amount} ${window.ticker}`
         if (id in window.idsByClaimableStatus[nftDisplay.collectionAddress].claimed) {
             d.style.textDecoration = "line-through"
@@ -304,40 +239,101 @@ function makeIntoDivs(parentId, childIds) {
     return parentElement
 }
 
+async function refreshDisplay(displays) {
+    for (const display of displays) {
+        display.clearSelection()
+
+        //refreh claimable status all ids (TODO do only claimed to reduce rpc calls)
+        const nftAddr = display.collectionAddress
+        window.idsByClaimableStatus[nftAddr] =  await getClaimableStatus(display.ids, window.idsPerCollection[nftAddr], nftAddr)
+        const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddr]
+
+        display.notSelectable = [...Object.keys(claimed), ...Object.keys(ineligible)]
+        
+        //re-sort ids
+        display.ids = [...Object.keys(claimable), ...Object.keys(claimed), ...Object.keys(ineligible)]
+        display.refreshPage()
+    }
+}
+
 
 async function displayNfts() {
-    //last thing loadAllContracts() needs to load
-
+    // create the nftDisplay divs
     const nftAddresses = Object.keys(await window.idsPerCollection)
     const nftDisplayElementIds = nftAddresses.map((x)=>`nftDisplay-${x}`)
     makeIntoDivs("nfts", nftDisplayElementIds)
 
+    document.getElementById("loading").innerText = "loading"
+
     window.nftDisplays = []
     window.idsByClaimableStatus = {}
-    document.getElementById("loading").innerText = "loading"
     for (const display of window.allNftDisplays) {
         const nftAddr = display.collectionAddress
 
+        //empty the element if it already exist (incase user connects a new wallet)
         let domElement = document.getElementById(`nftDisplay-${nftAddr}`)
         if(domElement){domElement.innerHTML=""}
 
+        //display amount of token recieved
         display.divFunctions.push(displayTokens)
         const userIds = (await display.setIdsFromOwner(await window.userAddress))
 
+        //process user ids
         window.idsByClaimableStatus[nftAddr] =  await getClaimableStatus(userIds, window.idsPerCollection[nftAddr], nftAddr)
-
         const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddr]
         display.ids = [...Object.keys(claimable), ...Object.keys(claimed), ...Object.keys(ineligible)]
         display.notSelectable =[...Object.keys(claimed), ...Object.keys(ineligible)]
 
-
+        //display nfts
         await display.createDisplay()
         display.makeAllSelectable()
-
         window.nftDisplays.push(display)
-
     }
     document.getElementById("loading").innerText = ""
-
 }
-window.test = test
+
+async function loadAllContracts() {
+    window.urlVars = await getUrlVars();
+    window.ipfsGateway = window.urlVars["ipfsGateway"]
+    if (!window.ipfsGateway) {
+        window.ipfsGateway = "http://127.0.0.1:48084" //no grifting pls thank :)
+    }
+
+    //abis
+    const mildayDropAbi = await (await fetch("../abi/mildayDropAbi.json")).json()//update mildayDropAbi.json
+    //const ERC721ABI = await (await fetch("../abi/ERC721ABI.json")).json()
+    const ER20ABI = await (await fetch("../abi/ERC20ABI.json")).json()
+
+    //miladyDrop Contract
+    window.mildayDropContract = new ethers.Contract(window.urlVars["lovedrop"], mildayDropAbi, window.provider)
+
+    //load ipfsIndex
+    window.claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
+    window.ipfsIndex = new IpfsIndexer(window.ipfsGateway, null, true)
+    await window.ipfsIndex.loadIndexMiladyDropClaimData(window.claimDataIpfsHash)
+
+    //load data from ipfsIndex
+    window.tree = window.ipfsIndex.getTreeDump()
+    //loading the tree should also be done here but needs to be done in a worker
+    window.idsPerCollection = await window.ipfsIndex.getIdsPerCollection()
+
+    //get all nft contracts
+    window.allNftAddresses = Object.keys(window.idsPerCollection)
+    window.selectedIds = {}
+
+    //window.allEligibleIds = window.ipfsIndex.getIdsPerCollection()
+    window.allNftDisplays = allNftAddresses.map((nftAddr) => new NftDisplay(nftAddr, window.provider, `nftDisplay-${nftAddr}`, [], window.ipfsGateway))
+
+    window.airdropTokenContract = new ethers.Contract(await mildayDropContract.airdropTokenAddress(), ER20ABI, window.provider)
+    window.ticker = await window.airdropTokenContract.symbol()
+
+    connectSigner()
+
+   
+}
+window.loadAllContracts = loadAllContracts
+
+async function runOnLoad() {
+    await loadAllContracts()
+}
+window.onload = runOnLoad;
