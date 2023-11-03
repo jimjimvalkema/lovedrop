@@ -452,4 +452,8 @@ export class NftDisplay {
         this.#addOnclickFunctionToCurrentImages(this.imgOnclickFunction)
     }
 
+    refreshPage(page=this.currentPage) {
+        this.selectPage(page)
+    }
+
 }

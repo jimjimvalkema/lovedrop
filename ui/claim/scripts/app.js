@@ -6,7 +6,6 @@ import { NftDisplay } from "../../scripts/NftDisplay.js";
 
 // A Web3Provider wraps a standard Web3 provider, which is
 // what MetaMask injects as window.ethereum into each page
-// TODO get 3rd party provider incase user doesnt connect 
 const provider = new ethers.providers.Web3Provider(window.ethereum)
 
 if (window.ethereum) {
@@ -58,10 +57,7 @@ async function connectSigner() {
         message("")
         window.mildayDropWithSigner = await window.mildayDropContract.connect(window.signer);
         window.userAddress = await window.signer.getAddress()
-        for (const nftAddr of window.allNftAddresses) {
-            window.selectedIds[nftAddr] = new Set()
-        }
-        test();
+        displayNfts();
         return [provider, signer];
     }
 }
@@ -189,7 +185,10 @@ async function refreshDisplayedItems(displays) {
         const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddr]
 
         display.notSelectable = [...Object.keys(claimed), ...Object.keys(ineligible)]
-        display.refreshSelectableDisplay()
+        
+        //re-sort ids
+        display.ids = [...Object.keys(claimable), ...Object.keys(claimed), ...Object.keys(ineligible)]
+        display.refreshPage()
     }
 
 
@@ -244,8 +243,8 @@ async function loadAllContracts() {
 
     //miladyDrop Contract
     window.mildayDropContract = new ethers.Contract(window.urlVars["lovedrop"], mildayDropAbi, window.provider);
-    window.airdropTokenContract = new ethers.Contract(await mildayDropContract.airdropTokenAddress(), ER20ABI, window.provider)
-    window.ticker = await window.airdropTokenContract.symbol()
+    
+
 
 
     //load ipfsIndex
@@ -257,6 +256,7 @@ async function loadAllContracts() {
     window.tree = window.ipfsIndex.getTreeDump()
     //loading the tree should also be done here but needs to be done in a worker
     window.idsPerCollection = await window.ipfsIndex.getIdsPerCollection()
+    
 
 
     //get all nft contracts
@@ -265,6 +265,9 @@ async function loadAllContracts() {
 
     //window.allEligibleIds = window.ipfsIndex.getIdsPerCollection()
     window.allNftDisplays = allNftAddresses.map((nftAddr) => new NftDisplay(nftAddr, window.provider, `nftDisplay-${nftAddr}`, [], window.ipfsGateway))
+
+    window.airdropTokenContract = new ethers.Contract(await mildayDropContract.airdropTokenAddress(), ER20ABI, window.provider)
+    window.ticker = await window.airdropTokenContract.symbol()
 
     connectSigner()
 
@@ -302,17 +305,12 @@ function makeIntoDivs(parentId, childIds) {
 }
 
 
-async function test() {
-
+async function displayNfts() {
+    //last thing loadAllContracts() needs to load
 
     const nftAddresses = Object.keys(await window.idsPerCollection)
     const nftDisplayElementIds = nftAddresses.map((x)=>`nftDisplay-${x}`)
     makeIntoDivs("nfts", nftDisplayElementIds)
-
-    //last thing loadAllContracts() needs to load
-    while (!window.allNftDisplays) {
-        await delay(100)
-    }
 
     window.nftDisplays = []
     window.idsByClaimableStatus = {}
