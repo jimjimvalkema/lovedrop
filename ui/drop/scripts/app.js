@@ -48,18 +48,20 @@ async function getClaimableStatus(allIds ,eligableIdsAmounts, nftAddr) {
 }
 window.getClaimableStatus = getClaimableStatus
 
-function displayTokens(id, nftDisplay) {
+async function displayTokens(id, nftDisplay) {
     let d = document.createElement("div");
+    const amount = getAmountAirdrop(id, nftDisplay.collectionAddress)
+    d.innerText =  `${amount} ${window.ticker}`
     d.className = "tokenDisplay"
-    if (id in window.idsPerCollection[nftDisplay.collectionAddress]) {
-        const amount = ethers.utils.formatEther(window.idsPerCollection[nftDisplay.collectionAddress][id])
-        d.innerText =  `${amount} ${window.ticker}`
-        if (id in window.idsByClaimableStatus[nftDisplay.collectionAddress].claimed) {
+    if (amount > 0) {
+        //TODO cache isclaimed result
+        //has to be done per page because default metamask rpc is too slow to do all and will error
+        if (await isClaimed(nftDisplay.collectionAddress, id)) {
             d.style.textDecoration = "line-through"
         }
     } else {
-        return ""
-        //d.innerText =  `0 ${window.ticker} :(`
+        //return ""
+        d.innerText =  `not eligible :(`
     }
     return d
 }
@@ -74,6 +76,21 @@ function makeIntoDivs(parentId, childIds) {
     }
 
     return parentElement
+}
+
+function getAmountAirdrop(id, collectionAddress) {
+    if (id in window.idsPerCollection[collectionAddress]) {
+        const amount = ethers.utils.formatEther(window.idsPerCollection[collectionAddress][id])
+        return amount
+    } else {
+        return 0
+    }
+
+}
+
+function sortIdsByEligibility(ids, collectionAddress) {
+    ids.sort((a,b)=> getAmountAirdrop(b, collectionAddress) - getAmountAirdrop(a, collectionAddress) )
+    return ids
 }
 
 async function displayNfts(nftAddress=window.allNftAddresses[0]) {
@@ -96,10 +113,9 @@ async function displayNfts(nftAddress=window.allNftAddresses[0]) {
     console.log(allIds)
 
     //process user ids
-    window.idsByClaimableStatus[nftAddress] =  await getClaimableStatus(allIds, window.idsPerCollection[nftAddress], nftAddress)
-    const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddress]
-    display.ids = [...Object.keys(claimable), ...Object.keys(claimed), ...Object.keys(ineligible)]
-    display.notSelectable =[...Object.keys(claimed), ...Object.keys(ineligible)]
+    //window.idsByClaimableStatus[nftAddress] =  await getClaimableStatus(allIds, window.idsPerCollection[nftAddress], nftAddress)
+    //const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddress]
+    display.ids = sortIdsByEligibility(display.ids, display.collectionAddress)
 
     //display nfts
     await display.createDisplay()
@@ -151,6 +167,6 @@ window.loadAllContracts = loadAllContracts
 
 async function runOnLoad() {
     await loadAllContracts()
-    displayNfts(window.allNftAddresses[0])
+    displayNfts(window.allNftAddresses[3])
 }
 window.onload = runOnLoad;

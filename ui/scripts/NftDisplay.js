@@ -168,12 +168,13 @@ export class NftDisplay {
      * 
      * @param {Element[]} divs
      */
-    #applyDivFuntionsOnCurrentIds(divFunctions=this.divFunctions, ids=this.ids, currentPage = this.currentPage, rowSize=this.rowSize, amountRows=this.amountRows) {
+    async #applyDivFuntionsOnCurrentIds(divFunctions=this.divFunctions, ids=this.ids, currentPage = this.currentPage, rowSize=this.rowSize, amountRows=this.amountRows) {
         const maxPerPage = rowSize*amountRows
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
         for (const [index, id] of idsCurrentPage.entries()) {
             let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
-            const results = divFunctions.map((x)=>x(id, this))
+            let results = divFunctions.map((x)=>x(id, this))
+            results = await Promise.all(results)
             imageDiv.append(...results)
         }
 
