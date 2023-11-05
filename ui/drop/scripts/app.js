@@ -23,24 +23,24 @@ async function isClaimed(nftAddr, id) {
 }
 
 //TODO do on all ids not user ids
-async function getClaimableStatus(ids, eligableIdsAmounts, nftAddr) {
-    //get all eligable user ids with amounts
-    const eligableUserIdsWithAmountsEntries = Object.entries(eligableIdsAmounts).filter((x)=>ids.indexOf(x[0])!==-1)
+async function getClaimableStatus(allIds ,eligableIdsAmounts, nftAddr) {
+    const eligableIdsAmountsEntries = Object.entries(eligableIdsAmounts)
 
-    //eligable user ids, returns true if its already claimed 
-    let isIdClaimed = eligableUserIdsWithAmountsEntries.map((x) => isClaimed(nftAddr, x[0]))
+    //eligable ids, returns true if its already claimed 
+    //TODO do per page since doing a entire 10k collection can take forever
+    let isIdClaimed = eligableIdsAmountsEntries.map((x) => isClaimed(nftAddr, x[0]))
     isIdClaimed = (await Promise.all(isIdClaimed))
-    isIdClaimed = Object.fromEntries(eligableUserIdsWithAmountsEntries.map((x, index) => [x[0], isIdClaimed[index]]))
+    isIdClaimed = Object.fromEntries(eligableIdsAmountsEntries.map((x, index) => [x[0], isIdClaimed[index]]))
 
     //all eligible ids
     const eligibleIds = Object.keys(eligableIdsAmounts)
 
-    //seperate already claimed ids vs unclaimed from all eligable user ids (eligableUserIdsWithAmountsEntries)
-    const claimableUserIds = Object.fromEntries(eligableUserIdsWithAmountsEntries.filter((x)=>isIdClaimed[x[0]]===false))
-    const allClaimedUserIds = Object.fromEntries(eligableUserIdsWithAmountsEntries.filter((x)=>isIdClaimed[x[0]]===true))
+    //seperate already claimed ids vs unclaimed from all eligable ids 
+    const claimableUserIds = Object.fromEntries(eligableIdsAmountsEntries.filter((x)=>isIdClaimed[x[0]]===false))
+    const allClaimedUserIds = Object.fromEntries(eligableIdsAmountsEntries.filter((x)=>isIdClaimed[x[0]]===true))
     
-    //filter out all user ids that never were eligable and set their amounts to 0
-    const ineligibleUserIds = Object.fromEntries((ids.filter((x)=>eligibleIds.indexOf(x)===-1)).map((x)=>[x,0]))
+    //filter out all ids that never were eligable and set their amounts to 0
+    const ineligibleUserIds = Object.fromEntries((allIds.filter((x)=>eligibleIds.indexOf(x)===-1)).map((x)=>[x,0]))
 
     //result
     const idsByClaimableStatus = { ["claimable"]: claimableUserIds, ["claimed"]: allClaimedUserIds, ["ineligible"]: ineligibleUserIds }
@@ -76,43 +76,43 @@ function makeIntoDivs(parentId, childIds) {
     return parentElement
 }
 
-//display all id not user ids
-async function displayNfts() {
-    // create the nftDisplay divs
-    const nftAddresses = Object.keys(await window.idsPerCollection)
-    const nftDisplayElementIds = nftAddresses.map((x)=>`nftDisplay-${x}`)
-    makeIntoDivs("nfts", nftDisplayElementIds)
-
-    document.getElementById("loading").innerText = "loading"
-
-    window.nftDisplays = []
-    window.idsByClaimableStatus = {}
-    for (const display of window.allNftDisplays) {
-        const nftAddr = display.collectionAddress
-
-        //empty the element if it already exist (incase user connects a new wallet)
-        let domElement = document.getElementById(`nftDisplay-${nftAddr}`)
-        if(domElement){domElement.innerHTML=""}
-
-        //display amount of token recieved
-        display.divFunctions.push(displayTokens)
-        const userIds = (await display.setIdsFromOwner(await window.userAddress))
-
-        //process user ids
-        window.idsByClaimableStatus[nftAddr] =  await getClaimableStatus(userIds, window.idsPerCollection[nftAddr], nftAddr)
-        const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddr]
-        display.ids = [...Object.keys(claimable), ...Object.keys(claimed), ...Object.keys(ineligible)]
-        display.notSelectable =[...Object.keys(claimed), ...Object.keys(ineligible)]
-
-        //display nfts
-        await display.createDisplay()
-        display.makeAllSelectable()
-        window.nftDisplays.push(display)
+async function displayNfts(nftAddress=window.allNftAddresses[0]) {
+    let display
+    if(window.nftDisplays[nftAddress]) {
+        display = window.nftDisplays[nftAddress]
+    } else {
+        display = new NftDisplay(nftAddress,window.provider, "nfts",[],window.ipfsGateway)
+        window.nftDisplays[nftAddress] = display
+        display.amountRows = 3
     }
-    document.getElementById("loading").innerText = ""
+
+    //empty the element if it already exist (incase user connects a new wallet)
+    let targetDomElement = document.getElementById(`nfts`)
+    if(targetDomElement){targetDomElement.innerHTML=""}
+
+    //display amount of token recieved
+    display.divFunctions.push(displayTokens)
+    const allIds = await display.setIdsToAll()
+    console.log(allIds)
+
+    //process user ids
+    window.idsByClaimableStatus[nftAddress] =  await getClaimableStatus(allIds, window.idsPerCollection[nftAddress], nftAddress)
+    const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddress]
+    display.ids = [...Object.keys(claimable), ...Object.keys(claimed), ...Object.keys(ineligible)]
+    display.notSelectable =[...Object.keys(claimed), ...Object.keys(ineligible)]
+
+    //display nfts
+    await display.createDisplay()
+    //window.nftDisplays.push(display)
+
+    return targetDomElement
 }
+window.displayNfts = displayNfts
 
 async function loadAllContracts() {
+    window.nftDisplays = {}
+    window.idsByClaimableStatus = {}
+
     window.urlVars = await getUrlVars();
     window.ipfsGateway = window.urlVars["ipfsGateway"]
     if (!window.ipfsGateway) {
@@ -142,7 +142,7 @@ async function loadAllContracts() {
     window.selectedIds = {}
 
     //window.allEligibleIds = window.ipfsIndex.getIdsPerCollection()
-    window.allNftDisplays = allNftAddresses.map((nftAddr) => new NftDisplay(nftAddr, window.provider, `nftDisplay-${nftAddr}`, [], window.ipfsGateway))
+    //window.nftDisplays =Object.fromEntries(allNftAddresses.map((nftAddr) => [nftAddr,new NftDisplay(nftAddr, window.provider, `nftDisplay-${nftAddr}`, [], window.ipfsGateway)]))
 
     window.airdropTokenContract = new ethers.Contract(await mildayDropContract.airdropTokenAddress(), ER20ABI, window.provider)
     window.ticker = await window.airdropTokenContract.symbol()
@@ -151,5 +151,6 @@ window.loadAllContracts = loadAllContracts
 
 async function runOnLoad() {
     await loadAllContracts()
+    displayNfts(window.allNftAddresses[0])
 }
 window.onload = runOnLoad;

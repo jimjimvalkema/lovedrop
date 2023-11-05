@@ -58,6 +58,37 @@ export class NftDisplay {
     }
 
     /**
+     * sets this.ids to all existing ids
+     */
+    async setIdsToAll() {
+        //TODO fix this for collection that break this assumption (ex ens ids are random)
+        //fix needs to be in nftMetaDataCollector
+        //tokenByIndex would be super usefull here but isnt standard
+        //might be able to event scan for any transfers from 0x0 since those are mints however: the specs says: 
+        // "Exception: during contract creation, any number of NFTs may be created and assigned without emitting Transfer."
+
+        //detect if contract minted secret token by checking if it's deployment tx emitted transfer event while it initial supply > 0
+
+        //1 try tokenByIndex
+        //2 0/1 till mintedSupply (totall supply if mintedSupply is not available)
+        //3 inspect ipfs DAG/https serve of baseUri (impossible for some like loomlock)
+        //4 test to see if ex 10 ids dont exist outside total supply
+        //5 event scan n blocks to futher test asssumtion
+
+        //if that fails you need to event scan from block since deployment
+        //test if contract minted secret ids at creation (requires archive node)
+        //if not event scan from tx 0x0
+        //if it is you have to scan all txs
+        //write down ids mentioned in transfers
+        //might not need to do that if #3 works
+        const totalSupply = await this.nftMetaData.getTotalSupply()
+        const firstId = await this.nftMetaData.getIdStartsAt()
+        console.log(firstId,totalSupply)
+        this.ids = Array.from(new Array(totalSupply+1-firstId), (x,i) => (i + firstId).toString());
+        return this.ids
+    }
+
+    /**
      * set onclick function to all images 
      *  the first function parameters are: this, event, nftId
      * @param {function} imgOnclickFunction 
