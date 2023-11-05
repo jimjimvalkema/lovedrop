@@ -30,12 +30,13 @@ export class NftDisplay {
      * @param {string} targetDivId 
      * @param {number[]} ids 
      */
-    constructor(collectionAddress,provider, targetDivId="", ids=[], ipfsGateway = "https://ipfs.io",) {
-        this.collectionAddress = collectionAddress
-        this.nftMetaData = new NftMetaDataCollector(collectionAddress,provider)
-        this.ids = ids
-        this.targetDivId = targetDivId,
+    constructor(collectionAddress,provider, targetDivId="", ids=[], ipfsGateway = "https://ipfs.io") {
         this.ipfsGateway = ipfsGateway
+        this.collectionAddress = collectionAddress
+        this.nftMetaData = new NftMetaDataCollector(collectionAddress,provider,this.ipfsGateway)
+        this.ids = ids
+        this.targetDivId = targetDivId
+        
     }
 
     /**
@@ -104,7 +105,7 @@ export class NftDisplay {
         for (const [index, id] of idsCurrentPage.entries()) {
             if (this.notSelectable.indexOf(id)===-1) {
                 let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
-                imageDiv.onclick  = (e)=>{onclickFunction(e, id)}
+                imageDiv.onclick  = () => onclickFunction(id, this)
                 imageDiv.style.cursor = "pointer"
 
             }
@@ -174,10 +175,10 @@ export class NftDisplay {
         for (const [index, id] of idsCurrentPage.entries()) {
             let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
             let results = divFunctions.map((x)=>x(id, this))
-            results = await Promise.all(results)
-            imageDiv.append(...results)
+            results.forEach((x)=>Promise.resolve(x).then((r) => {
+                imageDiv.append(r)
+            }))
         }
-
     }
 
     /**
@@ -317,15 +318,19 @@ export class NftDisplay {
         let allImagesDiv = document.createElement("div")
         allImagesDiv.style=`width: 100%; border-left: solid; border-width: ${borderWidth}; border-color: ${borderColor}`
 
+        let imageSources = idsCurrentPage.map((id)=>this.nftMetaData.getImage(id))
+        imageSources = await Promise.all(imageSources)
+
         for (const [index, id] of idsCurrentPage.entries()) {
             let img = document.createElement("img")
             img.id = `img-${id}-${this.collectionAddress}`
-            img.src = await this.nftMetaData.getImage(id)
+            img.src = imageSources[index]//await this.nftMetaData.getImage(id)
             img.style = `max-width: 100%; vertical-align: top;`
             
             let imgRootDiv =  document.createElement("div")
             imgRootDiv.id = `rootDiv-${id}-${this.collectionAddress}`
             imgRootDiv.style = `width: ${imageWidth}%; position: relative; display: inline-block;`
+            imgRootDiv.className = "nftImagesDiv"
 
             let imageDiv = document.createElement("div")
             imageDiv.id = `imageDiv-${id}-${this.collectionAddress}`
@@ -352,6 +357,7 @@ export class NftDisplay {
      * @param {string} borderColor 
      */
     async createDisplay(currentPage=this.currentPage, targetElementId=this.targetDivId, rowSize=this.rowSize, amountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor) {
+        //TODO apply divFunctions and get image urls in 1 go
         this.currentPage = currentPage
 
         const infoDiv =  this.#createInfoDiv(this.collectionAddress,this.nftMetaData, ids.length)
@@ -375,6 +381,7 @@ export class NftDisplay {
     
 
         this.#applyDivFuntionsOnCurrentIds()
+        this.#addOnclickFunctionToCurrentImages()
     }
 
     #toggleSelect(e, id) {

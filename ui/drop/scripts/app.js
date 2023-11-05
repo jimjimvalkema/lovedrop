@@ -13,13 +13,18 @@ async function getUrlVars() {
 if (window.ethereum) {
     window.provider = new ethers.providers.Web3Provider(window.ethereum);
 } else {
-    console.log("couldn't connect to inject ethereum provider, connecting to external provicer")
+    console.log("couldn't connect to inject ethereum provider, connecting to external provider")
     window.provider = new ethers.providers.JsonRpcProvider('https://eth.llamarpc.com');
 }
 
 
 async function isClaimed(nftAddr, id) {
-    return await window.mildayDropContract.isClaimed(nftAddr, id)
+    if (id in window.isClaimedCache[nftAddr]) {
+        return window.isClaimedCache[nftAddr][id]
+    } else {
+        window.isClaimedCache[nftAddr][id] = await window.mildayDropContract.isClaimed(nftAddr, id)
+        return window.isClaimedCache[nftAddr][id]
+    }
 }
 
 //TODO do on all ids not user ids
@@ -58,13 +63,29 @@ async function displayTokens(id, nftDisplay) {
         //has to be done per page because default metamask rpc is too slow to do all and will error
         if (await isClaimed(nftDisplay.collectionAddress, id)) {
             d.style.textDecoration = "line-through"
+            d.style.textDecorationThickness= "0.18em";
         }
     } else {
         //return ""
-        d.innerText =  `not eligible :(`
+        d.innerText =  `nothing :(`
     }
     return d
 }
+
+function clickToBuyMessage(id,nftDisplay) {
+    let div = document.createElement("div")
+    div.innerText = "Buy on OpenSeaPro"//
+    //div.onclick = function BuyOnOpenSeaPro() {window.open(`${baseUrl}/${nftDisplay.collectionAddress}/${id}`, '_blank').focus()}
+    div.className = "clickToBuy"
+    return div
+}
+
+function nftImagesFilter(id,nftDisplay) {
+    let div = document.createElement("div")
+    div.className = "nftImagesFilter"
+    return div
+}
+
 
 function makeIntoDivs(parentId, childIds) {
     let parentElement = document.getElementById(parentId)
@@ -93,11 +114,18 @@ function sortIdsByEligibility(ids, collectionAddress) {
     return ids
 }
 
+function onclickToBuy(id, display) {
+    const baseUrl = "https://pro.opensea.io/nft/ethereum"
+    window.open(`${baseUrl}/${display.collectionAddress}/${id}`).focus()
+
+}
+
 async function displayNfts(nftAddress=window.allNftAddresses[0]) {
     let display
     if(window.nftDisplays[nftAddress]) {
         display = window.nftDisplays[nftAddress]
     } else {
+        console.log(window.ipfsGateway)
         display = new NftDisplay(nftAddress,window.provider, "nfts",[],window.ipfsGateway)
         window.nftDisplays[nftAddress] = display
         display.amountRows = 3
@@ -108,6 +136,10 @@ async function displayNfts(nftAddress=window.allNftAddresses[0]) {
     if(targetDomElement){targetDomElement.innerHTML=""}
 
     //display amount of token recieved
+    //const onclickToBuy = (id, display)=>window.open(`https://pro.opensea.io/nft/ethereum/${display.collectionAddress}/${id}`).focus()
+    display.setImgOnclickFunction(onclickToBuy)
+    display.divFunctions.push(nftImagesFilter)
+    display.divFunctions.push(clickToBuyMessage)
     display.divFunctions.push(displayTokens)
     const allIds = await display.setIdsToAll()
     console.log(allIds)
@@ -127,7 +159,6 @@ window.displayNfts = displayNfts
 
 async function loadAllContracts() {
     window.nftDisplays = {}
-    window.idsByClaimableStatus = {}
 
     window.urlVars = await getUrlVars();
     window.ipfsGateway = window.urlVars["ipfsGateway"]
@@ -155,6 +186,7 @@ async function loadAllContracts() {
 
     //get all nft contracts
     window.allNftAddresses = Object.keys(window.idsPerCollection)
+    window.isClaimedCache = Object.fromEntries(allNftAddresses.map((x)=>[x,{}]))
     window.selectedIds = {}
 
     //window.allEligibleIds = window.ipfsIndex.getIdsPerCollection()
@@ -167,6 +199,6 @@ window.loadAllContracts = loadAllContracts
 
 async function runOnLoad() {
     await loadAllContracts()
-    displayNfts(window.allNftAddresses[3])
+    displayNfts(window.allNftAddresses[0])
 }
 window.onload = runOnLoad;
