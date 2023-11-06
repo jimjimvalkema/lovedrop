@@ -65,6 +65,7 @@ export class NftMetaDataCollector {
     idsPerAttribute = undefined;
     useCustomCompressedImages = false;
     idStartsAt = undefined;
+    contractName = undefined;
     idsOfOwnerCache = {};
     baseUriExtension = "";
     attributeFormat = {
@@ -186,7 +187,6 @@ export class NftMetaDataCollector {
         }
         return imgURL;
 
-
     }
     async getTotalSupply() {
         //TOD assumption totalsupply staysthesame
@@ -217,6 +217,30 @@ export class NftMetaDataCollector {
 
             this.totalSupply = id
             return id
+        }
+    }
+
+    async getContractName() {
+        if(this.contractNam) {
+            return this.contractName
+
+        } else {
+            this.contractName = await this.contractObj.name()
+            return this.contractName
+        }
+    
+    }
+
+
+    async getTokenName(id) {
+
+        const tokenUri = await this.getTokenUri(id)
+
+        if (tokenUri && "name" in tokenUri) {
+            return tokenUri["name"]
+        } else {
+            console.warn(`name for id ${id} not found in tokenUri using "contractName + id" instead`)
+            return `#${id} ${await this.getContractName()}`
         }
     }
 
@@ -456,7 +480,7 @@ export class NftMetaDataCollector {
                 console.log(`errored on id: ${id} re-tried ${retries} times`)
                 console.log(`error is: ${error}`);
                 console.log(error)
-                await delay(300);
+                await delay(50);
             }
             retries += 1;
         }
