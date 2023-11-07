@@ -137,19 +137,45 @@ function onclickToBuy(id, display) {
 
 }
 
-async function displayNfts(nftAddress = window.allNftAddresses[0]) {
+function removeAllChildNodes(parent) {
+    let childNodes = parent.childNodes
+    for (const child of childNodes) {
+        removeAllChildNodes(child)
+        console.log(child)
+        child.innerHTML = ""
+        parent.remove(child)
+    }
+}
+window.removeAllChildNodes = removeAllChildNodes
+
+
+
+async function displayNfts(nftAddress = null) {
+
+
+
+    if (!nftAddress) {
+        while (!window.allNftAddresses) {
+            await delay(100)
+        }
+        nftAddress = window.allNftAddresses[0]
+        document.getElementById("collectionSelect").value = nftAddress
+        console.log(nftAddress)
+    }
+
+    window.currentNft = nftAddress
+
+    if (nftAddress in window.nftDisplays) {
+        window.nftDisplays[nftAddress].createDisplay()
+        return 0
+    }
+
     let loadingDiv = document.createElement("div")
     let targetDomElement = document.getElementById(`nfts`)
-    if (targetDomElement) { targetDomElement.innerHTML = "" }
+    //if (targetDomElement) {targetDomElement.childNodes.forEach((child)=>removeAllChildNodes(child))  }
     loadingDiv.innerText = "loading"
     loadingDiv.id = "loading"
     targetDomElement.append(loadingDiv)
-
-
-
-    while (!window.allNftAddresses) {
-        await delay(100)
-    }
 
     let display
     if (window.nftDisplays[nftAddress]) {
@@ -166,7 +192,7 @@ async function displayNfts(nftAddress = window.allNftAddresses[0]) {
 
     //display amount of token recieved
     //const onclickToBuy = (id, display)=>window.open(`https://pro.opensea.io/nft/ethereum/${display.collectionAddress}/${id}`).focus()
-    display.setImgOnclickFunction(onclickToBuy)
+    display.imgOnclickFunction = onclickToBuy
     display.divFunctions.push(nftImagesFilter)
     display.divFunctions.push(clickToBuyMessage)
     display.divFunctions.push(displayTokens)
@@ -179,7 +205,6 @@ async function displayNfts(nftAddress = window.allNftAddresses[0]) {
     display.ids = sortIdsByEligibility(eligibleIds, display.collectionAddress)
 
     //display nfts
-
     await display.createDisplay()
     loadingDiv.remove()
     //window.nftDisplays.push(display)
@@ -206,7 +231,7 @@ async function loadAllContracts() {
 
     //abis
     const mildayDropAbi = await (await fetch("../abi/mildayDropAbi.json")).json()//update mildayDropAbi.json
-    //const ERC721ABI = await (await fetch("../abi/ERC721ABI.json")).json()
+    const ERC721ABI = await (await fetch("../abi/ERC721ABI.json")).json()
     const ER20ABI = await (await fetch("../abi/ERC20ABI.json")).json()
 
     //miladyDrop Contract
@@ -224,6 +249,7 @@ async function loadAllContracts() {
 
     //get all nft contracts
     window.allNftAddresses = Object.keys(window.idsPerCollection)
+    window.optionsResult = window.allNftAddresses.map(address => addToContractSelecter(address, ERC721ABI, window.provider));
     window.isClaimedCache = Object.fromEntries(allNftAddresses.map((x) => [x, {}]))
     window.selectedIds = {}
 
@@ -234,18 +260,40 @@ async function loadAllContracts() {
 }
 window.loadAllContracts = loadAllContracts
 
+
+async function addToContractSelecter(address, ERC721ABI, provider) {
+    const contract = new ethers.Contract(address, ERC721ABI, provider)
+    const option = document.createElement("option");
+    option.value = address
+    option.text = await contract.name()
+    document.getElementById("collectionSelect").add(option)
+    return option
+}
+
+function toggleShow(elementId) {
+    const element = document.getElementById(elementId)
+    if (element.style.visibility === "hidden") {
+        element.style.visibility = "visible"
+    } else {
+        element.style.visibility = "hidden"
+    }
+}
+
 async function runOnLoad() {
+    document.getElementById("editFilterButton").onclick = ()=>toggleShow("filter")
+    document.getElementById("filter").onchange = (value) =>console.log("value")
     console.log("hi :)")
     loadAllContracts()
-    window.currentNft = "0x3Fc3a022EB15352D3f5E4e6D6f02BBfC57D9C159"
-    displayNfts(window.currentNft)
+    displayNfts()
 }
+
 window.onload = runOnLoad;
 
 const showEligible = document.querySelector("#showEligible");
 const showClaimed = document.querySelector("#showClaimed");
 const showUnclaimed = document.querySelector("#showUnclaimed");
 const showAll = document.querySelector("#showAll");
+
 
 
 showEligible.addEventListener("change", () => {
@@ -270,9 +318,6 @@ showClaimed.addEventListener("change", () => {
         showAll.checked = false;
         showEligible.checked = false;
         showClaimedIds()
-
-
-
     }
 });
 
@@ -283,15 +328,19 @@ async function showUnclaimedIds() {
     const eligibleIds = Object.keys(window.idsPerCollection[window.currentNft])
     const {claimable} = await getClaimableStatus(eligibleIds,window.idsPerCollection[window.currentNft],window.currentNft)
     currentDisplay.ids = sortIdsByEligibility(Object.keys(claimable), window.currentNft)
-    currentDisplay.refreshPage()
+    await currentDisplay.refreshPage()
 }
 
 async function showClaimedIds() {
     let currentDisplay = window.nftDisplays[window.currentNft]
     const eligibleIds = Object.keys(window.idsPerCollection[window.currentNft])
+    console.log("getting claimed ids")
     const {claimed} = await getClaimableStatus(eligibleIds,window.idsPerCollection[window.currentNft],window.currentNft)
+    console.log("sorting claimed ids")
     currentDisplay.ids = sortIdsByEligibility(Object.keys(claimed), window.currentNft)
-    currentDisplay.refreshPage()
+    console.log("refreshing")
+    await currentDisplay.refreshPage()
+    console.log("done")
 }
 
 showUnclaimed.addEventListener("change", () => {
@@ -324,3 +373,26 @@ showAll.addEventListener("change", () => {
 
     }
 });
+
+document.getElementById("collectionSelect").addEventListener("change", (event) => {
+    let currentDisplay = window.nftDisplays[window.currentNft]
+    currentDisplay.clear()
+
+    const eligibleIds = Object.keys(window.idsPerCollection[window.currentNft])
+    currentDisplay.ids = sortIdsByEligibility(eligibleIds, window.currentNft)
+
+    displayNfts(event.target.value)
+    showEligible.checked = true;
+    showUnclaimed.checked = false;
+    showClaimed.checked = false;
+    showAll.checked = false;
+  });
+
+
+// Close the dropdown if the user clicks outside of it
+window.onclick = function (event) { //TODO  dropbtn class unique for each dropdown to make sure other dropdowns close when new one apears
+    if (!event.target.matches('.dropbtn')) {
+        const dropdowns = document.getElementsByClassName("dropdown-content");
+        [...dropdowns].forEach((openDropdown)=>openDropdown.style.visibility="hidden")
+    }
+}

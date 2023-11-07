@@ -53,9 +53,7 @@ export class NftDisplay {
      * @param {string} ownerAddress 
      */
     async setIdsFromOwner(ownerAddress) {
-        console.log(ownerAddress)
         this.ids = (await this.nftMetaData.getIdsOfowner(ownerAddress)).map((x)=>x.toString())//bignumber fix
-        console.log(await this.nftMetaData.getIdsOfowner(ownerAddress))
         return this.ids
     }
 
@@ -156,15 +154,27 @@ export class NftDisplay {
     }
 
     #removeAllDivImageFromRootElement(ids=this.ids, currentPage = this.currentPage, rowSize=this.rowSize, amountRows=this.amountRows) {
+        //TODO seems broken?
         const maxPerPage = rowSize*amountRows
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
         for (const [index, id] of idsCurrentPage.entries()) {
             let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
-            //keep 1st item since its the image 
-            const removeableNodes = [...imageDiv.childNodes].slice(1) //.filter((x)=>x.id!=="selectionStatus") 
-            removeableNodes.map((x)=>imageDiv.removeChild(x))
+            //keep last item since its the image 
+            if(imageDiv) {
+                const childNodes = [...imageDiv.childNodes]
+                const removeableNodes =childNodes.slice(null,childNodes.length-1) //.filter((x)=>x.id!=="selectionStatus") 
+                removeableNodes.map((x)=>{
+                    imageDiv.removeChild(x);
+                    //x.outerHTML = ""
+                })
+            }
+        
         }
 
+    }
+
+    test() {
+        this.#removeAllDivImageFromRootElement()
     }
 
 
@@ -250,6 +260,7 @@ export class NftDisplay {
         let selectorDiv = document.createElement("div")
 
         selectorDiv.append(prevPageButton,nextPageButton,firstPageButton,lastPageButton,` page ${currentPage} of ${lastPage} pages`)
+        selectorDiv.id = `pageSelector-${this.collectionAddress}`
         return selectorDiv
     }
 
@@ -260,10 +271,14 @@ export class NftDisplay {
      * @param {number} amountRows 
      * @param {number[]} ids 
      */
-    #cancelLoadingImages(currentPage = this.currentPage, rowSize=this.rowSize,amountRows=this.amountRows, ids=this.ids) {
+    async #cancelLoadingImages(currentPage = this.currentPage, rowSize=this.rowSize,amountRows=this.amountRows, ids=this.ids) {
         const maxPerPage = rowSize*amountRows
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
         for (const [index, id] of idsCurrentPage.entries()) {
+            while(!document.getElementById(`img-${id}-${this.collectionAddress}`) ) {
+                //console.log(`waiting for element id ${id} to be created so it can be canceled`)
+                await delay(10)
+            }
             let imgElement = document.getElementById(`img-${id}-${this.collectionAddress}`) 
             if (imgElement && "src" in imgElement) {
                 imgElement.src = ""
@@ -278,38 +293,35 @@ export class NftDisplay {
      * @param {number} page 
      * @param {string} targetElementId 
      */
-    async selectPage(page, targetElementId=this.targetDivId) {
+    async selectPage(page, targetElementId=this.targetDivId, cancelLoadingImages=true) {
         const oldPage = this.currentPage
         this.currentPage = page;
-        let targetDiv = document.getElementById(targetElementId)
+        // let targetDiv = document.getElementById(targetElementId)
 
-        document.getElementById(`pageSelector-${this.collectionAddress}`).outerHTML = ""
-        let newPageSelectorDiv = this.createPageSelector(page)
-        newPageSelectorDiv.id = `pageSelector-${this.collectionAddress}`
-        targetDiv.append(newPageSelectorDiv)
+        
+        document.getElementById(`pageSelector-${this.collectionAddress}`).replaceWith(this.createPageSelector(page))
+        if (cancelLoadingImages) {
+            await this.#cancelLoadingImages(oldPage);
 
-        //prevents error from spam clicking
-        while(!document.getElementById(`imagesRaster-${this.collectionAddress}`)) {
-            console.log("am waiting")
-            await delay(5)
+
         }
+    
+        
+        this.createImagesRaster(page).then((newRasterDiv) => {
+            document.getElementById(`imagesRaster-${this.collectionAddress}`).replaceWith(newRasterDiv)
 
-        this.#cancelLoadingImages(oldPage);
-        document.getElementById(`imagesRaster-${this.collectionAddress}`).outerHTML = ""
+            if(this.imgOnclickFunction){
+                this.#addOnclickFunctionToCurrentImages()
+            }
+    
+            if (this.divFunctions.length>0) {
+                this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
+            }
 
-        let newRasterDiv = await this.createImagesRaster(page) //await new Promise((resolve, reject) => {
-        newRasterDiv.id = `imagesRaster-${this.collectionAddress}`
-        targetDiv.append(newRasterDiv)
-
-        if (this.divFunctions.length>0) {
-            console.log(this.divFunctions)
-            this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
-        }
-
-        if(this.imgOnclickFunction){
-            console.log(this.imgOnclickFunction)
-            this.#addOnclickFunctionToCurrentImages()
-        }
+        }) 
+    
+        
+       
 
     }
 
@@ -331,8 +343,10 @@ export class NftDisplay {
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
         const imageWidth = Math.floor(100/(rowSize))
         
+
         let allImagesDiv = document.createElement("div")
         allImagesDiv.style=`width: 100%; border-left: solid; border-width: ${borderWidth}; border-color: ${borderColor}`
+        allImagesDiv.id = `imagesRaster-${this.collectionAddress}`
 
         let imageSources = idsCurrentPage.map((id)=>this.nftMetaData.getImage(id))
         imageSources = await Promise.all(imageSources)
@@ -374,6 +388,7 @@ export class NftDisplay {
      */
     async createDisplay(currentPage=this.currentPage, targetElementId=this.targetDivId, rowSize=this.rowSize, amountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor) {
         //TODO apply divFunctions and get image urls in 1 go
+
         this.currentPage = currentPage
 
         const infoDiv =  this.#createInfoDiv(this.collectionAddress,this.nftMetaData, ids.length)
@@ -398,6 +413,13 @@ export class NftDisplay {
 
         this.#applyDivFuntionsOnCurrentIds()
         this.#addOnclickFunctionToCurrentImages()
+    }
+
+    clear(){
+        if(document.getElementById(this.targetDivId).innerHTML) {
+            this.#removeAllDivImageFromRootElement()
+            document.getElementById(this.targetDivId).innerHTML = ""
+        }
     }
 
     #toggleSelect(e, id) {
@@ -457,8 +479,10 @@ export class NftDisplay {
 
     async displayNames() {
         const nftName = (id)=>this.#nftName(id)
-        this.addImageDivsFunction(nftName)
+        this.divFunctions.push(nftName)
+        //this.addImageDivsFunction(nftName)
     }
+
 
     /**
      * makes all selectable that arent in this.notSelectable TODO better name
@@ -529,8 +553,8 @@ export class NftDisplay {
         infoDiv.innerHTML =  (await this.#createInfoDiv(this.collectionAddress, this.nftMetaData, this.ids.length)).innerHTML 
     }
 
-    refreshImages(page=this.currentPage) {
-        this.selectPage(page)
+    async refreshImages(page=this.currentPage) {
+        await this.selectPage(page, this.targetDivId, false)
 
     }
 
@@ -543,7 +567,7 @@ export class NftDisplay {
         if (page===0) {
             page=1
         }
-        this.refreshImages(page)
+        await this.refreshImages(page, this.targetDivId, false)
         await this.refreshInfo()
     }
 
