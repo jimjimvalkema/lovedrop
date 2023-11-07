@@ -46,7 +46,7 @@ async function getClaimableStatus(allIds, eligableIdsAmounts, nftAddr) {
         const chunk = eligableIdsAmountsEntries.slice(i, i + chunkSize);
         const isIdClaimedArrPromise = chunk.map((x) => isClaimed(nftAddr, x[0]))
         isIdClaimedArr = [isIdClaimedArr, ...(await Promise.all(isIdClaimedArrPromise))]
-        message(`checked ${i+chunkSize} out of ${eligableIdsAmountsEntries.length} ids claimed status`)
+        message(`checked ${i + chunkSize} out of ${eligableIdsAmountsEntries.length} ids claimed status`)
     }
     message("")
 
@@ -73,7 +73,7 @@ window.getClaimableStatus = getClaimableStatus
 async function displayTokens(id, nftDisplay) {
     let d = document.createElement("div");
     const amount = getAmountAirdrop(id, nftDisplay.collectionAddress)
-    d.innerText = `${amount} ${await window.ticker}`
+    d.innerText = `${new Intl.NumberFormat('en-EN').format(amount)} ${await window.ticker}`
     d.className = "tokenDisplay"
     if (amount > 0) {
         //TODO cache isclaimed result
@@ -220,13 +220,29 @@ async function getTicker(mildayDropContract, ER20ABI) {
 
 }
 
+function getTotalDrop() {
+    let total = ethers.BigNumber.from(0)
+    for (const address in window.idsPerCollection) {
+        const collection = window.idsPerCollection[address]
+        const totalFromCollection = Object.keys(collection).reduce(
+            (total, id) => {
+                return total.add(ethers.BigNumber.from(collection[id]))
+            },
+            ethers.BigNumber.from(0)
+        )
+        total = total.add(totalFromCollection)
+    }
+    return ethers.utils.formatEther(total.toString())
+}
+window.getTotalDrop = getTotalDrop
+
 async function loadAllContracts() {
     window.nftDisplays = {}
 
     window.urlVars = await getUrlVars();
     window.ipfsGateway = window.urlVars["ipfsGateway"]
     if (!window.ipfsGateway) {
-        window.ipfsGateway = "http://127.0.0.1:48084" //no grifting pls thank :)
+        window.ipfsGateway = "http://ipfs.io"//"http://127.0.0.1:48084" //no grifting pls thank :)
     }
 
     //abis
@@ -257,6 +273,15 @@ async function loadAllContracts() {
     //window.nftDisplays =Object.fromEntries(allNftAddresses.map((nftAddr) => [nftAddr,new NftDisplay(nftAddr, window.provider, `nftDisplay-${nftAddr}`, [], window.ipfsGateway)]))
 
     window.ticker = getTicker(mildayDropContract, ER20ABI)
+    await window.ticker
+    let dropInfo = document.getElementById("dropInfo")
+    let totalSupply = (await window.airdropTokenContract).totalSupply()
+    const dropTokenName = (await window.airdropTokenContract).name()
+    const dropSize = getTotalDrop()
+    totalSupply = ethers.utils.formatEther((await totalSupply).toString())
+    dropInfo.innerHTML = `<span class="titel">${await dropTokenName}</span> <br>
+    airdrop size: ${new Intl.NumberFormat('en-EN').format(dropSize)} ${await window.ticker} <br>
+    total supply: ${new Intl.NumberFormat('en-EN').format(await totalSupply)} ${await window.ticker}`
 }
 window.loadAllContracts = loadAllContracts
 
@@ -266,6 +291,7 @@ async function addToContractSelecter(address, ERC721ABI, provider) {
     const option = document.createElement("option");
     option.value = address
     option.text = await contract.name()
+    //option.className = "selectCollection"
     document.getElementById("collectionSelect").add(option)
     return option
 }
@@ -280,8 +306,8 @@ function toggleShow(elementId) {
 }
 
 async function runOnLoad() {
-    document.getElementById("editFilterButton").onclick = ()=>toggleShow("filter")
-    document.getElementById("filter").onchange = (value) =>console.log("value")
+    document.getElementById("editFilterButton").onclick = () => toggleShow("filter")
+    document.getElementById("filter").onchange = (value) => console.log("value")
     console.log("hi :)")
     loadAllContracts()
     displayNfts()
@@ -326,7 +352,7 @@ showClaimed.addEventListener("change", () => {
 async function showUnclaimedIds() {
     let currentDisplay = window.nftDisplays[window.currentNft]
     const eligibleIds = Object.keys(window.idsPerCollection[window.currentNft])
-    const {claimable} = await getClaimableStatus(eligibleIds,window.idsPerCollection[window.currentNft],window.currentNft)
+    const { claimable } = await getClaimableStatus(eligibleIds, window.idsPerCollection[window.currentNft], window.currentNft)
     currentDisplay.ids = sortIdsByEligibility(Object.keys(claimable), window.currentNft)
     await currentDisplay.refreshPage()
 }
@@ -335,7 +361,7 @@ async function showClaimedIds() {
     let currentDisplay = window.nftDisplays[window.currentNft]
     const eligibleIds = Object.keys(window.idsPerCollection[window.currentNft])
     console.log("getting claimed ids")
-    const {claimed} = await getClaimableStatus(eligibleIds,window.idsPerCollection[window.currentNft],window.currentNft)
+    const { claimed } = await getClaimableStatus(eligibleIds, window.idsPerCollection[window.currentNft], window.currentNft)
     console.log("sorting claimed ids")
     currentDisplay.ids = sortIdsByEligibility(Object.keys(claimed), window.currentNft)
     console.log("refreshing")
@@ -346,7 +372,7 @@ async function showClaimedIds() {
 showUnclaimed.addEventListener("change", () => {
     if (showUnclaimed.checked) {
         showUnclaimedIds()
-    
+
 
         showUnclaimed.checked = true;
         showAll.checked = false;
@@ -382,17 +408,18 @@ document.getElementById("collectionSelect").addEventListener("change", (event) =
     currentDisplay.ids = sortIdsByEligibility(eligibleIds, window.currentNft)
 
     displayNfts(event.target.value)
+    currentDisplay.refreshPage()
     showEligible.checked = true;
     showUnclaimed.checked = false;
     showClaimed.checked = false;
     showAll.checked = false;
-  });
+});
 
 
 // Close the dropdown if the user clicks outside of it
 window.onclick = function (event) { //TODO  dropbtn class unique for each dropdown to make sure other dropdowns close when new one apears
     if (!event.target.matches('.dropbtn')) {
         const dropdowns = document.getElementsByClassName("dropdown-content");
-        [...dropdowns].forEach((openDropdown)=>openDropdown.style.visibility="hidden")
+        [...dropdowns].forEach((openDropdown) => openDropdown.style.visibility = "hidden")
     }
 }
