@@ -301,10 +301,13 @@ async function addTokenToMetamask(tokenAddress, tokenSymbol, tokenDecimals, toke
 }
 
 async function loadAllContracts() {
+    window.urlVars = await getUrlVars();
+
     document.getElementById("loading").innerText = "loading"
+    document.getElementById("dropInfo").innerHTML = `Claim at: <a href=../claim/?lovedrop=${window.urlVars["lovedrop"]}>claim page</a><br>`
     window.nftDisplays = {}
 
-    window.urlVars = await getUrlVars();
+    
     if (!window.urlVars["ipfsGateway"]) {
         window.ipfsGateways = ["https://PINATAKEY.mypinata.cloud","http://127.0.0.1:48084","http://127.0.0.1:8080","https://ipfs.io"] //no grifting pls thank :)
     } else {
@@ -334,7 +337,7 @@ async function loadAllContracts() {
     console.log(window.ipfsGateway)
     displayNfts()
     document.getElementById("loading").innerText = ""
-    document.getElementById("dropInfo").innerText ="loading"
+    document.getElementById("dropInfo").append("loading")
     window.optionsResult = window.allNftAddresses.map(address => addToContractSelecter(address, ERC721ABI, window.provider));
     window.isClaimedCache = Object.fromEntries(allNftAddresses.map((x) => [x, {}]))
     window.selectedIds = {}
