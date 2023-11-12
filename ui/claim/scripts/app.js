@@ -16,7 +16,7 @@ async function connectProvider() {
         window.provider = new ethers.providers.Web3Provider(window.ethereum);
     } else {
         console.log("couldn't connect to window.ethereum using a external rpc")
-        const providerUrls = ["https://mainnet.infura.io/v3/", "https://eth.llamarpc.com"] 
+        const providerUrls = ["https://mainnet.infura.io/v3/INFURAKEY", "https://eth.llamarpc.com"] 
         const workingProviderUrl = await getFirstAvailableProvider(providerUrls)
         console.log(workingProviderUrl) 
         window.provider = new ethers.providers.JsonRpcProvider(workingProviderUrl)
@@ -394,9 +394,10 @@ function getTotalDrop() {
 
 async function loadAllContracts() {
     window.urlVars = await getUrlVars();
-    window.ipfsGateway = window.urlVars["ipfsGateway"]
-    if (!window.ipfsGateway) {
-        window.ipfsGateway = "https://ipfs.io"//"http://127.0.0.1:48084" //no grifting pls thank :)
+    if (!window.urlVars["ipfsGateway"]) {
+        window.ipfsGateways = ["https://PINATAKEY.mypinata.cloud","http://127.0.0.1:48084","http://127.0.0.1:8080","https://ipfs.io"] //no grifting pls thank :)
+    } else {
+        window.ipfsGateways = [window.urlVars["ipfsGateway"]]
     }
 
     //abis
@@ -409,7 +410,8 @@ async function loadAllContracts() {
 
     //load ipfsIndex
     window.claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
-    window.ipfsIndex = new IpfsIndexer(window.ipfsGateway, null, true)
+    window.ipfsIndex = new IpfsIndexer(window.ipfsGateways, null, true)
+    window.ipfsGateway = await window.ipfsIndex.getGatewayUrl()
     await window.ipfsIndex.loadIndexMiladyDropClaimData(window.claimDataIpfsHash)
 
     //load data from ipfsIndex

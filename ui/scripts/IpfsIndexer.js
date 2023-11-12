@@ -6,24 +6,54 @@ export class IpfsIndexer{
     MiladyDropClaimDataHash;
     allProofsIndex;
 
-    constructor(url, auth=null, isGateway=true) {
+    constructor(urls, auth=null, isGateway=true) {
         this.auth = auth;
-        this.ApiUrl = url;
+        this.gateways = urls;
         this.isGateway=isGateway;
         this.indexes=[];
-        let urlobj = new URL(url);
-        let options = {
-            host: urlobj.hostname,
-            port: urlobj.port,
-            protocol: urlobj.protocol,
-            headers: {
-                authorization: auth,
-            }
-        }
-        if (this.auth==null) {
-            delete options.headers;
-        }
+        // let urlobj = new URL(url);
+        // let options = {
+        //     host: urlobj.hostname,
+        //     port: urlobj.port,
+        //     protocol: urlobj.protocol,
+        //     headers: {
+        //         authorization: auth,
+        //     }
+        // }
+        // if (this.auth==null) {
+        //     delete options.headers;
+        // }
         //this.ipfsClient = IpfsHttpClient.create(options);
+    }
+
+    async getGatewayUrl() {
+        if (this.currentGateway) {
+            return this.currentGateway
+        } else {
+            this.currentGateway = await this.getFirstWorkingGateway(this.gateways)
+            console.log(this.currentGateway)
+        }
+    }
+
+    async getFirstWorkingGateway(gateways) {
+        console.log(gateways)
+        const workingGatwaysBools = await Promise.all(gateways.map((gateway)=>this.isGatewayWorking(gateway)))
+        return gateways[workingGatwaysBools.indexOf(true)]
+    }
+
+    async isGatewayWorking(gateway) {
+        try {
+            //:3
+            const res = await (await fetch(`${gateway}/ipfs/QmabZ1pL9npKXJg8JGdMwQMJo2NCVy9yDVYjhiHK4LTJQH`)).text()
+            if (res === "meow\n") {
+                return true
+            } else {
+                return false
+            }
+    
+        } catch (error) {
+            return false 
+        }
     }
 
     getValues(obj, keys) {
@@ -52,7 +82,7 @@ export class IpfsIndexer{
         if (this.auth==null) {
             delete reqObj.headers
         }
-        let r = await fetch(`${this.ApiUrl}/api/v0/add?pin=${pin}&cid-version=${cidVersion}`, reqObj);
+        let r = await fetch(`${await this.getGatewayUrl()}/api/v0/add?pin=${pin}&cid-version=${cidVersion}`, reqObj);
         return r.json();
     }
 
@@ -137,7 +167,7 @@ export class IpfsIndexer{
         }
 
         //still returns a &cid-version=1 hash because kubo ipfs sucks
-        let r = await fetch(`${this.ApiUrl}/api/v0/dag/put?store-codec=dag-pb&cid-version=1`, reqObj);
+        let r = await fetch(`${await this.getGatewayUrl()}/api/v0/dag/put?store-codec=dag-pb&cid-version=1`, reqObj);
         let rjson = await r.json()
         return rjson['Cid']['/']
     }
@@ -154,7 +184,7 @@ export class IpfsIndexer{
         }
 
         //yes i have given up on ipfshttpclient at this point lmao
-        let r = await fetch(`${this.ApiUrl}/api/v0/dag/get?arg=${hash}`, reqObj);
+        let r = await fetch(`${await this.getGatewayUrl()}/api/v0/dag/get?arg=${hash}`, reqObj);
         let rjson = await r.json();
     
         //shit breaks when tsize=null :(
@@ -218,7 +248,7 @@ export class IpfsIndexer{
         if (this.auth==null) {
             delete reqObj.headers
         }
-        let r = await fetch(`${this.ApiUrl}/api/v0/cat?arg=${hash}&archive=true`, reqObj);
+        let r = await fetch(`${await this.getGatewayUrl()}/api/v0/cat?arg=${hash}&archive=true`, reqObj);
         return r.json();
     }
 
@@ -243,8 +273,8 @@ export class IpfsIndexer{
     }
 
     async getWithGateWayIpfs(path) {
-        console.log(`${this.ApiUrl}/ipfs/${path}`);
-        let r = await fetch(`${this.ApiUrl}/ipfs/${path}`);
+        console.log(`${await this.getGatewayUrl()}/ipfs/${path}`);
+        let r = await fetch(`${await this.getGatewayUrl()}/ipfs/${path}`);
         return r.json()
     }
 

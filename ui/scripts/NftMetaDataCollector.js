@@ -52,7 +52,7 @@ export function isFulfilled(x) {
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 export class NftMetaDataCollector {
-    alchemyApiKey = "5hUqMLpX3qUN2PpvLhhmSZMmnlFdUd0W"
+    alchemyApiKey = "ALCHEMYKEY"
     contractObj = undefined;
     provider = undefined
     extraMetaData = undefined;
