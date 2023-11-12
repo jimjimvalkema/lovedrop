@@ -175,16 +175,15 @@ window.removeAllChildNodes = removeAllChildNodes
 
 
 async function displayNfts(nftAddress = null) {
-
-
-
-    if (!nftAddress) {
-        while (!window.allNftAddresses) {
-            await delay(100)
-        }
+    if(!nftAddress) {
         nftAddress = window.allNftAddresses[0]
         console.log(nftAddress)
     }
+
+
+
+    console.log(window.ipfsGateway)
+
 
     window.currentNft = nftAddress
 
@@ -302,6 +301,7 @@ async function addTokenToMetamask(tokenAddress, tokenSymbol, tokenDecimals, toke
 }
 
 async function loadAllContracts() {
+    document.getElementById("loading").innerText = "loading"
     window.nftDisplays = {}
 
     window.urlVars = await getUrlVars();
@@ -321,8 +321,8 @@ async function loadAllContracts() {
     //load ipfsIndex
     window.claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
     window.ipfsIndex = new IpfsIndexer(window.ipfsGateways, null, true)
-    window.ipfsGateway = await window.ipfsIndex.getGatewayUrl()
     await window.ipfsIndex.loadIndexMiladyDropClaimData(window.claimDataIpfsHash)
+    window.ipfsGateway = await window.ipfsIndex.getGatewayUrl()
 
     //load data from ipfsIndex
     //window.tree = window.ipfsIndex.getTreeDump()
@@ -331,6 +331,10 @@ async function loadAllContracts() {
 
     //get all nft contracts
     window.allNftAddresses = Object.keys(window.idsPerCollection)
+    console.log(window.ipfsGateway)
+    displayNfts()
+    document.getElementById("loading").innerText = ""
+    document.getElementById("dropInfo").innerText ="loading"
     window.optionsResult = window.allNftAddresses.map(address => addToContractSelecter(address, ERC721ABI, window.provider));
     window.isClaimedCache = Object.fromEntries(allNftAddresses.map((x) => [x, {}]))
     window.selectedIds = {}
@@ -352,6 +356,7 @@ async function loadAllContracts() {
     Claim at: <a href=../claim/?lovedrop=${window.urlVars["lovedrop"]}>claim page</a> <br>
     `
     dropInfo.insertBefore(await addDropTokenToMetamaskButton(), dropInfo.childNodes[3]);
+    document.getElementById("loading").innerText = ""
 }
 window.loadAllContracts = loadAllContracts
 
@@ -381,8 +386,7 @@ async function runOnLoad() {
     document.getElementById("editFilterButton").onclick = () => toggleShow("filter")
     document.getElementById("filter").onchange = (value) => console.log("value")
     console.log("hi :)")
-    loadAllContracts()
-    displayNfts()
+    await loadAllContracts()
 }
 
 window.onload = runOnLoad;

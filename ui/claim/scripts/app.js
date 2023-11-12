@@ -2,6 +2,7 @@ import { IpfsIndexer } from "../../scripts/IpfsIndexer.js";
 import { ethers } from "../../scripts/ethers-5.2.esm.min.js";
 import { MerkleBuilder } from "../../scripts/MerkleBuilder.js"
 import { NftDisplay } from "../../scripts/NftDisplay.js";
+const delay = ms => new Promise(res => setTimeout(res, ms));
 
 async function getUrlVars() {
     var vars = {};
@@ -83,12 +84,21 @@ window.getAccountName = getAccountName
 
 async function connectSigner() {
     // MetaMask requires requesting permission to connect users accounts
+    if (!window.ethereum) {
+        message("no inject ethereum wallet found please install metamask or equivalant!")
+        document.getElementById("loading").innerText = ""
+        
+        return 0
+    }
     provider.send("eth_requestAccounts", []);
     window.signer = await provider.getSigner();
     message("please connect wallet :)")
     if (isWalletConnected()) {
         await resolveTillConnected()
         message("")
+        while (!window.mildayDropContract) {
+            await delay(100)
+        }
         window.mildayDropWithSigner = await window.mildayDropContract.connect(window.signer);
         window.userAddress = await window.signer.getAddress()
         displayNfts();
@@ -102,7 +112,6 @@ async function connectSigner() {
         ${await accountName} <br>
         ${formattedBalance} ${ticker}   
         `
-        accountInfoDiv.append(await addDropTokenToMetamaskButton())
         console.log("connected")
         return [provider, signer];
     }
@@ -343,6 +352,10 @@ async function refreshDisplay(displays) {
 
 
 async function displayNfts() {
+    while (!window.allNftDisplays) {
+        await delay(100)
+    }
+
     // create the nftDisplay divs
     const nftAddresses = Object.keys(await window.idsPerCollection)
     const nftDisplayElementIds = nftAddresses.map((x)=>`nftDisplay-${x}`)
@@ -393,12 +406,16 @@ function getTotalDrop() {
 }
 
 async function loadAllContracts() {
+    document.getElementById("loading").innerText = "loading"
     window.urlVars = await getUrlVars();
+    document.getElementById("dropInfo").innerHTML = `See all nfts: <a href=../drop/?lovedrop=${window.urlVars["lovedrop"]}>drop page</a>`
+    
     if (!window.urlVars["ipfsGateway"]) {
         window.ipfsGateways = ["https://PINATAKEY.mypinata.cloud","http://127.0.0.1:48084","http://127.0.0.1:8080","https://ipfs.io"] //no grifting pls thank :)
     } else {
         window.ipfsGateways = [window.urlVars["ipfsGateway"]]
     }
+    
 
     //abis
     const mildayDropAbi = await (await fetch("../abi/mildayDropAbi.json")).json()//update mildayDropAbi.json
@@ -411,37 +428,41 @@ async function loadAllContracts() {
     //load ipfsIndex
     window.claimDataIpfsHash = await mildayDropContract.claimDataIpfs(); //await window.ipfsIndex.createIpfsIndex(balanceMapJson, splitSize=780);//"bafybeigdvozivwvzn3mrckxeptstjxzvtpgmzqsxbau5qecovlh4r57tci"
     window.ipfsIndex = new IpfsIndexer(window.ipfsGateways, null, true)
-    window.ipfsGateway = await window.ipfsIndex.getGatewayUrl()
     await window.ipfsIndex.loadIndexMiladyDropClaimData(window.claimDataIpfsHash)
+    window.ipfsGateway = await window.ipfsIndex.getGatewayUrl()
 
     //load data from ipfsIndex
     window.tree = window.ipfsIndex.getTreeDump()
     //loading the tree should also be done here but needs to be done in a worker
     window.idsPerCollection = await window.ipfsIndex.getIdsPerCollection()
 
-    //get all nft contracts
-    window.allNftAddresses = Object.keys(window.idsPerCollection)
-    window.selectedIds = {}
-
-    //window.allEligibleIds = window.ipfsIndex.getIdsPerCollection()
-    window.allNftDisplays = allNftAddresses.map((nftAddr) => new NftDisplay(nftAddr, window.provider, `nftDisplay-${nftAddr}`, [], window.ipfsGateway))
-
     window.airdropTokenContract = new ethers.Contract(await mildayDropContract.airdropTokenAddress(), ER20ABI, window.provider)
     window.ticker = await window.airdropTokenContract.symbol()
 
+    await window.ticker
+    //TODO make "See all nfts" apear faster
     let dropInfo = document.getElementById("dropInfo")
     let totalSupply = (await window.airdropTokenContract).totalSupply()
     const dropTokenName = (await window.airdropTokenContract).name()
     const dropSize = getTotalDrop()
     totalSupply = ethers.utils.formatEther((await totalSupply).toString())
-    dropInfo.innerHTML = `<span class="titel">${await dropTokenName}</span> <br>
+    dropInfo.innerHTML = `<span class="titel">${await dropTokenName}</span> <br> <br>
     Airdrop size: ${new Intl.NumberFormat('en-EN').format(dropSize)} ${await window.ticker} <br>
     Total supply: ${new Intl.NumberFormat('en-EN').format(await totalSupply)} ${await window.ticker}<br>
     ${await window.ticker} on etherscan: <a href="https://etherscan.io/token/${window.airdropTokenContract.address}">${window.airdropTokenContract.address}<a><br>
-    See all at: <a href=../drop/?lovedrop=${window.urlVars["lovedrop"]}>drop page</a>
+    See all nfts: <a href=../drop/?lovedrop=${window.urlVars["lovedrop"]}>drop page</a> <br>
     `
+    dropInfo.insertBefore(await addDropTokenToMetamaskButton(), dropInfo.childNodes[3]);
+    document.getElementById("loading").innerText = ""
 
-    connectSigner()
+
+    //get all nft contracts
+    window.allNftAddresses = Object.keys(window.idsPerCollection)
+    window.selectedIds = {}
+    
+    //window.allEligibleIds = window.ipfsIndex.getIdsPerCollection()
+    window.allNftDisplays = allNftAddresses.map((nftAddr) => new NftDisplay(nftAddr, window.provider, `nftDisplay-${nftAddr}`, [], window.ipfsGateway))
+
 
 
    
@@ -450,6 +471,7 @@ window.loadAllContracts = loadAllContracts
 
 async function runOnLoad() {
     await connectProvider()
-    await loadAllContracts()
+    loadAllContracts()
+    connectSigner()
 }
 window.onload = runOnLoad;

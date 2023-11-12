@@ -1,6 +1,7 @@
 
 //const { error } = require("console");
 
+//TODO import assertion are not supported in firefox :((
 import { ethers } from "./ethers-5.2.esm.min.js"
 import allExtraMetaData  from "./extraMetaData.json" assert { type: "json" };
 import ERC721ABI  from "../abi/ERC721ABI.json" assert { type: "json" };
