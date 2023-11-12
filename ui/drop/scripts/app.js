@@ -159,7 +159,6 @@ async function displayNfts(nftAddress = null) {
             await delay(100)
         }
         nftAddress = window.allNftAddresses[0]
-        document.getElementById("collectionSelect").value = nftAddress
         console.log(nftAddress)
     }
 
@@ -181,7 +180,6 @@ async function displayNfts(nftAddress = null) {
     if (window.nftDisplays[nftAddress]) {
         display = window.nftDisplays[nftAddress]
     } else {
-        console.log(window.ipfsGateway)
         display = new NftDisplay(nftAddress, window.provider, "nfts", [], window.ipfsGateway)
         window.nftDisplays[nftAddress] = display
         display.amountRows = 3
@@ -209,6 +207,9 @@ async function displayNfts(nftAddress = null) {
     loadingDiv.remove()
     //window.nftDisplays.push(display)
 
+    await window.optionsResul
+    document.getElementById("collectionSelect").value = window.currentNft
+
     return targetDomElement
 }
 window.displayNfts = displayNfts
@@ -234,7 +235,46 @@ function getTotalDrop() {
     }
     return ethers.utils.formatEther(total.toString())
 }
-window.getTotalDrop = getTotalDrop
+
+async function addDropTokenToMetamaskButton() {
+    const ticker = await window.ticker
+    let addToMetaMaskButton = document.createElement("button")
+    addToMetaMaskButton.innerText = `add to metamask`
+    addToMetaMaskButton.style.fontSize = "1rem"
+    addToMetaMaskButton.onclick = ()=>addTokenToMetamask(window.airdropTokenContract.address,ticker,18)
+    return addToMetaMaskButton
+}
+
+async function addTokenToMetamask(tokenAddress, tokenSymbol, tokenDecimals, tokenImage="") {
+    //TODO get image from drop info from ipfs or somewhere else?
+    if (await window.ticker === "CAKE") {
+        tokenImage = "https://ipfs.io/ipfs/QmZZs6Y3ToYRkfMdi3jrU5QXSqNf6vk3j8Dxwvtf55vKvw"
+    }
+
+    try {
+    // 'wasAdded' is a boolean. Like any RPC method, an error can be thrown.
+    const wasAdded = await window.ethereum.request({
+        method: 'wallet_watchAsset',
+        params: {
+        type: 'ERC20',
+        options: {
+            address: tokenAddress, // The address of the token.
+            symbol: tokenSymbol, // A ticker symbol or shorthand, up to 5 characters.
+            decimals: tokenDecimals, // The number of decimals in the token.
+            image: tokenImage, // A string URL of the token logo.
+        },
+        },
+    });
+
+    // if (wasAdded) {
+    //     console.log('Thanks for your interest!');
+    // } else {
+    //     console.log('Your loss!');
+    // }
+    } catch (error) {
+    console.log(error);
+    }
+}
 
 async function loadAllContracts() {
     window.nftDisplays = {}
@@ -242,7 +282,7 @@ async function loadAllContracts() {
     window.urlVars = await getUrlVars();
     window.ipfsGateway = window.urlVars["ipfsGateway"]
     if (!window.ipfsGateway) {
-        window.ipfsGateway = "http://ipfs.io"//"http://127.0.0.1:48084" //no grifting pls thank :)
+        window.ipfsGateway = "https://ipfs.io"//"http://127.0.0.1:48084" //no grifting pls thank :)
     }
 
     //abis
@@ -279,9 +319,13 @@ async function loadAllContracts() {
     const dropTokenName = (await window.airdropTokenContract).name()
     const dropSize = getTotalDrop()
     totalSupply = ethers.utils.formatEther((await totalSupply).toString())
-    dropInfo.innerHTML = `<span class="titel">${await dropTokenName}</span> <br>
-    airdrop size: ${new Intl.NumberFormat('en-EN').format(dropSize)} ${await window.ticker} <br>
-    total supply: ${new Intl.NumberFormat('en-EN').format(await totalSupply)} ${await window.ticker}`
+    dropInfo.innerHTML = `<span class="titel">${await dropTokenName}</span> <br> <br>
+    Airdrop size: ${new Intl.NumberFormat('en-EN').format(dropSize)} ${await window.ticker} <br>
+    Total supply: ${new Intl.NumberFormat('en-EN').format(await totalSupply)} ${await window.ticker}<br>
+    ${await window.ticker} on etherscan: <a href="https://etherscan.io/token/${window.airdropTokenContract.address}">${window.airdropTokenContract.address}<a><br>
+    Claim at: <a href=../claim/?lovedrop=${window.urlVars["lovedrop"]}>claim page</a> <br>
+    `
+    dropInfo.insertBefore(await addDropTokenToMetamaskButton(), dropInfo.childNodes[3]);
 }
 window.loadAllContracts = loadAllContracts
 

@@ -3,10 +3,6 @@ import { ethers } from "../../scripts/ethers-5.2.esm.min.js";
 import { MerkleBuilder } from "../../scripts/MerkleBuilder.js"
 import { NftDisplay } from "../../scripts/NftDisplay.js";
 
-// A Web3Provider wraps a standard Web3 provider, which is
-// what MetaMask injects as window.ethereum into each page
-const provider = new ethers.providers.Web3Provider(window.ethereum)
-
 async function getUrlVars() {
     var vars = {};
     var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
@@ -19,7 +15,7 @@ if (window.ethereum) {
     window.provider = new ethers.providers.Web3Provider(window.ethereum);
 } else {
     console.log("couldn't connect to inject ethereum provide, connecting to external provicer")
-    window.provider = new ethers.providers.JsonRpcProvider('https://eth.llamarpc.com');
+    window.provider = new ethers.providers.JsonRpcProvider("https://eth.llamarpc.com")//'https://eth.llamarpc.com');
 }
 
 function isWalletConnected() {
@@ -48,6 +44,18 @@ async function resolveTillConnected() {
     }
 }
 
+async function getAccountName(address) {
+    try {
+        return await provider.lookupAddress(address);
+    } catch (error) {
+        //console.warn(error)
+        return address
+    }
+
+
+}
+window.getAccountName = getAccountName
+
 async function connectSigner() {
     // MetaMask requires requesting permission to connect users accounts
     provider.send("eth_requestAccounts", []);
@@ -59,6 +67,18 @@ async function connectSigner() {
         window.mildayDropWithSigner = await window.mildayDropContract.connect(window.signer);
         window.userAddress = await window.signer.getAddress()
         displayNfts();
+
+        let accountInfoDiv = document.getElementById("accountInfo")
+        const accountName = getAccountName(window.userAddress)
+        const balance = airdropTokenContract.balanceOf(window.userAddress)
+        const formattedBalance = new Intl.NumberFormat('en-EN').format(ethers.utils.formatEther((await balance).toString()))
+        const ticker = await window.ticker
+        accountInfoDiv.innerHTML = `
+        ${await accountName} <br>
+        ${formattedBalance} ${ticker}   
+        `
+        accountInfoDiv.append(await addDropTokenToMetamaskButton())
+        console.log("connected")
         return [provider, signer];
     }
 }
@@ -69,6 +89,46 @@ function message(message) {
     document.getElementById("message").innerText = message;
 }
 window.message = message
+
+async function addDropTokenToMetamaskButton() {
+    const ticker = await window.ticker
+    let addToMetaMaskButton = document.createElement("button")
+    addToMetaMaskButton.innerText = `add to metamask`
+    addToMetaMaskButton.style.fontSize = "1rem"
+    addToMetaMaskButton.onclick = ()=>addTokenToMetamask(window.airdropTokenContract.address,ticker,18)
+    return addToMetaMaskButton
+}
+
+async function addTokenToMetamask(tokenAddress, tokenSymbol, tokenDecimals, tokenImage="") {
+    //TODO get image from drop info from ipfs or somewhere else?
+    if (await window.ticker === "CAKE") {
+        tokenImage = "https://ipfs.io/ipfs/QmZZs6Y3ToYRkfMdi3jrU5QXSqNf6vk3j8Dxwvtf55vKvw"
+    }
+
+    try {
+    // 'wasAdded' is a boolean. Like any RPC method, an error can be thrown.
+    const wasAdded = await window.ethereum.request({
+        method: 'wallet_watchAsset',
+        params: {
+        type: 'ERC20',
+        options: {
+            address: tokenAddress, // The address of the token.
+            symbol: tokenSymbol, // A ticker symbol or shorthand, up to 5 characters.
+            decimals: tokenDecimals, // The number of decimals in the token.
+            image: tokenImage, // A string URL of the token logo.
+        },
+        },
+    });
+
+    // if (wasAdded) {
+    //     console.log('Thanks for your interest!');
+    // } else {
+    //     console.log('Your loss!');
+    // }
+    } catch (error) {
+    console.log(error);
+    }
+}
 
 async function isClaimed(nftAddr, id) {
     return await window.mildayDropContract.isClaimed(nftAddr, id)
@@ -292,11 +352,26 @@ async function displayNfts() {
     document.getElementById("loading").innerText = ""
 }
 
+function getTotalDrop() {
+    let total = ethers.BigNumber.from(0)
+    for (const address in window.idsPerCollection) {
+        const collection = window.idsPerCollection[address]
+        const totalFromCollection = Object.keys(collection).reduce(
+            (total, id) => {
+                return total.add(ethers.BigNumber.from(collection[id]))
+            },
+            ethers.BigNumber.from(0)
+        )
+        total = total.add(totalFromCollection)
+    }
+    return ethers.utils.formatEther(total.toString())
+}
+
 async function loadAllContracts() {
     window.urlVars = await getUrlVars();
     window.ipfsGateway = window.urlVars["ipfsGateway"]
     if (!window.ipfsGateway) {
-        window.ipfsGateway = "http://127.0.0.1:48084" //no grifting pls thank :)
+        window.ipfsGateway = "https://ipfs.io"//"http://127.0.0.1:48084" //no grifting pls thank :)
     }
 
     //abis
@@ -327,7 +402,20 @@ async function loadAllContracts() {
     window.airdropTokenContract = new ethers.Contract(await mildayDropContract.airdropTokenAddress(), ER20ABI, window.provider)
     window.ticker = await window.airdropTokenContract.symbol()
 
+    let dropInfo = document.getElementById("dropInfo")
+    let totalSupply = (await window.airdropTokenContract).totalSupply()
+    const dropTokenName = (await window.airdropTokenContract).name()
+    const dropSize = getTotalDrop()
+    totalSupply = ethers.utils.formatEther((await totalSupply).toString())
+    dropInfo.innerHTML = `<span class="titel">${await dropTokenName}</span> <br>
+    Airdrop size: ${new Intl.NumberFormat('en-EN').format(dropSize)} ${await window.ticker} <br>
+    Total supply: ${new Intl.NumberFormat('en-EN').format(await totalSupply)} ${await window.ticker}<br>
+    ${await window.ticker} on etherscan: <a href="https://etherscan.io/token/${window.airdropTokenContract.address}">${window.airdropTokenContract.address}<a><br>
+    See all at: <a href=../drop/?lovedrop=${window.urlVars["lovedrop"]}>drop page</a>
+    `
+
     connectSigner()
+
 
    
 }

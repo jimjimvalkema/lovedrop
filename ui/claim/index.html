@@ -10,12 +10,11 @@
         float: top-right; 
         top: 0.07em; 
         right: 0.12em; 
-        font-size: 1.8em; 
+        font-size: 1.6em;  
         font-weight: bold; 
         -webkit-text-fill-color: #ffffff; 
-        -webkit-text-stroke-width: 0.065em; 
+        -webkit-text-stroke-width: 0.07em; 
         -webkit-text-stroke-color: #000000;
-
     }
 
     .nftdisplayInfo {
@@ -39,30 +38,62 @@
     }
 
     .globalButtons {
-        font-size: 1.8em;
+        font-size: 1.4em;
     }
 
     #walletConnectButton {
+        text-align: right;
         font-size: 2.5em;
         position: absolute; 
         float: left; 
-        top: 0.3em; 
-        right: 0.3em; 
+        top: 5px; 
+        right: 5px; 
 
 
+    }
+
+    .titel {
+        font-size: 1.6em;
+        font-weight: bold;
+    }
+
+    .text {
+        font-size: 1rem;
+    }
+
+    #accountInfo {
+        font-size: 1.2rem;
+        text-align: right;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 10rem;
+
+    }
+
+    #dropInfo {
+        margin-bottom: 3em;
     }
 
 </style>
 <body>
+    <div id="walletConnectButton" class="globalButtons">
+        <button onclick="connectSigner()">connect</button>
+        <div id="accountInfo" class="text"></div>
+    </div>
+
+    <div id="dropInfo" class="text"></div>
+
+
+
     <div class="globalButtons">
         <button onclick="selectAll()">select all</button>
         <button onclick="clearSelection()">clear selection</button>
         <button onclick="claimSelected()">claim selected</button>
     </div>
 
-    <div id="walletConnectButton" class="globalButtons">
-        <button onclick="connectSigner()">connect</button>
-    </div>
+
+
+
 
     <div id="nfts" style="width: 97vw;"></div>
     <div id="loading" style="font-weight: bold; font-size: 3em;"></div>
