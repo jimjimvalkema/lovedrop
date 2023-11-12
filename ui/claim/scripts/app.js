@@ -11,11 +11,36 @@ async function getUrlVars() {
     return vars;
 }
 
-if (window.ethereum) {
-    window.provider = new ethers.providers.Web3Provider(window.ethereum);
-} else {
-    console.log("couldn't connect to inject ethereum provide, connecting to external provicer")
-    window.provider = new ethers.providers.JsonRpcProvider("https://eth.llamarpc.com")//'https://eth.llamarpc.com');
+async function connectProvider() {
+    if (window.ethereum) {
+        window.provider = new ethers.providers.Web3Provider(window.ethereum);
+    } else {
+        console.log("couldn't connect to window.ethereum using a external rpc")
+        const providerUrls = ["https://mainnet.infura.io/v3/", "https://eth.llamarpc.com"] 
+        const workingProviderUrl = await getFirstAvailableProvider(providerUrls)
+        console.log(workingProviderUrl) 
+        window.provider = new ethers.providers.JsonRpcProvider(workingProviderUrl)
+    } 
+
+}
+  
+
+async function getFirstAvailableProvider(providerUrls) {
+    const isWorkingProvider = await Promise.all(providerUrls.map((url)=>isProviderAvailable(url)))
+    return providerUrls [isWorkingProvider.indexOf(true)]
+
+}
+
+async function isProviderAvailable(url) {
+    try {
+        const testProvider = new ethers.providers.JsonRpcProvider(url)
+        await testProvider.getNetwork()
+        return true
+    } catch (error) {
+        console.warn(`couldnt connect to ${url}`)
+        console.warn(error)
+        return false   
+    }
 }
 
 function isWalletConnected() {
@@ -422,6 +447,7 @@ async function loadAllContracts() {
 window.loadAllContracts = loadAllContracts
 
 async function runOnLoad() {
+    await connectProvider()
     await loadAllContracts()
 }
 window.onload = runOnLoad;

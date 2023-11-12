@@ -11,13 +11,37 @@ async function getUrlVars() {
     return vars;
 }
 
-if (window.ethereum) {
-    window.provider = new ethers.providers.Web3Provider(window.ethereum);
-} else {
-    console.log("couldn't connect to inject ethereum provider, connecting to external provider")
-    window.provider = new ethers.providers.JsonRpcProvider("https://eth.llamarpc.com")// //be nice pls :)
+async function connectProvider() {
+    if (window.ethereum) {
+        window.provider = new ethers.providers.Web3Provider(window.ethereum);
+    } else {
+        console.log("couldn't connect to window.ethereum using a external rpc")
+        const providerUrls = ["https://mainnet.infura.io/v3/", "https://eth.llamarpc.com"] 
+        const workingProviderUrl = await getFirstAvailableProvider(providerUrls)
+        console.log(workingProviderUrl) 
+        window.provider = new ethers.providers.JsonRpcProvider(workingProviderUrl)
+    } 
+
+}
+  
+
+async function getFirstAvailableProvider(providerUrls) {
+    const isWorkingProvider = await Promise.all(providerUrls.map((url)=>isProviderAvailable(url)))
+    return providerUrls [isWorkingProvider.indexOf(true)]
+
 }
 
+async function isProviderAvailable(url) {
+    try {
+        const testProvider = new ethers.providers.JsonRpcProvider(url)
+        await testProvider.getNetwork()
+        return true
+    } catch (error) {
+        console.warn(`couldnt connect to ${url}`)
+        console.warn(error)
+        return false   
+    }
+}
 
 async function isClaimed(nftAddr, id) {
     if (id in window.isClaimedCache[nftAddr]) {
@@ -207,7 +231,8 @@ async function displayNfts(nftAddress = null) {
     loadingDiv.remove()
     //window.nftDisplays.push(display)
 
-    await window.optionsResul
+    document.getElementById("collectionSelect").value = window.currentNft
+    await Promise.all(window.optionsResult)
     document.getElementById("collectionSelect").value = window.currentNft
 
     return targetDomElement
@@ -337,6 +362,7 @@ async function addToContractSelecter(address, ERC721ABI, provider) {
     option.text = await contract.name()
     //option.className = "selectCollection"
     document.getElementById("collectionSelect").add(option)
+    //document.getElementById("collectionSelect").value = window.currentNft
     return option
 }
 
@@ -350,6 +376,7 @@ function toggleShow(elementId) {
 }
 
 async function runOnLoad() {
+    await connectProvider()
     document.getElementById("editFilterButton").onclick = () => toggleShow("filter")
     document.getElementById("filter").onchange = (value) => console.log("value")
     console.log("hi :)")
