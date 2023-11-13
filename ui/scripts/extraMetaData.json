@@ -44,7 +44,7 @@
         "metaDataArray" : "ipfs://bafybeiabyaop3lmrv5c7amwijfr74uqbiwegiars3kcvqkwjbe6mpjjufa",
         "idsPerAttribute": "ipfs://bafkreifhraqwqwrdxc6qsz2dzhr53bfodon27fsvqia62sr3jpsofshqyq",
         "idsPerAttributeCbor":"ipfs://bafkreiaruwgujisqg5527vdpegplimycp5da7b5ra52jtk4nmmq6ekpxmi",
-        "compressedImages":"https://reveal.cakehats.xyz/",
+        "compressedImages":"https://reveal.cakehats.xyz",
         "imageFileExtesion":".png"
         
     },

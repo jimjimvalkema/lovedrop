@@ -8,8 +8,10 @@ export class NftDisplay {
     targetDivId;
     ids;
 
+    landscapeOrientation = {["rowSize"]:6,["amountRows"]:2}
+    portraitOrientation= {["rowSize"]:4,["amountRows"]:3}
     currentPage=1
-    rowSize=8
+    rowSize=7
     amountRows=2
     borderWidth="5px";
     borderColor = "black";
@@ -31,13 +33,57 @@ export class NftDisplay {
      * @param {string} targetDivId 
      * @param {number[]} ids 
      */
-    constructor(collectionAddress,provider, targetDivId="", ids=[], ipfsGateway = "https://ipfs.io") {
+    constructor(collectionAddress,provider, targetDivId="", ids=[], ipfsGateway = "https://ipfs.io", landscapeOrientation = {["rowSize"]:6,["amountRows"]:2}, portraitOrientation = {["rowSize"]:4,["amountRows"]:3}) {
         this.ipfsGateway = ipfsGateway
         this.collectionAddress = collectionAddress
         this.nftMetaData = new NftMetaDataCollector(collectionAddress,provider,this.ipfsGateway)
         this.ids = ids
         this.targetDivId = targetDivId
+
+        this.landscapeOrientation = landscapeOrientation
+        this.portraitOrientation = portraitOrientation
+        this.setImageRasterOrientation()
+        this.changeOnRotate()
+
         
+    }
+
+    setImageRasterOrientation(landscape=this.landscapeOrientation ,portrait=this.portraitOrientation ) {
+        this.landscapeOrientation = landscape
+        this.portraitOrientation = portrait
+
+        const orientation = screen.orientation.type.split("-")[0]
+        switch (orientation) {
+            case "portrait":
+                this.rowSize = this.portraitOrientation.rowSize
+                this.amountRows = this.portraitOrientation.amountRows
+                break;
+
+            case "landscape":
+                this.rowSize = this.landscapeOrientation.rowSize
+                this.amountRows = this.landscapeOrientation.amountRows
+                break;
+        
+            default:
+                break;
+        }
+    }
+
+    resizeByOrientation() {
+        this.setImageRasterOrientation()
+        this.refreshImages()
+    }
+
+    changeOnRotate(landscape=this.landscapeOrientation, portrait=this.portraitOrientation ) {
+        this.landscapeOrientation = landscape
+        this.portraitOrientation = portrait
+
+        screen.orientation.addEventListener("change", (event) => {
+            this.resizeByOrientation()
+
+
+          });
+
     }
 
     /**
@@ -229,8 +275,8 @@ export class NftDisplay {
         infoDiv.id = `info-${collectionAddress}`
         infoDiv.className = this.collectionInfoCssClass
         infoDiv.innerHTML = `
-            <span style="font-weight: bold;">${await nftMetaData.getContractName()}</span> <span style="font-size:0.8em">${amountItems} items</span></br>
-            <span style="font-size:0.8em">${collectionAddress}</span>
+            <span style="font-weight: bold;">${await nftMetaData.getContractName()}</span> <span style="font-size:0.8rem">${amountItems} items</span></br>
+            <span style="font-size:0.8rem">${collectionAddress}</span>
             `
         return infoDiv
     }
@@ -293,32 +339,37 @@ export class NftDisplay {
      * @param {number} page 
      * @param {string} targetElementId 
      */
-    async selectPage(page, targetElementId=this.targetDivId, cancelLoadingImages=true) {
+    async selectPage(page, targetElementId=this.targetDivId) {
         const oldPage = this.currentPage
         this.currentPage = page;
         // let targetDiv = document.getElementById(targetElementId)
-
+        // console.log(`pageSelector-${this.collectionAddress}`)
+        // console.log(document.getElementById(`pageSelector-${this.collectionAddress}`))
+        // console.log(this.createPageSelector(page))
         
-        document.getElementById(`pageSelector-${this.collectionAddress}`).replaceWith(this.createPageSelector(page))
-        if (cancelLoadingImages) {
+        
+        //incase of refresh
+        if (oldPage !== this.currentPage) {
+            document.getElementById(`pageSelector-${this.collectionAddress}`).replaceWith(this.createPageSelector(page))
             await this.#cancelLoadingImages(oldPage);
-
 
         }
     
+        const existingImageRaster = document.getElementById(`imagesRaster-${this.collectionAddress}`)
+        if (existingImageRaster) {
+            this.createImagesRaster(page).then((newRasterDiv) => {
+                existingImageRaster.replaceWith(newRasterDiv)
         
-        this.createImagesRaster(page).then((newRasterDiv) => {
-            document.getElementById(`imagesRaster-${this.collectionAddress}`).replaceWith(newRasterDiv)
+                if(this.imgOnclickFunction){
+                    this.#addOnclickFunctionToCurrentImages()
+                }
+        
+                if (this.divFunctions.length>0) {
+                    this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
+                }
 
-            if(this.imgOnclickFunction){
-                this.#addOnclickFunctionToCurrentImages()
-            }
-    
-            if (this.divFunctions.length>0) {
-                this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
-            }
-
-        }) 
+            }) 
+        }
     
         
        
@@ -388,7 +439,7 @@ export class NftDisplay {
      */
     async createDisplay(currentPage=this.currentPage, targetElementId=this.targetDivId, rowSize=this.rowSize, amountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor) {
         //TODO apply divFunctions and get image urls in 1 go
-
+        //this.setImageRasterOrientation()
         this.currentPage = currentPage
 
         const infoDiv =  this.#createInfoDiv(this.collectionAddress,this.nftMetaData, ids.length)
@@ -406,7 +457,7 @@ export class NftDisplay {
         } else {
             let noIdsMessage = document.createElement("div")
             noIdsMessage.innerText = "no nfts found :("
-            targetDiv.append(await infoDiv,noIdsMessage)
+            targetDiv.append(await infoDiv, "no nfts found :(")
         }
 
     
@@ -422,7 +473,7 @@ export class NftDisplay {
         }
     }
 
-    #toggleSelect(e, id) {
+    #toggleSelect(id) {
         console.log(id)
         const idIndex = this.selection.indexOf(id)
         let selectionStatusDiv = document.getElementById(`selectedStatus-${id}-${this.collectionAddress}`)
@@ -431,7 +482,7 @@ export class NftDisplay {
             selectionStatusDiv.style.backgroundColor = "rgba(0, 0, 100, 0.82)"
             selectionStatusDiv.innerText = "selected"
         } else {
-            selectionStatusDiv.innerText = "click to select"
+            selectionStatusDiv.innerText = "not selected"
             selectionStatusDiv.style.backgroundColor = "rgba(0, 0, 0, 0.82)"
             this.selection.splice(idIndex,1)
         }
@@ -441,7 +492,7 @@ export class NftDisplay {
     #setSelectStatus(id,selectionStatusDiv) {
         const idIndex = this.selection.indexOf(id)
         if (idIndex===-1)  {
-            selectionStatusDiv.innerText = "click to select"
+            selectionStatusDiv.innerText = "not selected"
             selectionStatusDiv.style.backgroundColor = "rgba(0, 0, 0, 0.82)"
         } else {
             selectionStatusDiv.style.backgroundColor = "rgba(0, 0, 100, 0.82)"
@@ -457,7 +508,7 @@ export class NftDisplay {
             div.innerText = "click to select"
             div.id = `selectedStatus-${id}-${this.collectionAddress}`
             div.className = "nftDisplaySelectionStatus"
-            //div.style = "width: 100%; position: absolute; float: left; bottom: 0px; left: 0px; color: white; font-size:0.9em; background-color:  rgba(0, 0, 0, 0.78)"
+            //div.style = "width: 100%; position: absolute; float: left; bottom: 0px; left: 0px; color: white; font-size:0.9rem; background-color:  rgba(0, 0, 0, 0.78)"
             this.#setSelectStatus(id, div)
             return div
         } else {
@@ -488,7 +539,7 @@ export class NftDisplay {
      * makes all selectable that arent in this.notSelectable TODO better name
      */
     makeAllSelectable() {
-        const toggleSelect = (e, id) => this.#toggleSelect(e, id)
+        const toggleSelect = (id) => this.#toggleSelect(id)
         this.setImgOnclickFunction(toggleSelect)
 
         const selectionStatus = (id)=>this.#selectedStatus(id)

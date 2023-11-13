@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <style>
     * {
-        font-size: 1em;
         font-family: Arial;
+        font-size: 110%;
     }
 
     .nftImagesFilter {
@@ -18,25 +18,25 @@
     .tokenDisplay {
         position: absolute; 
         float: top-right; 
-        top: 0.85em; 
-        right: 0.12em; 
-        font-size: 1.6em; 
+        top: 1.5rem; 
+        right: 0.12rem; 
+        font-size: 1.7rem; 
         font-weight: bold; 
         -webkit-text-fill-color: #ffffff; 
-        -webkit-text-stroke-width: 0.07em; 
+        -webkit-text-stroke-width: 0.1rem; 
         -webkit-text-stroke-color: #000000;
         z-index: 3;
 
     }
 
     .nftdisplayInfo {
-        font-size: 1.5em;
+        font-size: 1.5rem;
     }
 
     .clickToBuy {
         display: flex;
         align-items: center;
-        font-size: 1.2em;
+        font-size: 1.2rem;
 
         width: 100%;
         position: absolute;
@@ -45,14 +45,14 @@
         left: 0px;
         color: white;
         background-color: rgba(0, 0, 0, 0.72);
-        min-height: 1.6em;
+        min-height: 1.6rem;
         z-index: 2;
         text-align: center;
 
     }
 
     #loading {
-        font-size: 1.8em;
+        font-size: 1.8rem;
         font-weight: bold;
     }
 
@@ -62,7 +62,7 @@
         z-index: 4;
         display: inline-block;
         visibility: hidden;
-        margin-top: 1.5em;
+        margin-top: 1.5rem;
         margin-left: -5ch;
         border: solid;
     }
@@ -72,7 +72,7 @@
         overflow: hidden;
         white-space: nowrap;
         position: relative;
-        font-size: 1.2em;
+        font-size: 1.2rem;
         text-align: center;
         color: #000000;
         font-weight: bold;
@@ -86,37 +86,37 @@
     }
 
     .titel {
-        font-size: 1.6em;
+        font-size: 1.6rem;
         font-weight: bold;
     }
 
     .nftsInDrop {
-        margin-top: 1.5em;
+        margin-top: 1.5rem;
     }
 
     .selectCollection {
-        font-size: 1.4em;
+        font-size: 1.4rem;
     }
 
     .dropbtn {
-        font-size: 1.4em;
+        font-size: 1.4rem;
     }
 
     .dropdown-content {
-        font-size: 1.4em;
+        font-size: 1.4rem;
 
     }
 
     /* .globalButtons {
-        font-size: 1.8em;
+        font-size: 1.8rem;
     } */
 
     /* #walletConnectButton {
-        font-size: 2.5em;
+        font-size: 2.5rem;
         position: absolute; 
         float: left; 
-        top: 0.3em; 
-        right: 0.3em; 
+        top: 0.3rem; 
+        right: 0.3rem; 
 
 
     } */
@@ -135,7 +135,7 @@
 
     <div id="dropInfo" class="text">
     </div>
-    <div class="nftsInDrop">
+    <div class="nftsInDrop" style="width: 100vw;">
         <!-- <span class="titel">eligible nft collections</span> -->
         <div id="message"></div>
 
@@ -162,10 +162,10 @@
                 <label for="showAll">show all</label>
             </div>
         </div>
-        <div id="nfts" style="width: 97vw;"></div>
+        <div id="nfts" style="width: 100vw; padding-right: 10px;"></div>
 
     </div>
-    <div id="loading" style="font-weight: bold; font-size: 3em;"></div>
+    <div id="loading" style="font-weight: bold; font-size: 3rem;"></div>
     
 </body>
 <script type="module" src="./scripts/app.js" type="application/javascript"></script>

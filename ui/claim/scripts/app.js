@@ -96,7 +96,7 @@ async function connectSigner() {
     if (isWalletConnected()) {
         await resolveTillConnected()
         message("")
-        while (!window.mildayDropContract) {
+        while (!window.airdropTokenContract) {
             await delay(100)
         }
         window.mildayDropWithSigner = await window.mildayDropContract.connect(window.signer);
@@ -105,7 +105,7 @@ async function connectSigner() {
 
         let accountInfoDiv = document.getElementById("accountInfo")
         const accountName = getAccountName(window.userAddress)
-        const balance = airdropTokenContract.balanceOf(window.userAddress)
+        const balance = window.airdropTokenContract.balanceOf(window.userAddress)
         const formattedBalance = new Intl.NumberFormat('en-EN').format(ethers.utils.formatEther((await balance).toString()))
         const ticker = await window.ticker
         accountInfoDiv.innerHTML = `
@@ -278,7 +278,6 @@ async function claimSelected() {
 
         //submit tx
         let tx = await window.mildayDropWithSigner.claim(proof, id, amount, nftAddr)
-        console.log("aaaaaaaaaa")
         let receipt = await tx.wait(1)
         message("claimed :)")
 
@@ -315,8 +314,8 @@ function displayTokens(id, nftDisplay) {
             d.style.textDecoration = "line-through"
         }
     } else {
-        return ""
-        //d.innerText =  `0 ${window.ticker} :(`
+        //return ""
+        d.innerText =  `nothing :(`
     }
     return d
 }
@@ -326,7 +325,7 @@ function makeIntoDivs(parentId, childIds) {
     for (const childId of childIds) {
         let childDiv = document.createElement("div");
         childDiv.id = childId
-        childDiv.style.paddingTop = "1.5em"
+        childDiv.style.paddingTop = "1.5rem"
         parentElement.appendChild(childDiv)
     }
 
@@ -409,7 +408,7 @@ async function loadAllContracts() {
     document.getElementById("loading").innerText = "loading"
     window.urlVars = await getUrlVars();
     document.getElementById("dropInfo").innerHTML = `See all nfts: <a href=../drop/?lovedrop=${window.urlVars["lovedrop"]}>drop page</a>`
-    
+
     if (!window.urlVars["ipfsGateway"]) {
         window.ipfsGateways = ["https://PINATAKEY.mypinata.cloud","http://127.0.0.1:48084","http://127.0.0.1:8080","https://ipfs.io"] //no grifting pls thank :)
     } else {

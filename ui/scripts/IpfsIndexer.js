@@ -31,12 +31,12 @@ export class IpfsIndexer{
             return this.currentGateway
         } else {
             this.currentGateway = await this.getFirstWorkingGateway(this.gateways)
-            console.log(this.currentGateway)
+            console.log(`using gateway: ${this.currentGateway}`)
+            return this.currentGateway
         }
     }
 
     async getFirstWorkingGateway(gateways) {
-        console.log(gateways)
         const workingGatwaysBools = await Promise.all(gateways.map((gateway)=>this.isGatewayWorking(gateway)))
         return gateways[workingGatwaysBools.indexOf(true)]
     }
@@ -253,27 +253,28 @@ export class IpfsIndexer{
     }
 
     async getHashFromIpfsPath(path) {
-        let pathL = path.split("/");
-        let hash = pathL[0];
-        if (pathL.length<2){return hash}
-        let currentDag = await this.getDag(hash);
-        for (let i=1; i<pathL.length; i++) {
-            for (let j=0; j<currentDag['Links'].length; j++) {
-                if (currentDag['Links'][j]["Name"] == pathL[i]) {
-                    if (i == pathL.length-1) {
-                        return await currentDag['Links'][j]["Hash"]["/"];
+        //TODO doesnt work for sharded hashes
+        //maybe use resolve??
+        let pathArr = path.split("/");
+        const rootHash = pathArr[0];
+        if (pathArr.length<=1){return rootHash}
 
-                    } else {
-                        currentDag = await this.getDag(currentDag['Links'][j]["Hash"]["/"]);
-                        break;
-                    };
-                };
-            };
-        };
+        const currentDag = await this.getDag(rootHash);
+
+        const nextItem = pathArr[1]
+        const linksIndex = currentDag['Links'].findIndex((x)=>x.Name===nextItem)
+        if (linksIndex===-1) {throw console.error(`item ${nextItem} not found in Links of ${rootHash}`);}
+        const newHash = currentDag["Links"][linksIndex]
+        pathArr = pathArr.splice(1)
+        pathArr[0] = newHash
+        const newPath = pathArr.join("/")
+        console.log(newPath)
+        await this.getHashFromIpfsPath(newPath)
+
     }
 
     async getWithGateWayIpfs(path) {
-        console.log(`${await this.getGatewayUrl()}/ipfs/${path}`);
+        //console.log(`${await this.getGatewayUrl()}/ipfs/${path}`);
         let r = await fetch(`${await this.getGatewayUrl()}/ipfs/${path}`);
         return r.json()
     }

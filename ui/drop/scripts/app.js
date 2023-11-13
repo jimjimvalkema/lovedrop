@@ -165,7 +165,6 @@ function removeAllChildNodes(parent) {
     let childNodes = parent.childNodes
     for (const child of childNodes) {
         removeAllChildNodes(child)
-        console.log(child)
         child.innerHTML = ""
         parent.remove(child)
     }
@@ -179,11 +178,6 @@ async function displayNfts(nftAddress = null) {
         nftAddress = window.allNftAddresses[0]
         console.log(nftAddress)
     }
-
-
-
-    console.log(window.ipfsGateway)
-
 
     window.currentNft = nftAddress
 
@@ -203,9 +197,9 @@ async function displayNfts(nftAddress = null) {
     if (window.nftDisplays[nftAddress]) {
         display = window.nftDisplays[nftAddress]
     } else {
-        display = new NftDisplay(nftAddress, window.provider, "nfts", [], window.ipfsGateway)
+        display = new NftDisplay(nftAddress, window.provider, "nfts", [], window.ipfsGateway, {["rowSize"]:7,["amountRows"]:2}, {["rowSize"]:4,["amountRows"]:5})
         window.nftDisplays[nftAddress] = display
-        display.amountRows = 3
+        
     }
 
     //empty the element if it already exist (incase user connects a new wallet)
@@ -334,7 +328,6 @@ async function loadAllContracts() {
 
     //get all nft contracts
     window.allNftAddresses = Object.keys(window.idsPerCollection)
-    console.log(window.ipfsGateway)
     displayNfts()
     document.getElementById("loading").innerText = ""
     document.getElementById("dropInfo").append("loading")
