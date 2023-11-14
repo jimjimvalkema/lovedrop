@@ -17,7 +17,7 @@ async function connectProvider() {
         window.provider = new ethers.providers.Web3Provider(window.ethereum);
     } else {
         console.log("couldn't connect to window.ethereum using a external rpc")
-        const providerUrls = ["https://mainnet.infura.io/v3/INFURAKEY", "https://eth.llamarpc.com"] 
+        const providerUrls = ["https://mainnet.infura.io/v3/", "https://eth.llamarpc.com"] 
         const workingProviderUrl = await getFirstAvailableProvider(providerUrls)
         console.log(workingProviderUrl) 
         window.provider = new ethers.providers.JsonRpcProvider(workingProviderUrl)
@@ -85,7 +85,7 @@ window.getAccountName = getAccountName
 async function connectSigner() {
     // MetaMask requires requesting permission to connect users accounts
     if (!window.ethereum) {
-        message("no inject ethereum wallet found please install metamask or equivalant!")
+        message("no inject ethereum wallet found please install metamask or equivalant! \n\n\n If ur on metamask mobile and still see this message its because metamask sucks! try zerion or coinbase wallet")
         document.getElementById("loading").innerText = ""
         
         return 0
@@ -103,20 +103,24 @@ async function connectSigner() {
         window.userAddress = await window.signer.getAddress()
         displayNfts();
 
-        let accountInfoDiv = document.getElementById("accountInfo")
-        const accountName = getAccountName(window.userAddress)
-        const balance = window.airdropTokenContract.balanceOf(window.userAddress)
-        const formattedBalance = new Intl.NumberFormat('en-EN').format(ethers.utils.formatEther((await balance).toString()))
-        const ticker = await window.ticker
-        accountInfoDiv.innerHTML = `
-        ${await accountName} <br>
-        ${formattedBalance} ${ticker}   
-        `
+        displayUserAccountInfo()
         console.log("connected")
         return [provider, signer];
     }
 }
 window.connectSigner = connectSigner
+
+async function displayUserAccountInfo() {
+    let accountInfoDiv = document.getElementById("accountInfo")
+    const accountName = getAccountName(window.userAddress)
+    const balance = window.airdropTokenContract.balanceOf(window.userAddress)
+    const formattedBalance = new Intl.NumberFormat('en-EN').format(ethers.utils.formatEther((await balance).toString()))
+    const ticker = await window.ticker
+    accountInfoDiv.innerHTML = `
+    ${await accountName} <br>
+    ${formattedBalance} ${ticker}   
+    `
+}
 
 function message(message) {
     console.log(message);
@@ -267,6 +271,7 @@ async function claimSelected() {
         //update display
         const selectedNftDisplays = window.nftDisplays.filter((display)=> nftAddresses.indexOf(display.collectionAddress)!==-1)
         refreshDisplay(selectedNftDisplays)
+        displayUserAccountInfo()
 
     } else {
         //get selected item
@@ -284,6 +289,7 @@ async function claimSelected() {
         //update display
         const nftDisplay = window.allNftDisplays.find((display) => display.collectionAddress === nftAddr)
         refreshDisplay([nftDisplay])
+        displayUserAccountInfo()
 
     }
 }
@@ -410,7 +416,7 @@ async function loadAllContracts() {
     document.getElementById("dropInfo").innerHTML = `See all nfts: <a href=../drop/?lovedrop=${window.urlVars["lovedrop"]}>drop page</a>`
 
     if (!window.urlVars["ipfsGateway"]) {
-        window.ipfsGateways = ["https://PINATAKEY.mypinata.cloud","http://127.0.0.1:48084","http://127.0.0.1:8080","https://ipfs.io"] //no grifting pls thank :)
+        window.ipfsGateways = ["https://.mypinata.cloud","http://127.0.0.1:48084","http://127.0.0.1:8080","https://ipfs.io"] //no grifting pls thank :)
     } else {
         window.ipfsGateways = [window.urlVars["ipfsGateway"]]
     }

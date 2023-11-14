@@ -1,5 +1,9 @@
 <!DOCTYPE html>
 <style>
+    html, body {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
     * {
         font-family: Arial;
         font-size: 110%;
@@ -47,8 +51,9 @@
         font-size: 2.5rem;
         position: absolute; 
         float: left; 
-        top: 5px; 
-        right: 5px; 
+        top: 0px; 
+        right: 0px; 
+        padding: 5px;
 
 
     }
@@ -96,7 +101,7 @@
 
 
 
-    <div id="nfts" style="width: 100vw; padding-right: 10px;"></div>
+    <div id="nfts" style="width: 99vw;"></div>
     <div id="loading" style="font-weight: bold; font-size: 3rem;"></div>
     <div id="message"></div>
 </body>
