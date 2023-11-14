@@ -1,10 +1,10 @@
 
 //const { error } = require("console");
 
-//TODO import assertion are not supported in firefox :((
+//import assertion are not supported in firefox :((
 import { ethers } from "./ethers-5.2.esm.min.js"
-import allExtraMetaData  from "./extraMetaData.json" assert { type: "json" };
-import ERC721ABI  from "../abi/ERC721ABI.json" assert { type: "json" };
+import { allExtraMetaData }  from "./extraMetaData.js"
+import { ERC721ABI }  from "../abi/ERC721ABI.js"
 
 /**
  * This function allow you to modify a JS Promise by adding some status properties.
@@ -53,7 +53,7 @@ export function isFulfilled(x) {
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 export class NftMetaDataCollector {
-    alchemyApiKey = "ALCHEMYKEY"
+    alchemyApiKey = ""
     contractObj = undefined;
     provider = undefined
     extraMetaData = undefined;
@@ -222,7 +222,7 @@ export class NftMetaDataCollector {
     }
 
     async getContractName() {
-        if(this.contractNam) {
+        if(this.contractName) {
             return this.contractName
 
         } else {
@@ -232,16 +232,31 @@ export class NftMetaDataCollector {
     
     }
 
+    async getContractSymbol() {
+        if(this.contractSymbol) {
+            return this.contractSymbol
 
-    async getTokenName(id) {
+        } else {
+            this.contractSymbol = await this.contractObj.symbol()
+            return this.contractSymbol
+        }
+    
+    }
 
-        const tokenUri = await this.getTokenUri(id)
+
+    async getTokenName(id, timeout=5000) {
+
+        const tokenUri = await this.getTokenUri(id, timeout)
 
         if (tokenUri && "name" in tokenUri) {
             return tokenUri["name"]
         } else {
             console.warn(`name for id ${id} not found in tokenUri using "contractName + id" instead`)
-            return `#${id} ${await this.getContractName()}`
+            let name = (await this.getContractName())
+            if (name.length >10) {
+                name=name.slice(0,9)+"-"
+            }
+            return `${name} ${id}`
         }
     }
 
@@ -385,7 +400,7 @@ export class NftMetaDataCollector {
         return allUris
     }
 
-    async getUrlByProtocol(urlString, returnOnlyUrl = false) {
+    async getUrlByProtocol(urlString, returnOnlyUrl = false, timeout=20000) {
         //console.log(urlString)
         let reqObj = {
             method: 'POST',
@@ -416,7 +431,12 @@ export class NftMetaDataCollector {
 
             return newUrlString
         } else {
-            return await fetch(newUrlString);
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), 5000);
+          
+            const response = await fetch(newUrlString, {signal: controller.signal });
+            clearTimeout(id);
+            return response;
         }
     }
 
@@ -447,7 +467,7 @@ export class NftMetaDataCollector {
         return this.uriCache
     }
 
-    async getTokenUriNoCache(id) {
+    async getTokenUriNoCache(id, timeout) {
         if (id < this.startId) {
             throw Error(`id: ${id} doenst exist`)
         }
@@ -470,11 +490,11 @@ export class NftMetaDataCollector {
         }
 
         //const URI =  await (await this.getUrlByProtocol()).json()
-        while (retries < 2) {
+        while (retries < 1) {
             try {
                 //await (await fetch("https://arweave.net/LGlMDKAWgcDyvYoft1YV6Y2pBBAwjWaFuZrDP9yD-RY/13.json")).json()
                 //console.log(`${await this.getBaseURI()}${id}${this.baseUriExtension}`)
-                const URI = await (await this.getUrlByProtocol(uriString)).json()
+                const URI = await (await this.getUrlByProtocol(uriString, timeout)).json()
                 //await (await fetch(`${await this.getBaseURI()}${id}`)).json();
                 return URI
             } catch (error) {
@@ -487,11 +507,11 @@ export class NftMetaDataCollector {
         }
     }
 
-    async getTokenUri(id) {
+    async getTokenUri(id, timeout=300000) {
         if (this.uriCache[id]) {
             return await this.uriCache[id]
         } else {
-            this.uriCache[id] = await this.getTokenUriNoCache(id)
+            this.uriCache[id] = await this.getTokenUriNoCache(id, timeout)
             return this.uriCache[id]
         }
 
@@ -1075,8 +1095,8 @@ export class NftMetaDataCollector {
         let toOwnerEvents
         let fromOwnerEvents
         let tries = 0;
-        toOwnerEvents = await this.eventScanInChunks(nftContrObj, toOwnerEventFilter, startBlockEventScan, endBlock)
-        fromOwnerEvents = await this.eventScanInChunks(nftContrObj, fromOwnerEventFilter, startBlockEventScan, endBlock)
+        toOwnerEvents =  this.eventScanInChunks(nftContrObj, toOwnerEventFilter, startBlockEventScan, endBlock)
+        fromOwnerEvents =  this.eventScanInChunks(nftContrObj, fromOwnerEventFilter, startBlockEventScan, endBlock)
         // while (tries < 3) {
         //     try {
         //         toOwnerEvents = await nftContrObj.queryFilter(toOwnerEventFilter, startBlockEventScan, endBlock)
@@ -1088,14 +1108,14 @@ export class NftMetaDataCollector {
         //         await delay(2000 * tries)
         //     }
         // }
-        for (const id of toOwnerEvents.map((x) => Number(x.args[2]))) {
+        for (const id of (await toOwnerEvents).map((x) => Number(x.args[2]))) {
             if (idTransferCount[id]) {
                 idTransferCount[id] += 1
             } else {
                 idTransferCount[id] = 1
             }
         }
-        for (const id of fromOwnerEvents.map((x) => Number(x.args[2]))) {
+        for (const id of (await fromOwnerEvents).map((x) => Number(x.args[2]))) {
             if (idTransferCount[id]) {
                 idTransferCount[id] -= 1
             } else {

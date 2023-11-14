@@ -1,4 +1,4 @@
-{
+export const allExtraMetaData ={
     "0xbf4a480D3009348FDF523A43Ba33220566fC1e4E": {
         "type": "milady",
         "name": "miladyTest",
@@ -78,3 +78,4 @@
 
 
 }
+
