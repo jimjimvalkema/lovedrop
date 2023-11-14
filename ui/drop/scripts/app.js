@@ -16,7 +16,7 @@ async function connectProvider() {
         window.provider = new ethers.providers.Web3Provider(window.ethereum);
     } else {
         console.log("couldn't connect to window.ethereum using a external rpc")
-        const providerUrls = ["https://mainnet.infura.io/v3/INFURAKEY", "https://eth.llamarpc.com"] 
+        const providerUrls = ["https://mainnet.infura.io/v3/", "https://eth.llamarpc.com"] 
         const workingProviderUrl = await getFirstAvailableProvider(providerUrls)
         console.log(workingProviderUrl) 
         window.provider = new ethers.providers.JsonRpcProvider(workingProviderUrl)
@@ -64,26 +64,31 @@ async function getClaimableStatus(allIds, eligableIdsAmounts, nftAddr) {
     message(`checking ${eligableIdsAmountsEntries.length} ids claimed status`)
     //eligable ids, returns true if its already claimed 
     let isIdClaimedArr = []
-    const chunkSize = 100;
-    for (let i = 0; i < eligableIdsAmountsEntries.length; i += chunkSize) {
-
-        const chunk = eligableIdsAmountsEntries.slice(i, i + chunkSize);
-        const isIdClaimedArrPromise = chunk.map((x) => isClaimed(nftAddr, x[0]))
-        isIdClaimedArr = [isIdClaimedArr, ...(await Promise.all(isIdClaimedArrPromise))]
-        message(`checked ${i + chunkSize} out of ${eligableIdsAmountsEntries.length} ids claimed status`)
+    const chunkSize = 50;
+    try {
+        for (let i = 0; i < eligableIdsAmountsEntries.length; i += chunkSize) {
+            const chunk = eligableIdsAmountsEntries.slice(i, i + chunkSize);
+            const isIdClaimedArrPromise = chunk.map((x) => isClaimed(nftAddr, x[0]))
+            isIdClaimedArr = [...isIdClaimedArr, ...(await Promise.all(isIdClaimedArrPromise))]
+            message(`checked ${i + chunkSize} out of ${eligableIdsAmountsEntries.length} ids claimed status`)
+        }
+    } catch (error) {
+            
+        message(`got a error try running in a normal browser without metamask/inject ethereum \n error: ${error}`)
+        return 0
+        
     }
+    
     message("")
 
-    let isIdClaimed = eligableIdsAmountsEntries.map((x) => isClaimed(nftAddr, x[0]))
-    isIdClaimed = (await Promise.all(isIdClaimed))
-    isIdClaimed = Object.fromEntries(eligableIdsAmountsEntries.map((x, index) => [x[0], isIdClaimed[index]]))
+    const isIdClaimedObj = Object.fromEntries(eligableIdsAmountsEntries.map((x, index) => [x[0], isIdClaimedArr[index]]))
 
     //all eligible ids
     const eligibleIds = Object.keys(eligableIdsAmounts)
 
     //seperate already claimed ids vs unclaimed from all eligable ids 
-    const claimableUserIds = Object.fromEntries(eligableIdsAmountsEntries.filter((x) => isIdClaimed[x[0]] === false))
-    const allClaimedUserIds = Object.fromEntries(eligableIdsAmountsEntries.filter((x) => isIdClaimed[x[0]] === true))
+    const claimableUserIds = Object.fromEntries(eligableIdsAmountsEntries.filter((x) => isIdClaimedObj[x[0]] === false))
+    const allClaimedUserIds = Object.fromEntries(eligableIdsAmountsEntries.filter((x) => isIdClaimedObj[x[0]] === true))
 
     //filter out all ids that never were eligable and set their amounts to 0
     const ineligibleUserIds = Object.fromEntries((allIds.filter((x) => eligibleIds.indexOf(x) === -1)).map((x) => [x, 0]))
@@ -303,7 +308,7 @@ async function loadAllContracts() {
 
     
     if (!window.urlVars["ipfsGateway"]) {
-        window.ipfsGateways = ["https://PINATAKEY.mypinata.cloud","http://127.0.0.1:48084","http://127.0.0.1:8080","https://ipfs.io"] //no grifting pls thank :)
+        window.ipfsGateways = ["https://mypinata.cloud","http://127.0.0.1:48084","http://127.0.0.1:8080","https://ipfs.io"] //no grifting pls thank :)
     } else {
         window.ipfsGateways = [window.urlVars["ipfsGateway"]]
     }
