@@ -150,9 +150,10 @@ export class NftDisplay {
         for (const [index, id] of idsCurrentPage.entries()) {
             if (this.notSelectable.indexOf(id)===-1) {
                 let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
-                imageDiv.onclick  = () => onclickFunction(id, this)
-                imageDiv.style.cursor = "pointer"
-
+                if(imageDiv) {
+                    imageDiv.onclick  = () => onclickFunction(id, this)
+                    imageDiv.style.cursor = "pointer"
+                }
             }
         }
 
@@ -230,15 +231,24 @@ export class NftDisplay {
      * @param {Element[]} divs
      */
     async #applyDivFuntionsOnCurrentIds(divFunctions=this.divFunctions, ids=this.ids, currentPage = this.currentPage, rowSize=this.rowSize, amountRows=this.amountRows) {
+        this.#removeAllDivImageFromRootElement()
         const maxPerPage = rowSize*amountRows
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
+        let allResults = []
         for (const [index, id] of idsCurrentPage.entries()) {
             let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
             let results = divFunctions.map((x)=>x(id, this))
-            results.forEach((x)=>Promise.resolve(x).then((r) => {
-                imageDiv.prepend(r)
-            }))
+            for (const result of results) {
+                allResults.push(result)
+                Promise.resolve(result).then((r) => {
+                    imageDiv.prepend(r)
+        
+                })
+
+            }
         }
+        //To make sure function resolves when all are applied
+        allResults = await Promise.all(allResults)
     }
 
     /**
@@ -320,16 +330,24 @@ export class NftDisplay {
     async #cancelLoadingImages(currentPage = this.currentPage, rowSize=this.rowSize,amountRows=this.amountRows, ids=this.ids) {
         const maxPerPage = rowSize*amountRows
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
-        for (const [index, id] of idsCurrentPage.entries()) {
-            while(!document.getElementById(`img-${id}-${this.collectionAddress}`) ) {
-                //console.log(`waiting for element id ${id} to be created so it can be canceled`)
-                await delay(10)
-            }
-            let imgElement = document.getElementById(`img-${id}-${this.collectionAddress}`) 
-            if (imgElement && "src" in imgElement) {
+        await Promise.all(idsCurrentPage.map((id)=>this.#cancelLoadingImage(`img-${id}-${this.collectionAddress}`)))
+    }
+
+    async #cancelLoadingImage(elementId) {
+        //TODO maybe cancel nftMetaDataCollector.getImage() with signals?
+        //getImage can be slow which means the img.src isnt set for a while
+        let imgElement = document.getElementById(elementId) 
+        for (let index = 0; index < 2000; index++) {
+            if (imgElement && "src" in  imgElement) {
                 imgElement.src = ""
+                return 1
+            } else {
+                await delay(100)
             }
         }
+        console.log("am giving up :(")
+        return 0
+ 
 
     }
 
@@ -340,34 +358,39 @@ export class NftDisplay {
      * @param {string} targetElementId 
      */
     async selectPage(page, targetElementId=this.targetDivId) {
-        const oldPage = this.currentPage
-        this.currentPage = page;
-        // let targetDiv = document.getElementById(targetElementId)
-        // console.log(`pageSelector-${this.collectionAddress}`)
-        // console.log(document.getElementById(`pageSelector-${this.collectionAddress}`))
-        // console.log(this.createPageSelector(page))
-        
-        document.getElementById(`pageSelector-${this.collectionAddress}`).replaceWith(this.createPageSelector(page))
         //incase of refresh
-        if (oldPage !== this.currentPage) {
-            await this.#cancelLoadingImages(oldPage);
+        if (page !== this.currentPage) {
+            this.#cancelLoadingImages(this.currentPage);
         }
+        
+
+
+        this.currentPage = page;
+    
+        
+        
+
     
         const existingImageRaster = document.getElementById(`imagesRaster-${this.collectionAddress}`)
-        if (existingImageRaster) {
-            this.createImagesRaster(page).then((newRasterDiv) => {
-                existingImageRaster.replaceWith(newRasterDiv)
-        
-                if(this.imgOnclickFunction){
-                    this.#addOnclickFunctionToCurrentImages()
-                }
-        
-                if (this.divFunctions.length>0) {
-                    this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
-                }
 
-            }) 
+        const newRasterDiv = await this.createImagesRaster(page)
+        existingImageRaster.replaceWith(newRasterDiv)
+
+        document.getElementById(`pageSelector-${this.collectionAddress}`).replaceWith(this.createPageSelector(page))
+
+       
+
+        
+        if(this.imgOnclickFunction){
+            this.#addOnclickFunctionToCurrentImages()
         }
+
+        if (this.divFunctions.length>0) {
+            await this.#applyDivFuntionsOnCurrentIds(this.divFunctions,this.ids,this.currentPage)
+        }
+        
+
+
     
         
        
@@ -397,13 +420,13 @@ export class NftDisplay {
         allImagesDiv.style=`width: 100%; border-left: solid; border-width: ${borderWidth}; border-color: ${borderColor}`
         allImagesDiv.id = `imagesRaster-${this.collectionAddress}`
 
-        let imageElements = idsCurrentPage.map((id)=>this.nftMetaData.getNftImgElement(id))
-        imageElements = await Promise.all(imageElements)
-
+        let imgElements = []
         for (const [index, id] of idsCurrentPage.entries()) {
-            const img = imageElements[index]
+            const img = document.createElement("img")
             img.id = `img-${id}-${this.collectionAddress}`
             img.style = `max-width: 100%; vertical-align: top;`
+
+            imgElements.push(img)
             
             let imgRootDiv =  document.createElement("div")
             imgRootDiv.id = `rootDiv-${id}-${this.collectionAddress}`
@@ -421,6 +444,12 @@ export class NftDisplay {
             imgRootDiv.append(imgBorderDiv)
             allImagesDiv.append(imgRootDiv)
         }
+
+
+        Promise.all(idsCurrentPage.map((id)=>this.nftMetaData.getImage(id))).then((imageUrls)=>{
+            imgElements.forEach((img,index) => {img.src= imageUrls[index]});
+        })
+
         return allImagesDiv
     }
 
