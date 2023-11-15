@@ -478,11 +478,11 @@ document.getElementById("collectionSelect").addEventListener("change", (event) =
     let currentDisplay = window.nftDisplays[window.currentNft]
     currentDisplay.clear()
 
-    const eligibleIds = Object.keys(window.idsPerCollection[window.currentNft])
-    currentDisplay.ids = sortIdsByEligibility(eligibleIds, window.currentNft)
+    // const eligibleIds = Object.keys(window.idsPerCollection[window.currentNft])
+    // currentDisplay.ids = sortIdsByEligibility(eligibleIds, window.currentNft)
 
     displayNfts(event.target.value)
-    currentDisplay.refreshPage()
+    //currentDisplay.refreshPage()
     showEligible.checked = true;
     showUnclaimed.checked = false;
     showClaimed.checked = false;
