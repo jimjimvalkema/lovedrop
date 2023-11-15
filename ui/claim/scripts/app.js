@@ -101,7 +101,7 @@ async function connectSigner() {
         }
         window.mildayDropWithSigner = await window.mildayDropContract.connect(window.signer);
         window.userAddress = await window.signer.getAddress()
-        displayNfts();
+        await displayNfts();
 
         displayUserAccountInfo()
         console.log("connected")
@@ -114,13 +114,39 @@ async function displayUserAccountInfo() {
     let accountInfoDiv = document.getElementById("accountInfo")
     const accountName = getAccountName(window.userAddress)
     const balance = window.airdropTokenContract.balanceOf(window.userAddress)
+    
+    const allUserIds = Object.fromEntries(window.nftDisplays.map((x)=>[x.collectionAddress,x.ids]).filter((x)=>x[1].length))
+    console.log(allUserIds)
+    const claimableAmount = getClaimableAmount(allUserIds)
+
+
+    const formattedClaimableBalance = new Intl.NumberFormat('en-EN').format(ethers.utils.formatEther((await claimableAmount).toString()))
     const formattedBalance = new Intl.NumberFormat('en-EN').format(ethers.utils.formatEther((await balance).toString()))
     const ticker = await window.ticker
+
     accountInfoDiv.innerHTML = `
-    ${await accountName} <br>
-    ${formattedBalance} ${ticker}   
+    <div style="text-align: right">${await accountName}</div> 
+    <div style="text-align: left; float:left; position: absolute"> Wallet: </div> ${formattedBalance} ${ticker} <br> 
+    <div style="text-align: left; float:left; position: absolute"> Airdrop: </div>  ${formattedClaimableBalance} ${ticker} 
     `
 }
+
+async function getClaimableAmount(userIdsPerCollection) {
+    let total = ethers.BigNumber.from(0)
+    for (const collectionAddr in userIdsPerCollection) {
+        for (const id of userIdsPerCollection[collectionAddr]) {
+            if (!await isClaimed(collectionAddr, id) && id in window.idsPerCollection[collectionAddr]) {
+                total = total.add(ethers.BigNumber.from(window.idsPerCollection[collectionAddr][id]))
+            }
+
+        }
+    }
+    return total.toString()
+    
+    
+
+}
+window.getClaimableAmount = getClaimableAmount
 
 function message(message) {
     console.log(message);
@@ -308,6 +334,7 @@ async function claimSelected() {
         message("claimed :)")
 
         //update display
+        clearIsClaimedIds(selectedIds)
         const nftDisplay = window.allNftDisplays.find((display) => display.collectionAddress === nftAddr)
         refreshDisplay([nftDisplay])
         displayUserAccountInfo()
