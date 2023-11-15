@@ -101,6 +101,16 @@ export class NftMetaDataCollector {
         }
     }
 
+    async getNftImgElement(id) {
+        const img = document.createElement("img")
+        img.src = await this.getImage(id)
+
+        if (img.src.startsWith(this.ipfsGateway)) {
+            img.crossOrigin='anonymous'
+        } 
+        return img
+    }
+
 
     async getIdStartsAt() {
         //cheeky way to check for off by one errors :p
@@ -244,7 +254,7 @@ export class NftMetaDataCollector {
     }
 
 
-    async getTokenName(id, timeout=5000) {
+    async getTokenName(id, timeout=90000) {
 
         const tokenUri = await this.getTokenUri(id, timeout)
 
@@ -400,7 +410,7 @@ export class NftMetaDataCollector {
         return allUris
     }
 
-    async getUrlByProtocol(urlString, returnOnlyUrl = false, timeout=20000) {
+    async getUrlByProtocol(urlString, returnOnlyUrl = false, timeout=null) {
         //console.log(urlString)
         let reqObj = {
             method: 'POST',
@@ -431,12 +441,17 @@ export class NftMetaDataCollector {
 
             return newUrlString
         } else {
-            const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), 5000);
-          
-            const response = await fetch(newUrlString, {signal: controller.signal });
-            clearTimeout(id);
-            return response;
+            if (timeout) {
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), 5000);
+              
+                const response = await fetch(newUrlString, {signal: controller.signal });
+                clearTimeout(id);
+                return response;
+
+            } else {
+                return await fetch(newUrlString);
+            }
         }
     }
 
@@ -467,7 +482,7 @@ export class NftMetaDataCollector {
         return this.uriCache
     }
 
-    async getTokenUriNoCache(id, timeout) {
+    async getTokenUriNoCache(id, timeout=null) {
         if (id < this.startId) {
             throw Error(`id: ${id} doenst exist`)
         }
@@ -501,13 +516,14 @@ export class NftMetaDataCollector {
                 console.log(`errored on id: ${id} re-tried ${retries} times`)
                 console.log(`error is: ${error}`);
                 console.log(error)
+                console.log(`request was: ${uriString}`)
                 await delay(50);
             }
             retries += 1;
         }
     }
 
-    async getTokenUri(id, timeout=300000) {
+    async getTokenUri(id, timeout=null) {
         if (this.uriCache[id]) {
             return await this.uriCache[id]
         } else {

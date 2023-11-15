@@ -347,12 +347,10 @@ export class NftDisplay {
         // console.log(document.getElementById(`pageSelector-${this.collectionAddress}`))
         // console.log(this.createPageSelector(page))
         
-        
+        document.getElementById(`pageSelector-${this.collectionAddress}`).replaceWith(this.createPageSelector(page))
         //incase of refresh
         if (oldPage !== this.currentPage) {
-            document.getElementById(`pageSelector-${this.collectionAddress}`).replaceWith(this.createPageSelector(page))
             await this.#cancelLoadingImages(oldPage);
-
         }
     
         const existingImageRaster = document.getElementById(`imagesRaster-${this.collectionAddress}`)
@@ -399,13 +397,12 @@ export class NftDisplay {
         allImagesDiv.style=`width: 100%; border-left: solid; border-width: ${borderWidth}; border-color: ${borderColor}`
         allImagesDiv.id = `imagesRaster-${this.collectionAddress}`
 
-        let imageSources = idsCurrentPage.map((id)=>this.nftMetaData.getImage(id))
-        imageSources = await Promise.all(imageSources)
+        let imageElements = idsCurrentPage.map((id)=>this.nftMetaData.getNftImgElement(id))
+        imageElements = await Promise.all(imageElements)
 
         for (const [index, id] of idsCurrentPage.entries()) {
-            let img = document.createElement("img")
+            const img = imageElements[index]
             img.id = `img-${id}-${this.collectionAddress}`
-            img.src = imageSources[index]//await this.nftMetaData.getImage(id)
             img.style = `max-width: 100%; vertical-align: top;`
             
             let imgRootDiv =  document.createElement("div")

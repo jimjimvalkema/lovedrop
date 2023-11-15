@@ -57,20 +57,19 @@ function message(message) {
     document.getElementById("message").innerText = message;
 }
 
-//TODO do on all ids not user ids
 async function getClaimableStatus(allIds, eligableIdsAmounts, nftAddr) {
-    const eligableIdsAmountsEntries = Object.entries(eligableIdsAmounts)
+    const eligableUserIdsAmountsEntries = Object.entries(eligableIdsAmounts).filter((x) => allIds.indexOf(x[0]) !== -1)
 
-    message(`checking ${eligableIdsAmountsEntries.length} ids claimed status`)
+    message(`checking ${eligableUserIdsAmountsEntries.length} ids claimed status`)
     //eligable ids, returns true if its already claimed 
     let isIdClaimedArr = []
     const chunkSize = 50;
     try {
-        for (let i = 0; i < eligableIdsAmountsEntries.length; i += chunkSize) {
-            const chunk = eligableIdsAmountsEntries.slice(i, i + chunkSize);
+        for (let i = 0; i < eligableUserIdsAmountsEntries.length; i += chunkSize) {
+            const chunk = eligableUserIdsAmountsEntries.slice(i, i + chunkSize);
             const isIdClaimedArrPromise = chunk.map((x) => isClaimed(nftAddr, x[0]))
             isIdClaimedArr = [...isIdClaimedArr, ...(await Promise.all(isIdClaimedArrPromise))]
-            message(`checked ${i + chunkSize} out of ${eligableIdsAmountsEntries.length} ids claimed status`)
+            message(`checked ${i + chunkSize} out of ${eligableUserIdsAmountsEntries.length} ids claimed status`)
         }
     } catch (error) {
             
@@ -78,17 +77,16 @@ async function getClaimableStatus(allIds, eligableIdsAmounts, nftAddr) {
         return 0
         
     }
-    
     message("")
 
-    const isIdClaimedObj = Object.fromEntries(eligableIdsAmountsEntries.map((x, index) => [x[0], isIdClaimedArr[index]]))
+    const isIdClaimedObj = Object.fromEntries(eligableUserIdsAmountsEntries.map((x, index) => [x[0], isIdClaimedArr[index]]))
 
     //all eligible ids
     const eligibleIds = Object.keys(eligableIdsAmounts)
 
     //seperate already claimed ids vs unclaimed from all eligable ids 
-    const claimableUserIds = Object.fromEntries(eligableIdsAmountsEntries.filter((x) => isIdClaimedObj[x[0]] === false))
-    const allClaimedUserIds = Object.fromEntries(eligableIdsAmountsEntries.filter((x) => isIdClaimedObj[x[0]] === true))
+    const claimableUserIds = Object.fromEntries(eligableUserIdsAmountsEntries.filter((x) => isIdClaimedObj[x[0]] === false))
+    const allClaimedUserIds = Object.fromEntries(eligableUserIdsAmountsEntries.filter((x) => isIdClaimedObj[x[0]] === true))
 
     //filter out all ids that never were eligable and set their amounts to 0
     const ineligibleUserIds = Object.fromEntries((allIds.filter((x) => eligibleIds.indexOf(x) === -1)).map((x) => [x, 0]))
@@ -97,7 +95,6 @@ async function getClaimableStatus(allIds, eligableIdsAmounts, nftAddr) {
     const idsByClaimableStatus = { ["claimable"]: claimableUserIds, ["claimed"]: allClaimedUserIds, ["ineligible"]: ineligibleUserIds }
     return idsByClaimableStatus
 }
-window.getClaimableStatus = getClaimableStatus
 
 async function displayTokens(id, nftDisplay) {
     let d = document.createElement("div");

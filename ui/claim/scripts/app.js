@@ -169,33 +169,52 @@ async function addTokenToMetamask(tokenAddress, tokenSymbol, tokenDecimals, toke
 }
 
 async function isClaimed(nftAddr, id) {
-    return await window.mildayDropContract.isClaimed(nftAddr, id)
+    if (id in window.isClaimedCache[nftAddr]) {
+        return window.isClaimedCache[nftAddr][id]
+    } else {
+        window.isClaimedCache[nftAddr][id] = await window.mildayDropContract.isClaimed(nftAddr, id)
+        return window.isClaimedCache[nftAddr][id]
+    }
 }
 
-async function getClaimableStatus(ids, eligableIdsAmounts, nftAddr) {
-    //get all eligable user ids with amounts
-    const eligableUserIdsWithAmountsEntries = Object.entries(eligableIdsAmounts).filter((x)=>ids.indexOf(x[0])!==-1)
+async function getClaimableStatus(allIds, eligableIdsAmounts, nftAddr) {
+    const eligableUserIdsAmountsEntries = Object.entries(eligableIdsAmounts).filter((x) => allIds.indexOf(x[0]) !== -1)
 
-    //eligable user ids, returns true if its already claimed 
-    let isIdClaimed = eligableUserIdsWithAmountsEntries.map((x) => isClaimed(nftAddr, x[0]))
-    isIdClaimed = (await Promise.all(isIdClaimed))
-    isIdClaimed = Object.fromEntries(eligableUserIdsWithAmountsEntries.map((x, index) => [x[0], isIdClaimed[index]]))
+    message(`checking ${eligableUserIdsAmountsEntries.length} ids claimed status`)
+    //eligable ids, returns true if its already claimed 
+    let isIdClaimedArr = []
+    const chunkSize = 50;
+    try {
+        for (let i = 0; i < eligableUserIdsAmountsEntries.length; i += chunkSize) {
+            const chunk = eligableUserIdsAmountsEntries.slice(i, i + chunkSize);
+            const isIdClaimedArrPromise = chunk.map((x) => isClaimed(nftAddr, x[0]))
+            isIdClaimedArr = [...isIdClaimedArr, ...(await Promise.all(isIdClaimedArrPromise))]
+            message(`checked ${i + chunkSize} out of ${eligableUserIdsAmountsEntries.length} ids claimed status`)
+        }
+    } catch (error) {
+            
+        message(`got a error try running in a normal browser without metamask/inject ethereum \n error: ${error}`)
+        return 0
+        
+    }
+    message("")
+
+    const isIdClaimedObj = Object.fromEntries(eligableUserIdsAmountsEntries.map((x, index) => [x[0], isIdClaimedArr[index]]))
 
     //all eligible ids
     const eligibleIds = Object.keys(eligableIdsAmounts)
 
-    //seperate already claimed ids vs unclaimed from all eligable user ids (eligableUserIdsWithAmountsEntries)
-    const claimableUserIds = Object.fromEntries(eligableUserIdsWithAmountsEntries.filter((x)=>isIdClaimed[x[0]]===false))
-    const allClaimedUserIds = Object.fromEntries(eligableUserIdsWithAmountsEntries.filter((x)=>isIdClaimed[x[0]]===true))
-    
-    //filter out all user ids that never were eligable and set their amounts to 0
-    const ineligibleUserIds = Object.fromEntries((ids.filter((x)=>eligibleIds.indexOf(x)===-1)).map((x)=>[x,0]))
+    //seperate already claimed ids vs unclaimed from all eligable ids 
+    const claimableUserIds = Object.fromEntries(eligableUserIdsAmountsEntries.filter((x) => isIdClaimedObj[x[0]] === false))
+    const allClaimedUserIds = Object.fromEntries(eligableUserIdsAmountsEntries.filter((x) => isIdClaimedObj[x[0]] === true))
+
+    //filter out all ids that never were eligable and set their amounts to 0
+    const ineligibleUserIds = Object.fromEntries((allIds.filter((x) => eligibleIds.indexOf(x) === -1)).map((x) => [x, 0]))
 
     //result
     const idsByClaimableStatus = { ["claimable"]: claimableUserIds, ["claimed"]: allClaimedUserIds, ["ineligible"]: ineligibleUserIds }
     return idsByClaimableStatus
 }
-window.getClaimableStatus = getClaimableStatus
 
 async function loadMerkleBuilder() {
     console.log("started loading merkle tree")
@@ -257,6 +276,7 @@ async function claimSelected() {
     //get selected ids {nftAddr:[ids]}
     const selectedIdsEntries = window.nftDisplays.map((x)=>[x.collectionAddress,x.selection]).filter((x)=>x[1].length>0)
     const selectedIds = Object.fromEntries(selectedIdsEntries)
+    console.log(selectedIds)
 
     const amountIds = Object.keys(selectedIds).reduce((a, v) => a + selectedIds[v].length, 0)
     if (amountIds > 1) {
@@ -269,6 +289,7 @@ async function claimSelected() {
         message("claimed :)")
 
         //update display
+        clearIsClaimedIds(selectedIds)
         const selectedNftDisplays = window.nftDisplays.filter((display)=> nftAddresses.indexOf(display.collectionAddress)!==-1)
         refreshDisplay(selectedNftDisplays)
         displayUserAccountInfo()
@@ -380,6 +401,7 @@ async function displayNfts() {
         //display amount of token recieved
         display.divFunctions.push(displayTokens)
         const userIds = (await display.setIdsFromOwner(await window.userAddress))
+        console.log(userIds)
 
         //process user ids
         window.idsByClaimableStatus[nftAddr] =  await getClaimableStatus(userIds, window.idsPerCollection[nftAddr], nftAddr)
@@ -408,6 +430,15 @@ function getTotalDrop() {
         total = total.add(totalFromCollection)
     }
     return ethers.utils.formatEther(total.toString())
+}
+
+async function clearIsClaimedIds(idsPerNftAddr) {
+    for (const nftAddr in idsPerNftAddr) {
+        for (const id of idsPerNftAddr[nftAddr]) {
+            delete isClaimedCache[nftAddr][id]
+        }
+    }
+      
 }
 
 async function loadAllContracts() {
@@ -463,6 +494,7 @@ async function loadAllContracts() {
 
     //get all nft contracts
     window.allNftAddresses = Object.keys(window.idsPerCollection)
+    window.isClaimedCache = Object.fromEntries(window.allNftAddresses.map((x) => [x, {}]))
     window.selectedIds = {}
     
     //window.allEligibleIds = window.ipfsIndex.getIdsPerCollection()
