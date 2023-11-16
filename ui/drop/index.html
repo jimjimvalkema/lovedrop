@@ -111,33 +111,13 @@
         font-size: 1.4rem;
 
     }
+    input[type=checkbox] {
+        transform: scale(1.5);
+    }
 
-    /* .globalButtons {
-        font-size: 1.8rem;
-    } */
-
-    /* #walletConnectButton {
-        font-size: 2.5rem;
-        position: absolute; 
-        float: left; 
-        top: 0.3rem; 
-        right: 0.3rem; 
-
-
-    } */
 </style>
 
 <body>
-    <!-- <div class="globalButtons">
-        <button onclick="selectAll()">select all</button>
-        <button onclick="clearSelection()">clear selection</button>
-        <button onclick="claimSelected()">claim selected</button>
-    </div> -->
-    <!-- 
-    <div id="walletConnectButton" class="globalButtons">
-        <button onclick="connectSigner()">connect</button>
-    </div> -->
-
     <div id="dropInfo" class="text">
     </div>
     <div class="nftsInDrop" style="width: 100vw;">
@@ -151,25 +131,35 @@
         
         <div id="filter" class="dropdown-content" >
             <div>
-                <input type="checkbox" id="showUnclaimed" name="showUnclaimed" />
+                <input class="dropbtn" type="checkbox" id="showUnclaimed" name="showUnclaimed" />
                 <label for="showUnclaimed">show unclaimed only</label>
             </div>
             <div>
-                <input type="checkbox" id="showClaimed" name="showClaimed" />
+                <input class="dropbtn" type="checkbox" id="showClaimed" name="showClaimed" />
                 <label for="showClaimed">show claimed only</label>
             </div>
             <div>
-                <input type="checkbox" id="showEligible" name="showEligible" checked />
+                <input class="dropbtn" type="checkbox" id="showEligible" name="showEligible" checked />
                 <label for="showEligible">show eligible only</label>
             </div>
             <div>
-                <input type="checkbox" id="showAll" name="showAll" />
+                <input class="dropbtn" type="checkbox" id="showAll" name="showAll" />
                 <label for="showAll">show all</label>
             </div>
+            <div>
+                <input class="dropbtn" type="checkbox" id="displayId" name="displayId" />
+                <label for="displayId"></label>
+                <label step="1" for="idInput">display nft id: </label>
+                <input class="dropbtn" type="number" value="1" id="idInput" name="idInput" min="0"/>
+            </div>
         </div>
+
         <div id="nfts" style="width: 99vw;"></div>
 
+
+
     </div>
+
     <div id="loading" style="font-weight: bold; font-size: 3rem;"></div>
     
 </body>

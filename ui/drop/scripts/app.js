@@ -382,7 +382,6 @@ function toggleShow(elementId) {
 async function runOnLoad() {
     await connectProvider()
     document.getElementById("editFilterButton").onclick = () => toggleShow("filter")
-    document.getElementById("filter").onchange = (value) => console.log("value")
     console.log("hi :)")
     await loadAllContracts()
 }
@@ -393,6 +392,34 @@ const showEligible = document.querySelector("#showEligible");
 const showClaimed = document.querySelector("#showClaimed");
 const showUnclaimed = document.querySelector("#showUnclaimed");
 const showAll = document.querySelector("#showAll");
+const displayId = document.querySelector("#displayId")
+
+const idInput = document.getElementById("idInput")
+idInput.onchange =  displayIdinputId
+
+async function displayIdinputId() {
+    if (displayId.checked) {
+        const id = idInput.value
+        const currentDisplay = window.nftDisplays[window.currentNft]
+        currentDisplay.ids = [id]
+        currentDisplay.refreshPage()
+    }
+}
+
+displayId.addEventListener("change", () => {
+    if (displayId.checked) {
+        showUnclaimed.checked = false;
+        showClaimed.checked = false;
+        showEligible.checked = false;
+        showAll.checked = false;
+
+        const id = idInput.value
+        const currentDisplay = window.nftDisplays[window.currentNft]
+        currentDisplay.ids = [id]
+        currentDisplay.refreshPage()
+
+    }
+});
 
 
 
@@ -407,6 +434,7 @@ showEligible.addEventListener("change", () => {
         showUnclaimed.checked = false;
         showClaimed.checked = false;
         showAll.checked = false;
+        displayId.checked = false;
 
     }
 });
@@ -417,6 +445,7 @@ showClaimed.addEventListener("change", () => {
         showUnclaimed.checked = false;
         showAll.checked = false;
         showEligible.checked = false;
+        displayId.checked = false;
         showClaimedIds()
     }
 });
@@ -452,6 +481,7 @@ showUnclaimed.addEventListener("change", () => {
         showAll.checked = false;
         showClaimed.checked = false;
         showEligible.checked = false;
+        displayId.checked = false;
 
     }
 });
@@ -470,6 +500,7 @@ showAll.addEventListener("change", () => {
         showUnclaimed.checked = false;
         showClaimed.checked = false;
         showEligible.checked = false;
+        displayId.checked = false;
 
     }
 });
@@ -487,6 +518,7 @@ document.getElementById("collectionSelect").addEventListener("change", (event) =
     showUnclaimed.checked = false;
     showClaimed.checked = false;
     showAll.checked = false;
+    displayId.checked = false;
 });
 
 
