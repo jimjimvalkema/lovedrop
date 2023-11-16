@@ -374,9 +374,14 @@ export class NftDisplay {
         const existingImageRaster = document.getElementById(`imagesRaster-${this.collectionAddress}`)
 
         const newRasterDiv = await this.createImagesRaster(page)
-        existingImageRaster.replaceWith(newRasterDiv)
-
-        document.getElementById(`pageSelector-${this.collectionAddress}`).replaceWith(this.createPageSelector(page))
+        if(existingImageRaster){
+            existingImageRaster.replaceWith(newRasterDiv)
+        }
+        
+        const existingPageSelector = document.getElementById(`pageSelector-${this.collectionAddress}`)
+        if (existingPageSelector) {
+            existingPageSelector.replaceWith(this.createPageSelector(page))
+        }
 
        
 
@@ -500,7 +505,6 @@ export class NftDisplay {
     }
 
     #toggleSelect(id) {
-        console.log(id)
         const idIndex = this.selection.indexOf(id)
         let selectionStatusDiv = document.getElementById(`selectedStatus-${id}-${this.collectionAddress}`)
         if (idIndex===-1) {
@@ -511,6 +515,9 @@ export class NftDisplay {
             selectionStatusDiv.innerText = "not selected"
             selectionStatusDiv.style.backgroundColor = "rgba(0, 0, 0, 0.82)"
             this.selection.splice(idIndex,1)
+        }
+        if(this.onSelect) {
+            this.onSelect(id, this)
         }
 
     }

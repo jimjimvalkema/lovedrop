@@ -316,6 +316,7 @@ async function claimSelected() {
 
         //update display
         clearIsClaimedIds(selectedIds)
+        clearSelection()
         const selectedNftDisplays = window.nftDisplays.filter((display)=> nftAddresses.indexOf(display.collectionAddress)!==-1)
         refreshDisplay(selectedNftDisplays)
         displayUserAccountInfo()
@@ -335,6 +336,7 @@ async function claimSelected() {
 
         //update display
         clearIsClaimedIds(selectedIds)
+        clearSelection()
         const nftDisplay = window.allNftDisplays.find((display) => display.collectionAddress === nftAddr)
         refreshDisplay([nftDisplay])
         displayUserAccountInfo()
@@ -345,16 +347,33 @@ window.claimSelected = claimSelected
 
 async function clearSelection() {
     for (const nftDisplay of window.nftDisplays) {
-        nftDisplay.clearSelection()
+        await nftDisplay.clearSelection()
     }
+    window.selectedAmount = ethers.BigNumber.from(0)
+    const formattedAmount  =  new Intl.NumberFormat('en-EN').format(ethers.utils.formatEther( window.selectedAmount.toString()))
+    document.getElementById("amountSelected").innerHTML = `${formattedAmount} ${await window.ticker}  selected`
 }
 window.clearSelection = clearSelection
 
-function selectAll() {
+async function selectAll() {
+    await clearSelection()
     for (const nftDisplay of window.nftDisplays) {
         nftDisplay.selectAll()
-    }
+        const totalSelected = nftDisplay.selection.reduce(
+            (total, id) => {
+                if (window.idsPerCollection[nftDisplay.collectionAddress][id]) {
+                    const amount = ethers.BigNumber.from(window.idsPerCollection[nftDisplay.collectionAddress][id])
+                    return total.add(amount)
+                } else {
+                    return ethers.BigNumber.from(0)
+                }
 
+            },ethers.BigNumber.from(0)
+        );
+        window.selectedAmount = window.selectedAmount.add(totalSelected)
+    }
+    const formattedAmount  =  new Intl.NumberFormat('en-EN').format(ethers.utils.formatEther( window.selectedAmount.toString()))
+    document.getElementById("amountSelected").innerHTML = `${formattedAmount} ${await window.ticker}  selected`
 }
 window.selectAll = selectAll
 
@@ -403,6 +422,20 @@ async function refreshDisplay(displays) {
     }
 }
 
+window.selectedAmount = ethers.BigNumber.from(0)
+async function updateSelectedAmount(id, display) {
+    //TODO selectAll
+    console.log(id,display.collectionAddress)
+    if (display.selection.indexOf(id) === -1) {
+        const amountBigNum = ethers.BigNumber.from(window.idsPerCollection[display.collectionAddress][id])
+        window.selectedAmount = window.selectedAmount.sub(amountBigNum) 
+    } else {
+        const amountBigNum = ethers.BigNumber.from(window.idsPerCollection[display.collectionAddress][id])
+        window.selectedAmount = window.selectedAmount.add(amountBigNum) 
+    }   
+    const formattedAmount  =  new Intl.NumberFormat('en-EN').format(ethers.utils.formatEther( window.selectedAmount.toString()))
+    document.getElementById("amountSelected").innerHTML = `${formattedAmount} ${await window.ticker}  selected`
+}
 
 async function displayNfts() {
     while (!window.allNftDisplays) {
@@ -438,8 +471,11 @@ async function displayNfts() {
 
         //display nfts
         await display.createDisplay()
+        display.onSelect = updateSelectedAmount
         display.makeAllSelectable()
+
         window.nftDisplays.push(display)
+        document.getElementById(`selectedStatus-5540-${nftAddr}`)
     }
     document.getElementById("loading").innerText = ""
 }
@@ -469,6 +505,7 @@ async function clearIsClaimedIds(idsPerNftAddr) {
 }
 
 async function loadAllContracts() {
+
     document.getElementById("loading").innerText = "loading"
     window.urlVars = await getUrlVars();
     document.getElementById("dropInfo").innerHTML = `See all nfts: <a href=../drop/?lovedrop=${window.urlVars["lovedrop"]}>drop page</a>`
@@ -481,7 +518,7 @@ async function loadAllContracts() {
     
 
     //abis
-    const mildayDropAbi = await (await fetch("../abi/mildayDropAbi.json")).json()//update mildayDropAbi.json
+    const mildayDropAbi = await (await fetch("../abi/mildayDropAbi.json")).json()
     //const ERC721ABI = await (await fetch("../abi/ERC721ABI.json")).json()
     const ER20ABI = await (await fetch("../abi/ERC20ABI.json")).json()
 
@@ -502,7 +539,7 @@ async function loadAllContracts() {
     window.airdropTokenContract = new ethers.Contract(await mildayDropContract.airdropTokenAddress(), ER20ABI, window.provider)
     window.ticker = await window.airdropTokenContract.symbol()
 
-    await window.ticker
+    document.getElementById("amountSelected").innerHTML = `${0} ${await window.ticker}  selected`
     //TODO make "See all nfts" apear faster
     let dropInfo = document.getElementById("dropInfo")
     let totalSupply = (await window.airdropTokenContract).totalSupply()
@@ -539,3 +576,5 @@ async function runOnLoad() {
     connectSigner()
 }
 window.onload = runOnLoad;
+
+
