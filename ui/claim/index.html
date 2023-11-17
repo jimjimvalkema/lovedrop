@@ -47,15 +47,17 @@
     }
 
     #walletConnectButton {
-        text-align: right;
-        font-size: 2.5rem;
-        position: absolute; 
-        float: left; 
-        top: 0px; 
-        right: 0px; 
+        float: right;
+        font-size: 2rem;
+        position: absolute;
+        right: 0px;
+        top: 0px;
         padding: 5px;
-
-
+        width: 53vw;
+        align-items: right;
+        text-align: right;
+        background-color: #ffffff;
+        z-index: 10;
     }
 
     .titel {
@@ -71,23 +73,32 @@
         font-size: 1.2rem;
         overflow: hidden;
         text-overflow: ellipsis;
-        width: 13rem;
+        width: 11em;
+        float: right;
+        position: relative;
+        background-color: #ffffff;
+        z-index: 10;
 
     }
 
     #dropInfo {
-        font-size: 1.2rem;
-        margin-bottom: 3rem;
+        font-size: 1.6rem;
+        margin-bottom: 3.2rem;
+        width: 46vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
 </style>
 <body>
-    <div id="walletConnectButton" class="globalButtons">
-        <button onclick="connectSigner()">connect</button>
-        <div id="accountInfo" ></div>
-    </div>
+
 
     <div id="dropInfo"></div>
+    <div id="walletConnectButton">
+        <button onclick="connectSigner()">connect</button>
+        <div><div id="accountInfo" ></div></div>
+
+    </div>
 
 
 

@@ -71,11 +71,14 @@ async function resolveTillConnected() {
 }
 
 async function getAccountName(address) {
+    let ens
     try {
-        return await provider.lookupAddress(address);
-    } catch (error) {
-        //console.warn(error)
-        return address
+        ens =  await provider.lookupAddress(address);
+    } catch{}
+    if (ens) {
+        return ens
+    } else {
+        return address.slice(0,8)+".."
     }
 
 
@@ -85,7 +88,7 @@ window.getAccountName = getAccountName
 async function connectSigner() {
     // MetaMask requires requesting permission to connect users accounts
     if (!window.ethereum) {
-        message("no inject ethereum wallet found please install metamask or equivalant! \n\n\n If ur on metamask mobile and still see this message its because metamask sucks! try zerion or coinbase wallet")
+        message("no inject ethereum wallet found please install metamask or equivalant!")
         document.getElementById("loading").innerText = ""
         
         return 0
@@ -116,7 +119,6 @@ async function displayUserAccountInfo() {
     const balance = window.airdropTokenContract.balanceOf(window.userAddress)
     
     const allUserIds = Object.fromEntries(window.nftDisplays.map((x)=>[x.collectionAddress,x.ids]).filter((x)=>x[1].length))
-    console.log(allUserIds)
     const claimableAmount = getClaimableAmount(allUserIds)
 
 
@@ -302,7 +304,6 @@ async function claimSelected() {
     //get selected ids {nftAddr:[ids]}
     const selectedIdsEntries = window.nftDisplays.map((x)=>[x.collectionAddress,x.selection]).filter((x)=>x[1].length>0)
     const selectedIds = Object.fromEntries(selectedIdsEntries)
-    console.log(selectedIds)
 
     const amountIds = Object.keys(selectedIds).reduce((a, v) => a + selectedIds[v].length, 0)
     if (amountIds > 1) {
@@ -425,7 +426,6 @@ async function refreshDisplay(displays) {
 window.selectedAmount = ethers.BigNumber.from(0)
 async function updateSelectedAmount(id, display) {
     //TODO selectAll
-    console.log(id,display.collectionAddress)
     if (display.selection.indexOf(id) === -1) {
         const amountBigNum = ethers.BigNumber.from(window.idsPerCollection[display.collectionAddress][id])
         window.selectedAmount = window.selectedAmount.sub(amountBigNum) 
@@ -461,7 +461,6 @@ async function displayNfts() {
         //display amount of token recieved
         display.divFunctions.push(displayTokens)
         const userIds = (await display.setIdsFromOwner(await window.userAddress))
-        console.log(userIds)
 
         //process user ids
         window.idsByClaimableStatus[nftAddr] =  await getClaimableStatus(userIds, window.idsPerCollection[nftAddr], nftAddr)
