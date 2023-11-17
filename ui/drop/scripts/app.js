@@ -178,7 +178,6 @@ window.removeAllChildNodes = removeAllChildNodes
 async function displayNfts(nftAddress = null) {
     if(!nftAddress) {
         nftAddress = window.allNftAddresses[0]
-        console.log(nftAddress)
     }
 
     window.currentNft = nftAddress
@@ -286,13 +285,8 @@ async function addTokenToMetamask(tokenAddress, tokenSymbol, tokenDecimals, toke
         },
     });
 
-    // if (wasAdded) {
-    //     console.log('Thanks for your interest!');
-    // } else {
-    //     console.log('Your loss!');
-    // }
     } catch (error) {
-    console.log(error);
+        console.log(error);
     }
 }
 
@@ -305,7 +299,7 @@ async function loadAllContracts() {
 
     
     if (!window.urlVars["ipfsGateway"]) {
-        window.ipfsGateways = ["https://mypinata.cloud","http://127.0.0.1:48084","http://127.0.0.1:8080","https://ipfs.io"] //no grifting pls thank :)
+        window.ipfsGateways = ["https://.mypinata.cloud","http://127.0.0.1:48084","http://127.0.0.1:8080","https://ipfs.io"] //no grifting pls thank :)
     } else {
         window.ipfsGateways = [window.urlVars["ipfsGateway"]]
     }
@@ -418,17 +412,23 @@ displayId.addEventListener("change", () => {
         currentDisplay.ids = [id]
         currentDisplay.refreshPage()
 
+    }else {
+        displayId.checked = true
     }
 });
 
+function displayEligibleIds() {
+    let currentDisplay = window.nftDisplays[window.currentNft]
+    const eligibleIds = Object.keys(window.idsPerCollection[window.currentNft])
+    currentDisplay.ids = sortIdsByEligibility(eligibleIds, window.currentNft)
+    currentDisplay.refreshPage()
+
+}
 
 
 showEligible.addEventListener("change", () => {
     if (showEligible.checked) {
-        let currentDisplay = window.nftDisplays[window.currentNft]
-        const eligibleIds = Object.keys(window.idsPerCollection[window.currentNft])
-        currentDisplay.ids = sortIdsByEligibility(eligibleIds, window.currentNft)
-        currentDisplay.refreshPage()
+        displayEligibleIds()
 
         showEligible.checked = true;
         showUnclaimed.checked = false;
@@ -436,6 +436,8 @@ showEligible.addEventListener("change", () => {
         showAll.checked = false;
         displayId.checked = false;
 
+    }else {
+        showEligible.checked = true
     }
 });
 
@@ -447,6 +449,8 @@ showClaimed.addEventListener("change", () => {
         showEligible.checked = false;
         displayId.checked = false;
         showClaimedIds()
+    }else {
+        showClaimed.checked = true
     }
 });
 
@@ -483,6 +487,8 @@ showUnclaimed.addEventListener("change", () => {
         showEligible.checked = false;
         displayId.checked = false;
 
+    }else {
+        showUnclaimed.checked = true
     }
 });
 
@@ -502,6 +508,8 @@ showAll.addEventListener("change", () => {
         showEligible.checked = false;
         displayId.checked = false;
 
+    } else {
+        showAll.checked = true
     }
 });
 
@@ -511,8 +519,21 @@ document.getElementById("collectionSelect").addEventListener("change", (event) =
 
     // const eligibleIds = Object.keys(window.idsPerCollection[window.currentNft])
     // currentDisplay.ids = sortIdsByEligibility(eligibleIds, window.currentNft)
+    window.currentNft = event.target.value
+    //TODO cleaner fix
+    
+    if (window.currentNft in window.nftDisplays) {
+        let currentDisplay = window.nftDisplays[window.currentNft]
+        const eligibleIds = Object.keys(window.idsPerCollection[window.currentNft])
+        currentDisplay.ids = sortIdsByEligibility(eligibleIds, window.currentNft)
+        currentDisplay.createDisplay()
+        //displayEligibleIds()
+    } else {
+        displayNfts(window.currentNft)
+    }
+    
 
-    displayNfts(event.target.value)
+
     //currentDisplay.refreshPage()
     showEligible.checked = true;
     showUnclaimed.checked = false;
