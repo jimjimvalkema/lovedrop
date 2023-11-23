@@ -1,17 +1,16 @@
-import { uriHandler } from "./uriHandler.js";
+import {NftMetaDataCollector } from "./NftMetaDataCollector.js";
 import  {ethers} from "../scripts/ethers-5.2.esm.min.js"
 import { MerkleBuilder } from "./MerkleBuilder.js";
 import { IpfsIndexer } from "../scripts/IpfsIndexer.js";
-window.uriHandler = uriHandler
-
 
 
 if (window.ethereum) {
     window.provider = new ethers.providers.Web3Provider(window.ethereum);
 } else {
     console.log("couldn't connect to inject ethereum provide, connecting to external provicer")
-    window.provider = new ethers.providers.JsonRpcProvider('https://eth.llamarpc.com');
+    window.provider = new ethers.providers.JsonRpcProvider("https://mainnet.infura.io/v3/7a5afa71a9da4bb7a2a7d3b0f694c898")//'https://eth.llamarpc.com');
 }
+//ethers.providers.FallbackProvider("https://eth.llamarpc.com")
 
 //TODO remove
 const attr1 = { "trait_type": "Hat", "value": "cake hat" }
@@ -467,12 +466,14 @@ async function loadNft() {
 
     const nftAddressInput = ethers.utils.getAddress(document.getElementById("nftAddressAttributeSelector").value)
     console.log(nftAddressInput)
-    const nftContract = await getNftContract(provider, nftAddressInput);
-    console.log("nft contract", nftContract.address)
-    window.URI = await new uriHandler(nftContract, window.ipfsGateway,true, "./scripts/extraUriMetaDataFile.json", window.provider)
+    //const nftContract = await getNftContract(provider, nftAddressInput);
+    console.log("nft contract",nftAddressInput)
+    console.log("hardcoded gateway: http://127.0.0.1:48084")
+    window.URI = await new NftMetaDataCollector(nftAddressInput, window.provider, "http://127.0.0.1:48084",true)
     window.baseURI = await window.URI.getBaseURI()
     let fullUrl = "nonstandard tokenURI function TODO"
-    if (!(await window.URI.extraUriMetaData).everyAttributeCbor && !(await window.URI.extraUriMetaData).everyAttribute  && (!localStorage.hasOwnProperty(window.URI.contractObj.address))) {
+    console.log(URI.contractObj.address)
+    if( !window.URI.extraUriMetaData || !("everyAttributeCbor" in window.URI.extraUriMetaData) && !("everyAttribute" in window.URI.extraUriMetaData)  && (!localStorage.hasOwnProperty(window.URI.contractObj.address))) {
         
         let comment = "note: fetching large amount of data from external providers can cause rate limiting"
         if(window.baseURI !== undefined) {
@@ -632,6 +633,7 @@ async function getFilterBuilderUi(URI,fullUrl="") {
     document.getElementById("message").innerHTML = `this may take between 1min to 10min</br> fetching from ${fullUrl}
     <div id='messageProgress'></div>`
     await URI.fetchAllExtraMetaData()
+    await URI.buildIdsPerAttributeFromUriCache()
     console.log(URI.uriCache)
     
     window.fBuilder = await new FilterBuilder(window.URI, structuredClone([window.emptyFilter,f1,f2, window.BlueHair, window.BlueEyesAndHair]))
@@ -664,7 +666,6 @@ async function runOnLoad() {
     // base = u.host+u.pathname
     window.mildayDropFactoryAbiFile = await fetch('./abi/MiladayDropFactoryAbi.json');
     console.log(await (await fetch('./abi/mildayDropAbi.json')).json())
-    console.log(window)
     window.mildayDropAbiFile = await fetch('./abi/mildayDropAbi.json');
     let ERC721ABIFile = await fetch('./abi/ERC721ABI.json');
     let ERC20ABIFile = await fetch('./abi/ERC20ABI.json');

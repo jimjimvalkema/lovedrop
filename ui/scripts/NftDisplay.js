@@ -452,7 +452,13 @@ export class NftDisplay {
 
 
         Promise.all(idsCurrentPage.map((id)=>this.nftMetaData.getImage(id))).then((imageUrls)=>{
-            imgElements.forEach((img,index) => {img.src= imageUrls[index]});
+            imgElements.forEach((img,index) => {
+                img.src= imageUrls[index]
+                if(imageUrls[index].startsWith(this.ipfsGateway)){
+                    img.crossOrigin="anonymous"
+                }
+            });
+            
         })
 
         return allImagesDiv

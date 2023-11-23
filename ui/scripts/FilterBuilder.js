@@ -19,9 +19,12 @@ class FilterBuilder {
         this.OpenSeaKey = _OpenSeaKey
         this.uriHandler = uriHandler;
         this.nftAddr = this.uriHandler.contractObj.address
-        this.isTest = this.uriHandler.extraUriMetaData.isTest
+        if(this.uriHandler.extraUriMetaData){
+            this.isTest = this.uriHandler.extraUriMetaData.isTest
+        }
+
         //TODO maybe do this at urihandle before it is saved to ipfs/local storage
-        this.sortEveryAttribute(this.uriHandler.everyAttribute)
+        //this.sortEveryAttribute(this.uriHandler.everyAttribute)
         //TODO needs deep copy?
         if (localStorage.getItem(`allFilters-${this.nftAddr}`) !== null) {
             this.allFilters = JSON.parse(localStorage.getItem(`allFilters-${this.nftAddr}`))
@@ -32,12 +35,12 @@ class FilterBuilder {
             }
 
         }
-        this.allAtribute
+        //this.allAtribute
     }
 
 
-    //TODO put this in uriHandler before it saves it to storage/ipfs
-    sortEveryAttribute(everyAttribute=this.URIHandler.everyAttribute) {
+    //TODO remove this. Keys are always sorted in javascript silly!
+    sortEveryAttribute(everyAttribute=this.URIHandler.idsPerAttribute) {
         for (const attrType in everyAttribute) {
             const sortedKeys = Object.keys(everyAttribute[attrType]["attributes"]).sort(
                 (a,b)=>
@@ -231,7 +234,7 @@ class FilterBuilder {
     setInputSelectorField(target) {
         switch (target[target.length - 1]) {
             case "attributes":
-                document.getElementById("inputSelectorField").innerHTML = this.getTraitTypeMenu(this.uriHandler.everyAttribute, "max-height: 30vh;margin-left:10ch;", window.currentTarget)
+                document.getElementById("inputSelectorField").innerHTML = this.getTraitTypeMenu(this.uriHandler.idsPerAttribute, "max-height: 30vh;margin-left:10ch;", window.currentTarget)
                 break
             case "idList":
                 document.getElementById("inputSelectorField").innerHTML = `add nft id:<input onchange='fBuilder.addIdUi(${this.currentFilterIndex},this.value, ${JSON.stringify(window.currentTarget)})' type="number" id="idInput" name="id" min="${this.uriHandler.idStartsAt}" max="${this.uriHandler.getTotalSupply()}"/></br>TODO make comma+space separated input` //min="10" max="100" />`
@@ -834,7 +837,7 @@ toggle between hiding and showing the dropdown content */
     }
 
 
-    getAllTraitsMenu(traitType, target = ["inputs", "attributes"], everyAttribute = this.uriHandler.everyAttribute) {
+    getAllTraitsMenu(traitType, target = ["inputs", "attributes"], everyAttribute = this.uriHandler.idsPerAttribute) {
         const traitTypeKey = this.uriHandler.attributeFormat.traitTypeKey
         const valueKey = this.uriHandler.attributeFormat.valueKey
 
@@ -882,7 +885,7 @@ toggle between hiding and showing the dropdown content */
         }
     }
 
-    getTraitTypeMenu(everyAttribute = this.uriHandler.everyAttribute, style = "", target = ["inputs", "attributes"]) {
+    getTraitTypeMenu(everyAttribute = this.uriHandler.idsPerAttribute, style = "", target = ["inputs", "attributes"]) {
 
         let html = ""
         const keys = Object.keys(everyAttribute)

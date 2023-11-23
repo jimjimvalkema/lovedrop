@@ -956,16 +956,16 @@ export class NftMetaDataCollector {
 
     async buildIdsPerAttributeFromUriCache(uriCache, keepIds = true) {
 
-        if (!uriCache || !uriCache.length) {
-            uriCache = await this.syncUriCache()
+        if (!this.uriCache || !this.uriCache.length) {
+            this.uriCache = await this.syncUriCache()
         }
-        this.totalSupply = uriCache.length - 1
+        this.totalSupply = this.uriCache.length - 1
 
         let idsPerAttribute = {}
-        const uriKeys = Object.keys(uriCache).map(((x) => parseInt(x)));
+        const uriKeys = Object.keys(this.uriCache).map(((x) => parseInt(x)));
 
-        for (let id = 0; id < uriCache.length; id++) {
-            const metaData = uriCache[id]
+        for (let id = 0; id < this.uriCache.length; id++) {
+            const metaData = this.uriCache[id]
             if ("attributes" in metaData) {//uricache somtimes gets empty results from nft with broken max supplies like jay peg automart smh
                 for (const attr of metaData.attributes) {
                     const traitType = attr[this.attributeFormat.traitTypeKey]
@@ -1022,11 +1022,13 @@ export class NftMetaDataCollector {
                 }
 
             }
-            if (uriCache[id] === undefined) { //if undefined means totalsupply on contract is wrong
+            if (this.uriCache[id] === undefined) { //if undefined means totalsupply on contract is wrong
 
                 this.totalSupply = id - 1
             }
         }
+        console.log(idsPerAttribute)
+        this.idsPerAttribute = idsPerAttribute
         return idsPerAttribute
 
     }
