@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<style>
+    body {
+        display: grid;
+        grid-gap: 1em;
+        
+        grid-template-rows: auto auto auto;
+        grid-template-columns: 1fr 1fr 1fr auto ;
+
+        grid-template-areas: 
+            "aidropToken . . totalsDisplay"
+            "filterEditor  filterEditor filterEditor filterEditor"
+            "filterInputEditor filterInputEditor filterInputEditor filterInputEditor"
+        ;
+    }
+
+    .bold {
+        font-weight: bold;
+    }
+
+    * {
+        font-family: Arial;
+        font-size: large;
+    }
+
+    .nftImagesFilter {
+        /*darkens the image so tokenDisplay is easier to read*/
+        position: absolute;
+        bottom: 0px;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.1);
+        z-index: 1;
+    }
+
+    .tokenDisplay {
+        position: absolute; 
+        float: top-right; 
+        top: 1.5rem; 
+        right: 0.12rem; 
+        font-size: 1.7rem; 
+        font-weight: bold; 
+        -webkit-text-fill-color: #ffffff; 
+        -webkit-text-stroke-width: 0.1rem; 
+        -webkit-text-stroke-color: #000000;
+        z-index: 3;
+
+    }
+
+    .nftdisplayInfo {
+        font-size: 1.7rem;
+    }
+
+
+    #loading {
+        font-size: 1.8rem;
+        font-weight: bold;
+    }
+
+    .nftName {
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+        position: relative;
+        font-size: 1.2rem;
+        text-align: center;
+        color: #000000;
+        font-weight: bold;
+        background-color: #ffffff;
+        width: 100%;
+        z-index: 2;
+    }
+
+    .addressInput {
+        width: 10em;
+        text-overflow: ellipsis;
+        }
+
+    .address {
+        display:inline-block;
+        width: 10em;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+
+    #aidropToken {
+        grid-area: aidropToken;
+        border: solid;
+    }
+
+    #criteriaManager {
+        grid-area: criteriaManager;
+        border: solid;
+    }
+
+    #totalsDisplay {
+        text-align: right;
+        grid-area: totalsDisplay;
+        border: solid;
+    }
+
+    #filterEditor {
+        grid-area: filterEditor;
+        border: solid;
+        display: grid;
+        grid-gap: 1em;
+        
+        grid-template-rows: auto auto;
+        grid-template-columns: 14em auto auto auto;
+        grid-template-areas: 
+            "criteriaManager . . totalscriteria"
+            "filterselector filterInputs filterInputs  filterInputs"
+            "filterInputSelecter nftDisplay nftDisplay nftDisplay"
+        ;
+        
+
+    }
+
+    #totalscriteria{
+        grid-area: totalscriteria;
+        border: solid;
+        text-align: right;
+    }
+    
+    #filterselector {
+        grid-area: filterselector;
+        border: solid;
+    }
+
+    #filterInputs{
+        grid-area: filterInputs;
+
+        text-align: right;
+
+        display: grid;
+        grid-gap: 1em;
+        
+        grid-template-rows: auto;
+        grid-template-columns: max-content max-content auto ;
+        grid-template-areas: 
+        "filterIncludedInputs filterExcludedInputs ."
+        ;
+
+
+    }
+    #filterIncludedInputs {
+        grid-area: filterIncludedInputs;
+        border: solid;
+        height: 100%;
+    }
+    #filterExcludedInputs {
+        grid-area: filterExcludedInputs;
+        border: solid;
+        height: 100%;
+    }
+
+
+    #filterInputEditor {
+
+    }
+
+
+    #filterInputSelecter {
+        grid-area: filterInputSelecter;
+        display: grid;
+        grid-gap: 1em;
+        border: solid;
+        grid-template-rows: max-content auto;
+        grid-template-columns: auto;
+        
+    }
+
+    #nftDisplay {
+        grid-area: nftDisplay;
+        border: solid;
+
+        display: grid;
+        grid-gap: 1em;
+        
+        grid-template-columns: repeat(5,auto);
+        grid-template-rows: repeat(3,auto);
+        
+    }
+
+    .tempBox {
+        border: solid;
+    }
+
+    .nftImage {
+        max-width: 100%; 
+        vertical-align: top;
+    }
+
+    .nameInput {
+        width: 5em;
+    }
+
+    .amountTokenInput{
+        width: 5em;
+        text-overflow: ellipsis;
+    }
+
+
+
+
+
+</style>
+
+<body>
+    <div id="aidropToken">
+        <div id="airdropTokenInfo" class="airdropTokenInfo">
+            TokenName: <span id="tokenName" class="airdropTokenInfo">TOKENNAME</span> 
+            <br>
+            Ticker: <span id="ticker">TICKER</span> 
+            <br>
+            Token contract: <a id="tokenContractHref" class="address" href="https://etherscan.io/address/0x3AEC26bf9FEDba55a55e970504f439101AbD7327">0x3AEC26bf9FEDba55a55e970504f439101AbD7327</a> (TODO padding)
+            <br>
+        </div>
+            <label>Set airdrop token:  <input class="addressInput" id="airdropTokenContractAddressInput" type="text" value="0x3AEC26bf9FEDba55a55e970504f439101AbD7327" placeholder="contract address"></input></label>
+    </div>
+
+    <div id="totalsDisplay">
+        Total airdrop: <span id="totalAirdrop">100.000</span> <span id="ticker">TICKER</span>
+        <br>
+        Totalsupply: <span id="totalsupply">69,690,690</span> <span id="ticker">TICKER</span>
+    </div>
+
+    <div id="filterEditor">
+        <div id="criteriaManager">
+            <label for="criteriaselectorInput">edit:</label>
+            <select name="criteriaselectorInput" id="criteriaselectorInput">
+                <option value="">criteria#1</option>
+                <option value="">new</option>
+            </select>
+            <br>
+
+            <label for="criteriaFilterSelectorInput">set filter:</label>
+            <select name="criteriaFilterSelectorInput" id="criteriaFilterSelectorInput">
+                <option value="">filter#1</option>
+            </select>
+            <button>edit</button>
+            <br>
+    
+            <label> <span id="ticker">TICKER</span>  per item: <input class="amountTokenInput" id="amountPerNftInput" type="number" value="1000000"></input></label>
+            
+        </div>
+
+        <div id="totalscriteria">
+            <span id="selectedcriteriaName">criteria#1</span> uses the result of
+            <span id="currentFilter"> filter#1 </span> with 
+            <span id="amountItemsCurrentFilter"> 100</span> nfts.
+            <br>
+            Each nft will recieve <span id="currentcriteriaAmountPerItem">1.000</span> <span id="ticker">TICKER</span>.
+            <br>
+            Total tokens <span id="selectedcriteriaName">criteria#1</span>: <span id="selectedcriteriaTotal"> 100.000 <span id="ticker">TICKER</span>.
+            <br>
+        </div>
+
+
+        <div id="filterInputSelecter">
+            <div id="inputTypeSelecter">
+                <select name="inclusionSelectionInput" id="inclusionSelectionInput">
+                    <option value="attribute">include</option>
+                    <option value="id">exclude</option>
+                </select>
+
+                <select name="inputTypeSelecterInput" id="inputTypeSelecterInput">
+                    <option value="attribute">attribute</option>
+                    <option value="id">id</option>
+                    <option value="filter">filter</option>
+                </select>
+            </div>
+            <div id="inputSelecter">
+                <button>background</button><br>
+                <button>race</button><br>
+                <button>hat</button><br>
+                <button>shirt</button><br>
+                <button>etc</button><br>
+                <button>etc</button><br>
+            </div>
+        </div>
+
+        <div id="filterselector">
+            <label>filter name:  <input class="nameInput" id="filterNameInput" type="text" value="filter#1" placeholder="set filter name"></input></label>
+            <br>
+
+            <label for="filterselectorInput">select filter:</label>
+            <select name="filterselectorInput" id="filterselectorInput">
+                <option value="">filter#1</option>
+                <option value="">new</option>
+            </select>
+            <br>
+
+            <label for="filterTypeselectorInput">set type:</label>
+            <select name="filterselectorInput" id="filterselectorInput">
+                <option value="AND">AND</option>
+                <option value="OR">OR</option>
+                <option value="RANGE">RANGE</option>
+            </select>
+            <br>
+        </div>
+
+        <div id="filterInputs">
+            <div id="filterIncludedInputs">
+                <span class="bold">Included</span>
+                <div id="includedInputsEditor">
+                    Attributes: <span id="attributesIncludedAmount">1</span> items <button>edit</button>
+                    <br>
+                    IDS: <span id="idsIncludedAmount">0</span> items <button>edit</button>
+                    <br>
+                    Filters: <span id="filtersIncludedAmount">1</span> items <button>edit</button>
+                </div> 
+            </div>
+
+        
+            <div id="filterExcludedInputs">
+                <span class="bold">Excluded</span>
+                <div id="ExcludedInputsEditor">
+                    Attributes: <span id="attributesExcludedAmount">0</span> items <button>edit</button>
+                    <br>
+                    IDS: <span id="idsExcludedAmount">0</span> items <button>edit</button>
+                    <br>
+                    Filters: <span id="filtersExcludedAmount">0</span> items <button>edit</button>
+                </div> 
+            </div>
+        </div>
+
+    
+
+
+
+        <div id="nftDisplay">
+            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div>
+            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+             
+            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div>
+            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+            
+            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div>
+            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+            
+        
+        </div>
+
+
+    </div>
+
+
+    
+</body>
+<script type="module" src="./scripts/app.js" type="application/javascript"></script>
