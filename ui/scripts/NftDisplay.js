@@ -250,29 +250,6 @@ export class NftDisplay {
         //To make sure function resolves when all are applied
         allResults = await Promise.all(allResults)
     }
-
-    /**
-     * Creates a border div to wrap images to create a raster with even thickness.
-     * Doesn't cover the left of the raster to make sizing math easier. 
-     * @param {number} id 
-     * @param {number} index 
-     * @param {string} borderWidth 
-     * @param {string} borderColor 
-     * @param {string} collectionAddress 
-     * @returns 
-     */
-    #createBorderDiv(id, index,borderWidth, borderColor, rowSize, collectionAddress=this.collectionAddress) {
-        let imgBorderDiv = document.createElement("div")
-        imgBorderDiv.style = `border-bottom: solid; border-right: solid;`
-        imgBorderDiv.id = `borderDiv-${id}-${collectionAddress}`
-
-        if (index < rowSize) {
-            imgBorderDiv.style.borderTop = "solid"
-        } 
-        imgBorderDiv.style.borderWidth = borderWidth
-        imgBorderDiv.style.borderColor = borderColor
-        return imgBorderDiv
-    }
     
     /**
      * fetches contract name and address 
@@ -422,7 +399,18 @@ export class NftDisplay {
         
 
         let allImagesDiv = document.createElement("div")
-        allImagesDiv.style=`width: 100%; border-left: solid; border-width: ${borderWidth}; border-color: ${borderColor}`
+        allImagesDiv.style= `
+        display: grid;
+        grid-template-columns: repeat(${rowSize},1fr);
+        grid-template-rows: repeat(${amountRows},1fr);
+
+        background-color: black;
+        grid-gap: 0.5vb;
+
+        border: black;
+        border-style: solid;
+        border-width: 0.5vb;
+        `//`width: 100%; border-left: solid; border-width: ${borderWidth}; border-color: ${borderColor}`
         allImagesDiv.id = `imagesRaster-${this.collectionAddress}`
 
         let imgElements = []
@@ -435,18 +423,16 @@ export class NftDisplay {
             
             let imgRootDiv =  document.createElement("div")
             imgRootDiv.id = `rootDiv-${id}-${this.collectionAddress}`
-            imgRootDiv.style = `width: ${imageWidth}%; position: relative; display: inline-block;`
+            imgRootDiv.style = `max-width: 100%;`//`width: ${imageWidth}%; position: relative; display: inline-block;`
             imgRootDiv.className = "nftImagesDiv"
 
             let imageDiv = document.createElement("div")
             imageDiv.id = `imageDiv-${id}-${this.collectionAddress}`
             imageDiv.style.position = "relative"
-
-            const imgBorderDiv = this.#createBorderDiv(id,index,borderWidth,borderColor,rowSize,this.collectionAddress)
             
             imageDiv.append(img)
-            imgBorderDiv.append(imageDiv)
-            imgRootDiv.append(imgBorderDiv)
+            //imgBorderDiv.append(imageDiv)
+            imgRootDiv.append(imageDiv)
             allImagesDiv.append(imgRootDiv)
         }
 
