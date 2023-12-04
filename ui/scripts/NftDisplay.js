@@ -396,6 +396,7 @@ export class NftDisplay {
         const maxPerPage = rowSize*amountRows
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
         const imageWidth = Math.floor(100/(rowSize))
+        const minTotalWidth = `${10*rowSize}ch`
         
 
         let allImagesDiv = document.createElement("div")
@@ -410,6 +411,8 @@ export class NftDisplay {
         border: black;
         border-style: solid;
         border-width: 0.5vb;
+
+        min-width: ${minTotalWidth}
         `//`width: 100%; border-left: solid; border-width: ${borderWidth}; border-color: ${borderColor}`
         allImagesDiv.id = `imagesRaster-${this.collectionAddress}`
 
