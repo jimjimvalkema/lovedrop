@@ -383,18 +383,20 @@ export class NftDisplay {
      * 
      * @param {number} currentPage 
      * @param {number} rowSize 
-     * @param {number} amountRows 
+     * @param {number} maxAmountRows 
      * @param {number[]} ids 
      * @param {string} borderWidth 
      * @param {string} borderColor 
      * @returns 
      */
-    async createImagesRaster(currentPage=this.currentPage, rowSize=this.rowSize, amountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor) {
+    async createImagesRaster(currentPage=this.currentPage, rowSize=this.rowSize, maxAmountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor) {
         //hacky way to preload the base uri
         await this.nftMetaData.getBaseURI()
 
-        const maxPerPage = rowSize*amountRows
+
+        const maxPerPage = rowSize*maxAmountRows
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
+        const realAmountRows = Math.ceil(idsCurrentPage.length/rowSize)
         const imageWidth = Math.floor(100/(rowSize))
         const minTotalWidth = `${10*rowSize}ch`
         
@@ -403,7 +405,7 @@ export class NftDisplay {
         allImagesDiv.style= `
         display: grid;
         grid-template-columns: repeat(${rowSize},1fr);
-        grid-template-rows: repeat(${amountRows},1fr);
+        grid-template-rows: repeat(${realAmountRows},1fr);
 
         background-color: black;
         grid-gap: 0.5vb;
@@ -414,6 +416,11 @@ export class NftDisplay {
 
         min-width: ${minTotalWidth}
         `//`width: 100%; border-left: solid; border-width: ${borderWidth}; border-color: ${borderColor}`
+
+        if (realAmountRows>1) {
+            allImagesDiv.style.borderBottomStyle = "hidden"
+
+        }
         allImagesDiv.id = `imagesRaster-${this.collectionAddress}`
 
         let imgElements = []
@@ -426,17 +433,28 @@ export class NftDisplay {
             
             let imgRootDiv =  document.createElement("div")
             imgRootDiv.id = `rootDiv-${id}-${this.collectionAddress}`
-            imgRootDiv.style = `max-width: 100%;`//`width: ${imageWidth}%; position: relative; display: inline-block;`
+            imgRootDiv.style = `width: 100%; height: 100%`//`width: ${imageWidth}%; position: relative; display: inline-block;`
             imgRootDiv.className = "nftImagesDiv"
 
             let imageDiv = document.createElement("div")
             imageDiv.id = `imageDiv-${id}-${this.collectionAddress}`
-            imageDiv.style.position = "relative"
+            imageDiv.style = `position: relative; width: 100%; height: 100%`
             
             imageDiv.append(img)
             //imgBorderDiv.append(imageDiv)
             imgRootDiv.append(imageDiv)
             allImagesDiv.append(imgRootDiv)
+        }
+
+
+        const emptyItems = rowSize - idsCurrentPage.length%rowSize
+        console.log(emptyItems)
+        if (emptyItems) {
+            for (let index = 0; index < emptyItems; index++) {
+                const emptyDiv = document.createElement("div")
+                emptyDiv.style = `width: 100%; background-color: white; margin: 0.5vb;`
+                allImagesDiv.append(emptyDiv)
+            }
         }
 
 
