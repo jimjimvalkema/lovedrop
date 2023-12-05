@@ -407,12 +407,12 @@ export class NftDisplay {
         grid-template-columns: repeat(${rowSize},1fr);
         grid-template-rows: repeat(${realAmountRows},1fr);
 
-        background-color: black;
-        grid-gap: 0.5vb;
+        background-color: #101010;
+        grid-gap: 0.3vi;
 
         border: black;
         border-style: solid;
-        border-width: 0.5vb;
+        border-width: 0.3vi;
 
         min-width: ${minTotalWidth}
         `//`width: 100%; border-left: solid; border-width: ${borderWidth}; border-color: ${borderColor}`
@@ -452,7 +452,13 @@ export class NftDisplay {
         if (emptyItems) {
             for (let index = 0; index < emptyItems; index++) {
                 const emptyDiv = document.createElement("div")
-                emptyDiv.style = `width: 100%; background-color: white; margin: 0.5vb;`
+                emptyDiv.style = `
+                position: relative; 
+                width: 104%; 
+                height: 104%;
+                background-color: white; 
+                z-index:2;
+                `
                 allImagesDiv.append(emptyDiv)
             }
         }
