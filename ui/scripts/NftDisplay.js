@@ -24,6 +24,7 @@ export class NftDisplay {
 
     ipfsGateway;
 
+
     collectionInfoCssClass = "nftdisplayInfo"
 
     /**
@@ -32,11 +33,23 @@ export class NftDisplay {
      * @param {ethers.providers} provider 
      * @param {string} targetDivId 
      * @param {number[]} ids 
+     * @param {string} ipfsGateway
+     * @param {NftMetaDataCollector} nftMetaData
      */
-    constructor(collectionAddress,provider, targetDivId="", ids=[], ipfsGateway = "https://ipfs.io", landscapeOrientation = {["rowSize"]:6,["amountRows"]:2}, portraitOrientation = {["rowSize"]:4,["amountRows"]:3}) {
+    constructor(
+        collectionAddress,provider, targetDivId="", ids=[], ipfsGateway = "https://ipfs.io", 
+        landscapeOrientation = {["rowSize"]:6,["amountRows"]:2}, 
+        portraitOrientation = {["rowSize"]:4,["amountRows"]:3},
+        nftMetaData
+    ) {
         this.ipfsGateway = ipfsGateway
         this.collectionAddress = collectionAddress
-        this.nftMetaData = new NftMetaDataCollector(collectionAddress,provider,this.ipfsGateway)
+        if (!nftMetaData) {
+            this.nftMetaData = new NftMetaDataCollector(collectionAddress,provider,this.ipfsGateway)
+        } else {
+            this.nftMetaData = nftMetaData
+        }
+        
         this.ids = ids
         this.targetDivId = targetDivId
 
@@ -46,6 +59,17 @@ export class NftDisplay {
         this.changeOnRotate()
 
         
+    }
+
+    setCollectionAddress(collectionAddress) {
+        this.collectionAddress = collectionAddress
+        this.nftMetaData = new NftMetaDataCollector(this.collectionAddress,provider,this.ipfsGateway)
+        this.clear()
+    }
+
+    setNftMetaDataCollector(nftMetaData) {
+        this.nftMetaData = nftMetaData
+        this.clear()
     }
 
     setImageRasterOrientation(landscape=this.landscapeOrientation ,portrait=this.portraitOrientation ) {
@@ -368,7 +392,7 @@ export class NftDisplay {
         }
 
         if (this.divFunctions.length>0) {
-            await this.#applyDivFuntionsOnCurrentIds(this.divFunctions,this.ids,this.currentPage)
+            //await this.#applyDivFuntionsOnCurrentIds(this.divFunctions,this.ids,this.currentPage)
         }
         
 
@@ -398,47 +422,51 @@ export class NftDisplay {
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
         const realAmountRows = Math.ceil(idsCurrentPage.length/rowSize)
         const imageWidth = Math.floor(100/(rowSize))
-        const minTotalWidth = `${10*rowSize}ch`
+        const minTotalWidth = `${9.4*rowSize}ch`
         
 
         let allImagesDiv = document.createElement("div")
         allImagesDiv.style= `
         display: grid;
+        margin: 0.2em;
+        min-height: 0;
+    
+        
         grid-template-columns: repeat(${rowSize},1fr);
-        grid-template-rows: repeat(${realAmountRows},1fr);
-
+        grid-template-rows: repeat(${realAmountRows}, 1fr);
+        
         background-color: #101010;
-        grid-gap: 0.3vi;
+        grid-gap: max(2px, 0.25vi);
 
         border: black;
         border-style: solid;
-        border-width: 0.3vi;
-
-        min-width: ${minTotalWidth}
+        border-width: max(2px, 0.25vi);
+        
+        min-width: ${minTotalWidth};
+        max-height: 100%;
+        height: fit-content;
+        
+       
         `//`width: 100%; border-left: solid; border-width: ${borderWidth}; border-color: ${borderColor}`
 
-        if (realAmountRows>1) {
-            allImagesDiv.style.borderBottomStyle = "hidden"
-
-        }
-        allImagesDiv.id = `imagesRaster-${this.collectionAddress}`
+  
 
         let imgElements = []
         for (const [index, id] of idsCurrentPage.entries()) {
             const img = document.createElement("img")
             img.id = `img-${id}-${this.collectionAddress}`
-            img.style = `max-width: 100%; vertical-align: top;`
+            img.style = `width: 100%; vertical-align: top;`
 
             imgElements.push(img)
             
             let imgRootDiv =  document.createElement("div")
             imgRootDiv.id = `rootDiv-${id}-${this.collectionAddress}`
-            imgRootDiv.style = `width: 100%; height: 100%`//`width: ${imageWidth}%; position: relative; display: inline-block;`
+            imgRootDiv.style = ` overflow: hidden;`//`width: ${imageWidth}%; position: relative; display: inline-block;`
             imgRootDiv.className = "nftImagesDiv"
 
             let imageDiv = document.createElement("div")
             imageDiv.id = `imageDiv-${id}-${this.collectionAddress}`
-            imageDiv.style = `position: relative; width: 100%; height: 100%`
+            imageDiv.style = `overflow: hidden;`
             
             imageDiv.append(img)
             //imgBorderDiv.append(imageDiv)
@@ -446,22 +474,34 @@ export class NftDisplay {
             allImagesDiv.append(imgRootDiv)
         }
 
-
-        const emptyItems = rowSize - idsCurrentPage.length%rowSize
+        const remainder = idsCurrentPage.length%rowSize
+        let emptyItems = 0
+        if (remainder) {
+            emptyItems = rowSize - remainder
+            
+        } 
         console.log(emptyItems)
         if (emptyItems) {
             for (let index = 0; index < emptyItems; index++) {
                 const emptyDiv = document.createElement("div")
                 emptyDiv.style = `
                 position: relative; 
-                width: 104%; 
-                height: 104%;
-                background-color: white; 
+                width: 103%; 
+                height: 105%;
+                background-color: Canvas; 
                 z-index:2;
                 `
+                if (realAmountRows===1) {
+                    emptyDiv.style.top = "min(-2px, -0.25vi)"
+
+                }
                 allImagesDiv.append(emptyDiv)
             }
+            
+
         }
+
+        allImagesDiv.id = `imagesRaster-${this.collectionAddress}`
 
 
         Promise.all(idsCurrentPage.map((id)=>this.nftMetaData.getImage(id))).then((imageUrls)=>{
@@ -512,13 +552,14 @@ export class NftDisplay {
 
     
 
-        this.#applyDivFuntionsOnCurrentIds()
+        //this.#applyDivFuntionsOnCurrentIds()
         this.#addOnclickFunctionToCurrentImages()
     }
 
     clear(){
         if(document.getElementById(this.targetDivId).innerHTML) {
             this.#removeAllDivImageFromRootElement()
+            this.#cancelLoadingImages()
             document.getElementById(this.targetDivId).innerHTML = ""
         }
     }
