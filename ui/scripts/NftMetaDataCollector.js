@@ -80,9 +80,10 @@ export class NftMetaDataCollector {
         _provider,
         _ipfsGateway = "https://ipfs.io",
         _customCompressedImages = true
-        )
+    )
         
-        {
+    {
+        _contractAddr = ethers.utils.getAddress(_contractAddr)
         this.contractObj = new ethers.Contract(_contractAddr, ERC721ABI, _provider);;
         this.ipfsGateway = _ipfsGateway;
         this.useCustomCompressedImages = _customCompressedImages;

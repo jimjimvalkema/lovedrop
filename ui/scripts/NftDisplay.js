@@ -37,10 +37,10 @@ export class NftDisplay {
      * @param {NftMetaDataCollector} nftMetaData
      */
     constructor(
-        collectionAddress,provider, targetDivId="", ids=[], ipfsGateway = "https://ipfs.io", 
+        {collectionAddress,provider, targetDivId="", ids=[], ipfsGateway = "https://ipfs.io", 
         landscapeOrientation = {["rowSize"]:6,["amountRows"]:2}, 
         portraitOrientation = {["rowSize"]:4,["amountRows"]:3},
-        nftMetaData
+        nftMetaData}
     ) {
         this.ipfsGateway = ipfsGateway
         this.collectionAddress = collectionAddress

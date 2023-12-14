@@ -69,22 +69,23 @@ async function runOnLoad() {
 }
 
 async function test() {
-    window.nftDisplay = new NftDisplay(
-        "0x186e74ad45bf81fb3712e9657560f8f6361cbbef", 
-        window.provider, 
-        `nftDisplay`, 
-        [], 
-        window.ipfsGateway,
-        {rowSize: 7, amountRows: 2}
-    )
-    await nftDisplay.setIdsToAll()
-    await nftDisplay.createDisplay()
+    window.nftDisplay = new NftDisplay({
+        collectionAddress: "0x186e74ad45bf81fb3712e9657560f8f6361cbbef", 
+        provider: window.provider, 
+        targetDivId: `nftDisplay`, 
+        ipfsGateway: window.ipfsGateway,
+        landscapeOrientation: {rowSize: 7, amountRows: 2}
+    })
+
+    await window.nftDisplay.setIdsToAll()
+    await window.nftDisplay.createDisplay()
     window.filterBuilderTest = new FilterBuilder({
         collectionAddress : "0x5af0d9827e0c53e4799bb226655a1de152a425a5",
         provider : window.provider,
         ipfsGateway : window.ipfsGateway,
         displayElementId : "nftDisplay"
     });
+    window.filterBuilderTest.setInputSelector()
     //filterbuilder per criteria per collection.
     //copy paste filters
     //detect if filters feed into them selfs
