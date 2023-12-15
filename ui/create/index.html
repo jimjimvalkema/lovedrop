@@ -350,18 +350,17 @@
 
             <div id="filterselector">
                 <span class="bold">Filter</span><br>
-                <label>filter name:  <input class="nameInput" id="filterNameInput" type="text" value="filter#1" placeholder="set filter name"></input></label>
+                <label>filter name:  <input class="nameInput" id="filterNameInput" type="text" value="" placeholder="set filter name"></input></label>
                 <br>
 
-                <label for="filterselectorInput">select filter:</label>
-                <select name="filterselectorInput" id="filterselectorInput">
-                    <option value="">filter#1</option>
-                    <option value="">new</option>
+                <label for="filterSelectorInput">select filter:</label>
+                <select name="filterSelectorInput" id="filterSelectorInput">
+                    <option value="-1">add new</option>
                 </select>
                 <br>
 
-                <label for="filterTypeselectorInput">set type:</label>
-                <select name="filterselectorInput" id="filterselectorInput">
+                <label for="filterTypeSelectorInput">set type:</label>
+                <select name="filterTypeSelectorInput" id="filterTypeSelectorInput">
                     <option value="AND">AND</option>
                     <option value="OR">OR</option>
                     <option value="RANGE">RANGE</option>

@@ -6,6 +6,8 @@ export class FilterBuilder {
     filterTemplate = { "type": "OR", "inputs": { "idList": [], "conditions": [], "attributes": [] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }
 
     nftMetaData;
+    filters = [];
+    currentFilterIndex=0;
 
     /**
      * 
@@ -24,15 +26,40 @@ export class FilterBuilder {
         })
         this.collectionAddress = collectionAddress
 
-        document.getElementById("inputTypeSelecterInput").addEventListener("change",(event)=>this.setInputTypeHandler(event))
-        this.setInputTypeHandler({"target":{"value":"attribute"}})
+        document.getElementById("inputTypeSelecterInput").addEventListener("change",(event)=>this.#setInputTypeHandler(event))
+        document.getElementById("filterSelectorInput").addEventListener("change",(event)=>this.#filterSelectorHandler(event))
+        document.getElementById("filterTypeSelectorInput").addEventListener("change",(event)=>this.#filterTypeHandler(event))
+        document.getElementById("filterNameInput").addEventListener("change",(event)=>this.#filterNameHandler(event))
+        
+        this.#setInputTypeHandler()
+
+        const newFilter = this.createNewFilter("AND")
+        console.log(newFilter)
+        this.changeCurrentFilter(newFilter.index)
     }
 
+    //getters
+    getCurrentFilter() {
+        return this.filters[this.currentFilterIndex]
+    }
+
+    async getAllExtraMetaData() {
+        return await this.nftMetaData.fetchAllExtraMetaData()
+    }
+
+    async getIdsPerAttribute() {
+        if (!this.nftMetaData.idsPerAttribute) {
+            await this.getAllExtraMetaData()
+        }
+        return this.nftMetaData.idsPerAttribute
+    }
+
+    //filter fromatting
     #formatFilterType(filter) {
         if (!("type" in filter)) {
             filter["type"] = "RANGE"
         } else {
-            if (this.validFilterTypes.indexOf(filter["type"]) == -1) {
+            if (this.validFilterTypes.indexOf(filter["type"]) === -1) {
                 filter["type"] = "RANGE"
             }
         }
@@ -90,69 +117,153 @@ export class FilterBuilder {
             }
         }
 
-        filter.filterIndex = index
-        if (!("filterName" in filter)) {
-            filter.filterName = `${filter.type}FILTER${filter.filterIndex}`
+        filter.index = index
+        if (!("filterName" in filter) || !filter.filterName) {
+            filter.filterName = `NewFilter${filter.index}`
         }
         return filter
     }
 
-    async getAllExtraMetaData() {
-        return await this.nftMetaData.fetchAllExtraMetaData()
+    //filter selector
+    createNewFilter(type, name="") {
+        //TODO filtername to just name
+        //TODO set filter dropdown of criteria field
+        const filtersIndex= this.filters.length
+        this.filters.push(this.formatNewFilter(
+            {
+                "type":type, 
+                "filterName": name
+            }
+            ,filtersIndex
+        )) 
+        const newFilterOption = document.createElement("option")
+        newFilterOption.value = filtersIndex
+        newFilterOption.innerText = this.filters[filtersIndex].filterName 
+        
+        const filterSelector = document.getElementById("filterSelectorInput")
+        filterSelector.insertBefore(newFilterOption, filterSelector.lastElementChild)
+        filterSelector.value = filtersIndex
+
+        return this.filters[filtersIndex]
+    } 
+
+    changeCurrentFilter(index) {
+        document.getElementById("filterSelectorInput").value = index
+        document.getElementById("filterNameInput").value = this.filters[index].filterName
+        document.getElementById("filterTypeSelectorInput").value = this.filters[index].type
+        this.currentFilterIndex = index
     }
 
-    async getIdsPerAttribute() {
-        if (!this.nftMetaData.idsPerAttribute) {
-            await this.getAllExtraMetaData()
+   
+    #filterSelectorHandler(event) {
+        const filterterIndex = Number(event.target.value)
+        if (filterterIndex === -1) {
+            const type = document.getElementById("filterTypeSelectorInput").value
+            const newFilter = this.createNewFilter(type)
+            this.changeCurrentFilter(newFilter.index)
+            
+        } else {
+            this.changeCurrentFilter(filterterIndex)
         }
-        return this.nftMetaData.idsPerAttribute
+        console.log(filterterIndex)
     }
 
+    changeFilterType(type, index=this.currentFilterIndex) {
+        this.filters[index].type = type
+        //TODO filter type formatting???
+    }
 
+    changeFilterName(name, index=this.currentFilterIndex) {
+        if (name) {
+            this.filters[index].filterName = name
+        } else {
+            //name cant be empty
+            name =  this.filters[index].filterName
+            document.getElementById("filterNameInput").value = this.filters[index].filterName
+
+        }
+        const filterSelector = document.getElementById("filterSelectorInput")
+        const optionElement = [...filterSelector.children].find((element)=>Number(element.value) === index)
+        optionElement.innerText = name
+    }
+
+    #filterTypeHandler(event) {
+        const type =  event.target.value
+        this.changeFilterType(type)
+    }
+
+    #filterNameHandler(event) {
+        const name = event.target.value
+        this.changeFilterName(name)
+    }
+
+    //attribute selector
     async #attributeSelectorDropDown(attributeType) {
         const idsPerAttribute = await this.getIdsPerAttribute()
-        const dataType = idsPerAttribute[attributeType].dataType
+        
 
         const dropDownDiv = document.createElement("div")
         dropDownDiv.id = `attributeDropdown-${attributeType}-${this.collectionAddress}`
         dropDownDiv.hidden = true
         dropDownDiv.style = "border: solid; border-right: none; margin: 1px; margin-left: 0.5em;"
 
-        let attributeElements = []
-        for (const attribute in idsPerAttribute[attributeType]["attributes"]) {
-            const amount = idsPerAttribute[attributeType]["attributes"][attribute].amount
-
-            const attributeSpan = document.createElement("span")
-            attributeSpan.innerText = attribute
-            //TODO this is not  proof since the amount can be to large or display to small 
-            //which can cause the attribute name and amount not to be on the same line
-            attributeSpan.style = "display:inline-block; width: 8em; text-overflow: ellipsis; overflow: hidden;"
-
-
-            const amountSpan = document.createElement("span")
-            amountSpan.innerText = amount
-            amountSpan.style = "color: grey; float:right;"
-            amountSpan.className = "amount"
-
-            const input = document.createElement("input")
-            input.type = "checkbox"
-            input.id = `${attributeType}-${attribute}-${this.collectionAddress}`
-            input.name = `${attributeType}-${attribute}`
-
-
+        const dataType = idsPerAttribute[attributeType].dataType
+        if (dataType === "number") {
+            const numberInput = document.createElement("input")
+            numberInput.type = "number"
+            numberInput.min = idsPerAttribute[attributeType].min
+            numberInput.max = idsPerAttribute[attributeType].max
+            numberInput.id = `${attributeType}-${this.collectionAddress}`
+            
             const label = document.createElement("label")
-            label.for = `${attributeType}-${attribute}-${this.collectionAddress}`
-            label.append(attributeSpan, amountSpan)
+            label.for = numberInput.id
+            label.innerText = `${attributeType}`
 
-            const wrapper = document.createElement("div")
-            wrapper.class = "attributeDropDownItem"
-            wrapper.append(input, label)
+            const button = document.createElement("button")
+            button.innerText = "add"
+            dropDownDiv.append(label, numberInput, button)
 
-            attributeElements.push([wrapper, Number(amount)])
+        } else if(dataType === "string") {
+
+        
+
+            let attributeElements = []
+            for (const attribute in idsPerAttribute[attributeType]["attributes"]) {
+                const amount = idsPerAttribute[attributeType]["attributes"][attribute].amount
+
+                const attributeSpan = document.createElement("span")
+                attributeSpan.innerText = attribute
+                //TODO this is not  proof since the amount can be to large or display to small 
+                //which can cause the attribute name and amount not to be on the same line
+                attributeSpan.style = "display:inline-block; width: 8em; text-overflow: ellipsis; overflow: hidden;"
+
+
+                const amountSpan = document.createElement("span")
+                amountSpan.innerText = amount
+                amountSpan.style = "color: grey; float:right;"
+                amountSpan.className = "amount"
+
+                const input = document.createElement("input")
+                input.type = "checkbox"
+                input.id = `${attributeType}-${attribute}-${this.collectionAddress}`
+                input.name = `${attributeType}-${attribute}`
+
+
+                const label = document.createElement("label")
+                label.for = `${attributeType}-${attribute}-${this.collectionAddress}`
+                label.append(attributeSpan, amountSpan)
+
+                const wrapper = document.createElement("div")
+                wrapper.class = "attributeDropDownItem"
+                wrapper.append(input, label)
+
+                attributeElements.push([wrapper, Number(amount)])
+            }
+
+            attributeElements = attributeElements.sort((a, b) => b[1] - a[1])
+            attributeElements.forEach((i) => dropDownDiv.append(i[0]))
         }
 
-        attributeElements = attributeElements.sort((a, b) => b[1] - a[1])
-        attributeElements.forEach((i) => dropDownDiv.append(i[0]))
         const hideButton = document.createElement("button")
         hideButton.style = "float: right; margin-left: 10em" //14em-4em TODO automatticly take up the rest of the space
         hideButton.innerText = "hide"
@@ -161,7 +272,6 @@ export class FilterBuilder {
         return dropDownDiv
 
     }
-
 
     async #setAttributeTypeSelector(elementId = "inputSelecter") {
         const idsPerAttribute = await this.getIdsPerAttribute()
@@ -186,8 +296,10 @@ export class FilterBuilder {
         }
     }
 
-    setInputTypeHandler(event,elementId = "inputSelecter") {
+    //input type handler
+    #setInputTypeHandler(event={"target":{"value":"attribute"}}, elementId = "inputSelecter") {
         document.getElementById(elementId).innerHTML = ""
+        //TODO maybe hide element instead of removing them is faster render
 
         const inputType = event.target.value
         switch (inputType) {
