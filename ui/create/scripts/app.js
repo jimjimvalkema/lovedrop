@@ -85,7 +85,6 @@ async function test() {
         ipfsGateway : window.ipfsGateway,
         displayElementId : "nftDisplay"
     });
-    window.filterBuilderTest.setInputSelector()
     //filterbuilder per criteria per collection.
     //copy paste filters
     //detect if filters feed into them selfs

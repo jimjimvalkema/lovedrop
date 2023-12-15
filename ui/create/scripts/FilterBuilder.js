@@ -23,6 +23,9 @@ export class FilterBuilder {
             nftMetaData: this.nftMetaData
         })
         this.collectionAddress = collectionAddress
+
+        document.getElementById("inputTypeSelecterInput").addEventListener("change",(event)=>this.setInputTypeHandler(event))
+        this.setInputTypeHandler({"target":{"value":"attribute"}})
     }
 
     #formatFilterType(filter) {
@@ -180,19 +183,34 @@ export class FilterBuilder {
 
             newAttributeTypeElement.innerText = attributeType
             inputSelecterElement.append(newAttributeTypeElement, document.createElement("br"), dropDownElement)
-
-            
         }
     }
 
-    setInputSelector() {
-        let inputType = "attribute"
+    setInputTypeHandler(event,elementId = "inputSelecter") {
+        document.getElementById(elementId).innerHTML = ""
+
+        const inputType = event.target.value
         switch (inputType) {
             case "attribute":
-                this.#setAttributeTypeSelector()
+                this.#setAttributeTypeSelector(elementId)
                 break;
-
+            case "id":
+                document.getElementById(elementId).innerHTML = `<label>add id <input style="width:7em" type="number" /></label><button >add</button> (TODO)`
+                break
+            case "filter":
+                document.getElementById(elementId).innerHTML = `
+                <select name="filterInput" id="filterInput">
+                    <option value="">--choose filter--</option>
+                    <option value="filter1">filter1</option>
+                    <option value="filter2">filter2</option>
+                </select>
+                <button>add</button>
+                (TODO)
+         
+                `
+                break
             default:
+     
                 break;
         }
     }
