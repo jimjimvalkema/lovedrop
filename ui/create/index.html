@@ -242,6 +242,15 @@
         text-overflow: ellipsis;
     }
 
+    .inputsDropDown {
+        align-items: left;
+        text-align: left;
+    }
+
+    .inputsDropDownItemName {
+        float: right;
+        text-align: right;
+    }
 
 
 
@@ -372,21 +381,24 @@
                 <div id="filterIncludedInputs">
                     <div class="bold">Included</div>
                     <div id="includedInputsEditor">
-                        Attributes: <span id="inputs-attributes-amount">0</span> items 
+                        Attributes: <span id="filterTotalInputs-inputs-attributes">0</span> items 
                         <button id="inputs-attributes-edit">edit</button>
-                        <div hidden="true" id="inputs-attributes-dropDown">
+                        <div  hidden="true" id="inputs-attributes-dropDown" class="inputsDropDown">
+                            <button id="inputs-attributes-removeAllButton">remove all</button>
                         </div>
                         <br>
 
-                        nft ids: <span id="inputs-idList-amount">0</span> items 
+                        nft ids: <span id="filterTotalInputs-inputs-idList">0</span> items 
                         <button  id="inputs-idList-edit">edit</button>
-                        <div hidden="true" id="inputs-idList-dropDown">
+                        <div hidden="true" id="inputs-idList-dropDown" class="inputsDropDown">
+                            <button id="inputs-idList-removeAllButton">remove all</button>
                         </div>
                         <br>
 
-                        Filters: <span id="inputs-conditions-amount">0</span> items 
+                        Filters: <span id="filterTotalInputs-inputs-conditions">0</span> items 
                         <button  id="inputs-conditions-edit">edit</button>
-                        <div hidden="true" id="inputs-conditions-dropDown">
+                        <div hidden="true" id="inputs-conditions-dropDown" class="inputsDropDown">
+                            <button id="inputs-conditions-removeAllButton">remove all</button>
                         </div>
 
                     </div> 
@@ -396,21 +408,24 @@
                 <div id="filterExcludedInputs">
                     <div class="bold">Excluded</div>
                     <div id="ExcludedInputsEditor">
-                        Attributes: <span id="NOT-attributes-amount">0</span> items 
+                        Attributes: <span id="filterTotalInputs-NOT-attributes">0</span> items 
                         <button id="NOT-attributes-edit">edit</button>
-                        <div hidden="true" id="NOT-attributes-dropDown">
+                        <div hidden="true" id="NOT-attributes-dropDown" class="inputsDropDown">
+                            <button id="NOT-attributes-removeAllButton">remove all</button>
                         </div>
                         <br>
 
-                        nft ids: <span id="NOT-idList-amount">0</span> items 
+                        nft ids: <span id="filterTotalInputs-NOT-idList">0</span> items 
                         <button  id="NOT-idList-edit">edit</button>
-                        <div hidden="true" id="NOT-idList-dropDown">
+                        <div hidden="true" id="NOT-idList-dropDown" class="inputsDropDown">
+                            <button id="NOT-idList-removeAllButton">remove all</button>
                         </div>
                         <br>
 
-                        Filters: <span id="NOT-conditions-amount">0</span> items 
+                        Filters: <span id="filterTotalInputs-NOT-conditions">0</span> items 
                         <button  id="NOT-conditions-edit">edit</button>
-                        <div hidden="true" id="NOT-conditions-dropDown">
+                        <div hidden="true" id="NOT-conditions-dropDown" class="inputsDropDown">
+                            <button id="NOT-conditions-removeAllButton">remove all</button>
                         </div>
                         
                     </div> 

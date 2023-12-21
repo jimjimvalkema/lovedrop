@@ -49,7 +49,7 @@ export class FilterBuilder {
             for (const dataType of dataTypes) {
                 const items = currentFilter[inputType][dataType]
 
-                this.#createInputsDropdownsItems(inputType,dataType, items)
+                const dropDown = document.getElementById(`${inputType}-${dataType}-dropDown`)
             }
         }
     }
@@ -71,25 +71,28 @@ export class FilterBuilder {
                 })
 
                 const removeAllButton = document.getElementById(`${inputType}-${dataType}-removeAllButton`)
-                removeAllButton.addEventListener("click",console.log("TODO"))
+                removeAllButton.addEventListener("click",()=>this.#clearAllEditInputHandler(inputType,dataType))
             }
         }
 
     }
 
-    #getInputsDropDonwItem(inputType,dataType, item) {
+    #getInputsDropDownItem(inputType,dataType, item) {
         const itemIdentifier = this.#getItemIdentifier(dataType, item)
         const itemName = this.#getItemName(dataType,item)
 
+        const nameSpan = document.createElement("span")
+        nameSpan.innerText = itemName
+        nameSpan.className = "inputsDropDownItemName"
+
         const itemElement = document.createElement("div")
-        itemElement.innerText = itemName
         itemElement.id = `inputsDropDown-${inputType}-${itemIdentifier}`
 
         const removeButton = document.createElement("button")
         removeButton.innerText = "X"
         removeButton.addEventListener("click", (event)=>this.removeItemFromFilter(inputType,dataType,item,{inputType, dataType}))
         
-        itemElement.append(removeButton)
+        itemElement.prepend(removeButton, nameSpan)
         return itemElement
 
     }
@@ -102,7 +105,7 @@ export class FilterBuilder {
         dropdown.append(removeAllButton)
         
         for (const item of items) {
-            const itemElement = this.#getInputsDropDonwItem(inputType,dataType, item)
+            const itemElement = this.#getInputsDropDownItem(inputType,dataType, item)
             dropdown.insertBefore(itemElement, dropdown.lastElementChild)
         }
 
@@ -131,6 +134,23 @@ export class FilterBuilder {
         }
         return identifier
     }
+    async #clearAllEditInputHandler(inputType,dataType,filterIndex=this.currentFilterIndex) {
+        this.filters[filterIndex][inputType][dataType] = []
+        this.#clearEditInputDropdown(inputType,dataType,filterIndex)
+        this.#updateFilterTotalsUi(inputType,dataType);
+        [...document.getElementsByClassName("attributeCheckbox")].forEach((x)=>x.checked=false)
+        await this.#setCheckedStatusAttributes()
+    }
+
+    #clearEditInputDropdown(inputType,dataType,filterIndex=this.currentFilterIndex) {
+        const dropdown = document.getElementById(`${inputType}-${dataType}-dropDown`)
+        const clearAllButton = dropdown.lastElementChild
+        dropdown.innerHTML = ""
+        dropdown.append(clearAllButton)
+        dropdown.hidden = true
+        
+    }
+
 
     removeItemFromFilter(inputType,dataType,item,inputTarget=undefined,filterIndex=this.currentFilterIndex) {
         if (!inputTarget) {
@@ -169,7 +189,7 @@ export class FilterBuilder {
         FilterInputcheckBox.checked = true
         
         const dropdown = document.getElementById(`${inputType}-${dataType}-dropDown`)
-        const itemElement = this.#getInputsDropDonwItem(inputType,dataType, item)
+        const itemElement = this.#getInputsDropDownItem(inputType,dataType, item)
         dropdown.insertBefore(itemElement, dropdown.lastElementChild)
         
         const filterTotalInputs = document.getElementById(`filterTotalInputs-${inputType}-${dataType}`)
@@ -354,7 +374,7 @@ export class FilterBuilder {
         const currentFilter = this.getCurrentFilter()
         const amount = currentFilter[inputType][dataType].length
 
-        const elementId = `${inputType}-${dataType}-amount`
+        const elementId = `filterTotalInputs-${inputType}-${dataType}`
         document.getElementById(elementId).innerText = amount
     }
 
@@ -421,25 +441,30 @@ export class FilterBuilder {
      */
     async #attributeAddButtonHandler(traitType, attribute, dropDownDiv) {
         const attributeCheckBox =  this.#createAttributeCheckBox(await this.getIdsPerAttribute(),traitType,attribute)
-        const wrapperId = `wrapper-${traitType}-${attribute}-${this.collectionAddress}`
+        const identifier = this.#getItemIdentifier("attributes", {"trait_type":traitType, "value":attribute})
+        const wrapperId = `filterInput-wrapper-${identifier}`
+        console.log(`filterInput-wrapper-${identifier}`)
 
         let checkBox;
         if ([...dropDownDiv.children].findIndex((x)=>x.id===wrapperId) === -1) {
             dropDownDiv.insertBefore(attributeCheckBox, dropDownDiv.lastElementChild)
             checkBox = attributeCheckBox.children[0]
         } else {
-            checkBox  = document.getElementById(`${traitType}-${attribute}-${this.collectionAddress}`)
+            checkBox  = document.getElementById(`filterInput-checkbox-${identifier}`)
         }
 
-        checkBox.checked = true
-        checkBox.dispatchEvent(new Event('change'));
+        if (!checkBox.checked) {
+            checkBox.checked = true
+            checkBox.dispatchEvent(new Event('change'));
+        }
+
     }
 
     #createAttributeCheckBox(idsPerAttribute, attributeType, attribute) {
         const amount = idsPerAttribute[attributeType]["attributes"][attribute].amount
         const dataType = "attributes"
         const item = {"trait_type":attributeType, "value": attribute}
-        const itemName = this.#getItemIdentifier(dataType,item)
+        const identifier = this.#getItemIdentifier(dataType,item)
 
         const attributeSpan = document.createElement("span")
         attributeSpan.innerText = attribute
@@ -455,7 +480,7 @@ export class FilterBuilder {
 
         const input = document.createElement("input")
         input.type = "checkbox"
-        input.id = `filterInput-checkbox-${itemName}`
+        input.id = `filterInput-checkbox-${identifier}`
         input.name = `${attributeType}-${attribute}`
         input.className = "attributeCheckbox"
         input.addEventListener("change", (event)=>this.#attributeCheckBoxHandler(event, attributeType, attribute))
@@ -468,7 +493,7 @@ export class FilterBuilder {
         const wrapper = document.createElement("div")
         wrapper.class = "attributeDropDownItem"
         wrapper.append(input, label)
-        wrapper.id = `filterInput-wrapper-${itemName}}`
+        wrapper.id = `filterInput-wrapper-${identifier}`
         return wrapper
     }
 
