@@ -8,7 +8,7 @@ export class FilterBuilder {
     nftMetaData;
     filters = [];
     currentFilterIndex=0;
-
+    //TODO better way to set elementIds 
     /**
      * 
      * @param {string} collectionAddress 
@@ -16,6 +16,7 @@ export class FilterBuilder {
      * @param {*} ipfsGateway 
      */
     constructor({ collectionAddress, provider, ipfsGateway = "https://ipfs.io", displayElementId = "nftDisplay" }) {
+        //globals
         this.nftMetaData = new NftMetaDataCollector(collectionAddress, provider, ipfsGateway)
         this.NftDisplay = new NftDisplay({
             collectionAddress: collectionAddress,
@@ -26,15 +27,16 @@ export class FilterBuilder {
         })
         this.collectionAddress = collectionAddress
 
+        //input handlers
         document.getElementById("inputTypeSelecterInput").addEventListener("change",(event)=>this.#setInputTypeHandler(event))
         document.getElementById("filterSelectorInput").addEventListener("change",(event)=>this.#filterSelectorHandler(event))
         document.getElementById("filterTypeSelectorInput").addEventListener("change",(event)=>this.#filterTypeHandler(event))
         document.getElementById("filterNameInput").addEventListener("change",(event)=>this.#filterNameHandler(event))
+        document.getElementById("inclusionSelectionInput").addEventListener("change",(event)=>this.#inclusionSelectionHandler(event))
         
+        //initialize ui
         this.#setInputTypeHandler()
-
         const newFilter = this.createNewFilter("AND")
-        console.log(newFilter)
         this.changeCurrentFilter(newFilter.index)
     }
 
@@ -165,7 +167,7 @@ export class FilterBuilder {
         } else {
             this.changeCurrentFilter(filterterIndex)
         }
-        console.log(filterterIndex)
+
     }
 
     changeFilterType(type, index=this.currentFilterIndex) {
@@ -197,30 +199,141 @@ export class FilterBuilder {
         this.changeFilterName(name)
     }
 
+    #getCurrentInputTarget() {
+        const inputTarget = document.getElementById("inclusionSelectionInput").value
+        const dataType = document.getElementById("inputTypeSelecterInput").value
+        return {inputType: inputTarget, dataType}
+    }
+
+    #updateFilterTotalsUi(inputType, dataType, attribute) {
+        const currentFilter = this.getCurrentFilter()
+        const amount = currentFilter[inputType][dataType].length
+
+        const elementId = `${inputType}-${dataType}-amount`
+        document.getElementById(elementId).innerText = amount
+
+
+    }
+
     //attribute selector
-    async #attributeSelectorDropDown(attributeType) {
+    addAttribute(traitType, traitValue, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
+        if (!inputTarget) {
+            inputTarget = this.#getCurrentInputTarget()
+        } 
+        const {inputType, dataType} = inputTarget 
+        if (dataType !== "attributes") {throw error("inputTarget.dataType has to be attributes")}
+    
+        //{ "trait_type": "Hat", "value": "alien hat" }\
+        const attribute = {["trait_type"]:traitType,["value"]:traitValue}
+        this.filters[filterIndex][inputType].attributes.push({["trait_type"]:traitType,["value"]:traitValue})
+        this.#updateFilterTotalsUi(inputType, dataType, attribute)
+    }
+
+    removeAttribute(traitType, traitValue, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
+        if (!inputTarget) {
+            inputTarget = this.#getCurrentInputTarget()
+        } 
+        const {inputType, dataType} = inputTarget 
+    
+        //{ "trait_type": "Hat", "value": "alien hat" }
+        const attribute = {["trait_type"]:traitType,["value"]:traitValue}
+        this.filters[filterIndex][inputType].attributes = this.filters[filterIndex][inputType].attributes.filter((x)=>!(x.trait_type === traitType && x.value === traitValue))
+        this.#updateFilterTotalsUi(inputType, dataType, attribute)
+    }
+
+    #attributeCheckBoxHandler(event, traitType, traitValue) {
+        console.log(event.target.checked,traitType, traitValue)
+        if(event.target.checked === true) { 
+            this.addAttribute(traitType, traitValue, this.currentFilterIndex, this.#getCurrentInputTarget() )
+
+        } else  {
+            this.removeAttribute(traitType, traitValue, this.currentFilterIndex, this.#getCurrentInputTarget() )
+        }
+    }
+
+    /**
+     * creates a checkbox if it doesnt exist, and calls the change event
+     * @param {string} traitType 
+     * @param {string} attribute  
+     * @param {Element} dropDownDiv
+     */
+    async #attributeAddButtonHandler(traitType, attribute, dropDownDiv) {
+        const attributeCheckBox =  this.#createAttributeCheckBox(await this.getIdsPerAttribute(),traitType,attribute)
+        const wrapperId = `wrapper-${traitType}-${attribute}-${this.collectionAddress}`
+
+        let checkBox;
+        if ([...dropDownDiv.children].findIndex((x)=>x.id===wrapperId) === -1) {
+            dropDownDiv.insertBefore(attributeCheckBox, dropDownDiv.lastElementChild)
+            checkBox = attributeCheckBox.children[0]
+        } else {
+            checkBox  = document.getElementById(`${traitType}-${attribute}-${this.collectionAddress}`)
+        }
+
+        checkBox.checked = true
+        checkBox.dispatchEvent(new Event('change'));
+    }
+
+    #createAttributeCheckBox(idsPerAttribute, attributeType, attribute) {
+        const amount = idsPerAttribute[attributeType]["attributes"][attribute].amount
+
+        const attributeSpan = document.createElement("span")
+        attributeSpan.innerText = attribute
+        //TODO this is not  proof since the amount can be to large or display to small 
+        //which can cause the attribute name and amount not to be on the same line
+        attributeSpan.style = "display:inline-block; width: 8em; text-overflow: ellipsis; overflow: hidden;"
+
+
+        const amountSpan = document.createElement("span")
+        amountSpan.innerText = amount
+        amountSpan.style = "color: grey; float:right;"
+        amountSpan.className = "amount"
+
+        const input = document.createElement("input")
+        input.type = "checkbox"
+        input.id = `${attributeType}-${attribute}-${this.collectionAddress}`
+        input.name = `${attributeType}-${attribute}`
+        input.className = "attributeCheckbox"
+        input.addEventListener("change", (event)=>this.#attributeCheckBoxHandler(event, attributeType, attribute))
+
+
+        const label = document.createElement("label")
+        label.for = `${attributeType}-${attribute}-${this.collectionAddress}`
+        label.append(attributeSpan, amountSpan)
+
+        const wrapper = document.createElement("div")
+        wrapper.class = "attributeDropDownItem"
+        wrapper.append(input, label)
+        wrapper.id = `wrapper-${attributeType}-${attribute}-${this.collectionAddress}`
+        return wrapper
+    }
+
+
+    async #attributeSelectorDropDown(traitType) {
         const idsPerAttribute = await this.getIdsPerAttribute()
         
 
         const dropDownDiv = document.createElement("div")
-        dropDownDiv.id = `attributeDropdown-${attributeType}-${this.collectionAddress}`
+        dropDownDiv.id = `attributeDropdown-${traitType}-${this.collectionAddress}`
         dropDownDiv.hidden = true
         dropDownDiv.style = "border: solid; border-right: none; margin: 1px; margin-left: 0.5em;"
+        dropDownDiv.className = "attributeDropdown"
 
-        const dataType = idsPerAttribute[attributeType].dataType
+        const dataType = idsPerAttribute[traitType].dataType
         if (dataType === "number") {
             const numberInput = document.createElement("input")
             numberInput.type = "number"
-            numberInput.min = idsPerAttribute[attributeType].min
-            numberInput.max = idsPerAttribute[attributeType].max
-            numberInput.id = `${attributeType}-${this.collectionAddress}`
+            numberInput.min = idsPerAttribute[traitType].min
+            numberInput.max = idsPerAttribute[traitType].max
+            numberInput.id = `${traitType}-${this.collectionAddress}`
+            numberInput.addEventListener("beforeinput", (event) => this.#attributeAddButtonHandler(traitType, numberInput.value, dropDownDiv));
             
             const label = document.createElement("label")
             label.for = numberInput.id
-            label.innerText = `${attributeType}`
+            label.innerText = `${traitType}`
 
             const button = document.createElement("button")
             button.innerText = "add"
+            button.addEventListener("click", (event)=>this.#attributeAddButtonHandler(traitType, numberInput.value, dropDownDiv))
             dropDownDiv.append(label, numberInput, button)
 
         } else if(dataType === "string") {
@@ -228,34 +341,9 @@ export class FilterBuilder {
         
 
             let attributeElements = []
-            for (const attribute in idsPerAttribute[attributeType]["attributes"]) {
-                const amount = idsPerAttribute[attributeType]["attributes"][attribute].amount
-
-                const attributeSpan = document.createElement("span")
-                attributeSpan.innerText = attribute
-                //TODO this is not  proof since the amount can be to large or display to small 
-                //which can cause the attribute name and amount not to be on the same line
-                attributeSpan.style = "display:inline-block; width: 8em; text-overflow: ellipsis; overflow: hidden;"
-
-
-                const amountSpan = document.createElement("span")
-                amountSpan.innerText = amount
-                amountSpan.style = "color: grey; float:right;"
-                amountSpan.className = "amount"
-
-                const input = document.createElement("input")
-                input.type = "checkbox"
-                input.id = `${attributeType}-${attribute}-${this.collectionAddress}`
-                input.name = `${attributeType}-${attribute}`
-
-
-                const label = document.createElement("label")
-                label.for = `${attributeType}-${attribute}-${this.collectionAddress}`
-                label.append(attributeSpan, amountSpan)
-
-                const wrapper = document.createElement("div")
-                wrapper.class = "attributeDropDownItem"
-                wrapper.append(input, label)
+            for (const attribute in idsPerAttribute[traitType]["attributes"]) {
+                const amount = idsPerAttribute[traitType]["attributes"][attribute].amount
+                const wrapper = this.#createAttributeCheckBox(idsPerAttribute,traitType,attribute)
 
                 attributeElements.push([wrapper, Number(amount)])
             }
@@ -267,7 +355,14 @@ export class FilterBuilder {
         const hideButton = document.createElement("button")
         hideButton.style = "float: right; margin-left: 10em" //14em-4em TODO automatticly take up the rest of the space
         hideButton.innerText = "hide"
-        hideButton.onclick = ()=>dropDownDiv.hidden = true
+        hideButton.onclick = ()=> {
+            dropDownDiv.hidden = true
+            const amountNotHidden = [...document.getElementsByClassName("attributeDropdown")].filter((x)=>!x.hidden).length
+            if (amountNotHidden < 1 ) {
+                document.getElementById("hideAllAttributeDropdownsButton").hidden = true
+
+            }
+        }
         dropDownDiv.append(hideButton)
         return dropDownDiv
 
@@ -277,39 +372,105 @@ export class FilterBuilder {
         const idsPerAttribute = await this.getIdsPerAttribute()
         const inputSelecterElement = document.getElementById(elementId)
 
+        const hideAllButton = document.createElement("button")
+        hideAllButton.innerText = "hide all"
+        hideAllButton.onclick = ()=>[...document.getElementsByClassName("attributeDropdown")].forEach((x)=>{x.hidden=true; hideAllButton.hidden=true})
+        hideAllButton.style ="float: right; margin-left: 8em;"
+        hideAllButton.id = "hideAllAttributeDropdownsButton"
+        hideAllButton.hidden = true
+        
+
+
         for (const attributeType in idsPerAttribute) {
             const dropDownElement = await this.#attributeSelectorDropDown(attributeType)
-            inputSelecterElement.append(await this.#attributeSelectorDropDown(attributeType))
+            inputSelecterElement.append(dropDownElement)
 
             const newAttributeTypeElement = document.createElement("button")
             
             newAttributeTypeElement.onclick = () => {
                 if (dropDownElement.hidden) {
                     dropDownElement.hidden = false
+                    hideAllButton.hidden = false
+                    
                 } else {
                     dropDownElement.hidden = true
+                    const amountNotHidden = [...document.getElementsByClassName("attributeDropdown")].filter((x)=>!x.hidden).length
+                    if (amountNotHidden < 1 ) {
+                        hideAllButton.hidden = true
+
+                    }
                 }
             }
 
             newAttributeTypeElement.innerText = attributeType
             inputSelecterElement.append(newAttributeTypeElement, document.createElement("br"), dropDownElement)
         }
+
+
+        inputSelecterElement.append(hideAllButton)
+    }
+
+    async #setCheckedStatusAttributes() {
+        const {inputType} = this.#getCurrentInputTarget()
+        const dataType = "attributes"
+        const currentFilter = this.getCurrentFilter() 
+        const currentInputs = currentFilter[inputType][dataType]
+        const idsPerAttribute = await this.getIdsPerAttribute()
+
+        for (const attribute of currentInputs) {
+            console.log(attribute)
+            const {trait_type, value} = attribute
+            //const attributeDataType = idsPerAttribute[trait_type].dataType
+            let checkBox = document.getElementById(`${trait_type}-${value}-${this.collectionAddress}`)
+            if (checkBox) {
+                checkBox.checked = true
+
+            } else {
+                const dropDownDiv = document.getElementById(`attributeDropdown-${trait_type}-${this.collectionAddress}`)
+                const wrapper = this.#createAttributeCheckBox(idsPerAttribute,trait_type,value)
+                dropDownDiv.insertBefore(wrapper, dropDownDiv.lastElementChild)
+                checkBox = document.getElementById(`${trait_type}-${value}-${this.collectionAddress}`)
+                checkBox.checked = true
+            }
+
+        }
+    }   
+
+    #inclusionSelectionHandler(event) {
+        const {inputType,dataType} = this.#getCurrentInputTarget()
+        console.log(inputType,dataType)
+        switch (dataType) {
+            case "attributes":
+                [...document.getElementsByClassName("attributeCheckbox")].forEach((x)=>x.checked=false)
+                this.#updateFilterTotalsUi(inputType,dataType,"all")
+                this.#setCheckedStatusAttributes()
+                break;
+            case "id":
+                break;
+            case "filter":
+                break;
+            
+            default:
+                break;
+        }
     }
 
     //input type handler
-    #setInputTypeHandler(event={"target":{"value":"attribute"}}, elementId = "inputSelecter") {
+    async #setInputTypeHandler(event={"target":{"value":"attributes"}}, elementId = "inputSelecter") {
         document.getElementById(elementId).innerHTML = ""
         //TODO maybe hide element instead of removing them is faster render
 
         const inputType = event.target.value
+        console.log(inputType)
         switch (inputType) {
-            case "attribute":
-                this.#setAttributeTypeSelector(elementId)
+            case "attributes":
+                await this.#setAttributeTypeSelector(elementId);
+                this.#setCheckedStatusAttributes()
                 break;
-            case "id":
+            case "conditions":
                 document.getElementById(elementId).innerHTML = `<label>add id <input style="width:7em" type="number" /></label><button >add</button> (TODO)`
                 break
-            case "filter":
+            case "idList":
                 document.getElementById(elementId).innerHTML = `
                 <select name="filterInput" id="filterInput">
                     <option value="">--choose filter--</option>

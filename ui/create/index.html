@@ -329,15 +329,15 @@
                 <div id="inputTypeSelecter">
                     <div class="bold">Inputs</div>
                     <select name="inclusionSelectionInput" id="inclusionSelectionInput">
-                        <option value="include">include</option>
-                        <option value="exclude">exclude</option>
+                        <option value="inputs">include</option>
+                        <option value="NOT">exclude</option>
                     </select>
 
                     <select name="inputTypeSelecterInput" id="inputTypeSelecterInput">
                         
-                        <option value="attribute">attribute</option>
-                        <option value="filter">filter</option>
-                        <option value="id">id</option>
+                        <option value="attributes">attribute</option>
+                        <option value="conditions">filter</option>
+                        <option value="idList">id</option>
                         
                        
         
@@ -372,11 +372,23 @@
                 <div id="filterIncludedInputs">
                     <div class="bold">Included</div>
                     <div id="includedInputsEditor">
-                        Attributes: <span id="attributesIncludedAmount">1</span> items <button>edit</button>
+                        Attributes: <span id="inputs-attributes-amount">0</span> items 
+                        <button id="inputs-attributes-edit">edit</button>
+                        <div hidden="true" id="inputs-attributes-dropDown">
+                        </div>
                         <br>
-                        nft ids: <span id="idsIncludedAmount">0</span> items <button>edit</button>
+
+                        nft ids: <span id="inputs-idList-amount">0</span> items 
+                        <button  id="inputs-idList-edit">edit</button>
+                        <div hidden="true" id="inputs-idList-dropDown">
+                        </div>
                         <br>
-                        Filters: <span id="filtersIncludedAmount">1</span> items <button>edit</button>
+
+                        Filters: <span id="inputs-conditions-amount">0</span> items 
+                        <button  id="inputs-conditions-edit">edit</button>
+                        <div hidden="true" id="inputs-conditions-dropDown">
+                        </div>
+
                     </div> 
                 </div>
 
@@ -384,11 +396,23 @@
                 <div id="filterExcludedInputs">
                     <div class="bold">Excluded</div>
                     <div id="ExcludedInputsEditor">
-                        Attributes: <span id="attributesExcludedAmount">0</span> items <button>edit</button>
+                        Attributes: <span id="NOT-attributes-amount">0</span> items 
+                        <button id="NOT-attributes-edit">edit</button>
+                        <div hidden="true" id="NOT-attributes-dropDown">
+                        </div>
                         <br>
-                        nft ids: <span id="idsExcludedAmount">0</span> items <button>edit</button>
+
+                        nft ids: <span id="NOT-idList-amount">0</span> items 
+                        <button  id="NOT-idList-edit">edit</button>
+                        <div hidden="true" id="NOT-idList-dropDown">
+                        </div>
                         <br>
-                        Filters: <span id="filtersExcludedAmount">0</span> items <button>edit</button>
+
+                        Filters: <span id="NOT-conditions-amount">0</span> items 
+                        <button  id="NOT-conditions-edit">edit</button>
+                        <div hidden="true" id="NOT-conditions-dropDown">
+                        </div>
+                        
                     </div> 
                 </div>
             </div>
