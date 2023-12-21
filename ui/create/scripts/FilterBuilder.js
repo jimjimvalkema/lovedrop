@@ -33,11 +33,156 @@ export class FilterBuilder {
         document.getElementById("filterTypeSelectorInput").addEventListener("change",(event)=>this.#filterTypeHandler(event))
         document.getElementById("filterNameInput").addEventListener("change",(event)=>this.#filterNameHandler(event))
         document.getElementById("inclusionSelectionInput").addEventListener("change",(event)=>this.#inclusionSelectionHandler(event))
+        this.#setEditInputItemsHandlers()
         
         //initialize ui
         this.#setInputTypeHandler()
         const newFilter = this.createNewFilter("AND")
         this.changeCurrentFilter(newFilter.index)
+    }
+
+    #updateInputsDropdowns() {
+        const inputTypes = ["inputs", "NOT"]
+        const dataTypes = ["attributes", "idList", "conditions"]
+        const currentFilter = this.getCurrentFilter()
+        for (const inputType of inputTypes) {
+            for (const dataType of dataTypes) {
+                const items = currentFilter[inputType][dataType]
+
+                this.#createInputsDropdownsItems(inputType,dataType, items)
+            }
+        }
+    }
+
+    #setEditInputItemsHandlers() {
+        const inputTypes = ["inputs", "NOT"]
+        const dataTypes = ["attributes", "idList", "conditions"]
+        for (const inputType of inputTypes) {
+            for (const dataType of dataTypes) {
+
+                const editButton = document.getElementById(`${inputType}-${dataType}-edit`)
+                editButton.addEventListener("click",(event)=>{
+                    const dropDown = document.getElementById(`${inputType}-${dataType}-dropDown`)
+                    if (dropDown.hidden) {
+                        dropDown.hidden = false
+                    } else {
+                        dropDown.hidden = true
+                    }
+                })
+
+                const removeAllButton = document.getElementById(`${inputType}-${dataType}-removeAllButton`)
+                removeAllButton.addEventListener("click",console.log("TODO"))
+            }
+        }
+
+    }
+
+    #getInputsDropDonwItem(inputType,dataType, item) {
+        const itemIdentifier = this.#getItemIdentifier(dataType, item)
+        const itemName = this.#getItemName(dataType,item)
+
+        const itemElement = document.createElement("div")
+        itemElement.innerText = itemName
+        itemElement.id = `inputsDropDown-${inputType}-${itemIdentifier}`
+
+        const removeButton = document.createElement("button")
+        removeButton.innerText = "X"
+        removeButton.addEventListener("click", (event)=>this.removeItemFromFilter(inputType,dataType,item,{inputType, dataType}))
+        
+        itemElement.append(removeButton)
+        return itemElement
+
+    }
+
+    #createInputsDropdownsItems(inputType,dataType, items) {
+        const dropdown = document.getElementById(`${inputType}-${dataType}-dropDown`)
+        //remove all but keep button
+        const removeAllButton = dropdown.lastElementChild
+        dropdown.innerHTML = ""
+        dropdown.append(removeAllButton)
+        
+        for (const item of items) {
+            const itemElement = this.#getInputsDropDonwItem(inputType,dataType, item)
+            dropdown.insertBefore(itemElement, dropdown.lastElementChild)
+        }
+
+        return dropdown
+    }
+
+    #getItemName(dataType,item) {
+        let name
+        if(dataType==="attributes") {
+            const {trait_type, value} = item
+            name = `${trait_type}: ${value}`
+        } else {
+            name = `${dataType}: ${item}`
+        }
+        return name
+
+    }
+
+    #getItemIdentifier(dataType,item) {
+        let identifier
+        if(dataType==="attributes") {
+            const {trait_type, value} = item
+            identifier = `${dataType}-${trait_type}-${value}-${this.collectionAddress}`
+        } else {
+            identifier = `${dataType}-${item}-${this.collectionAddress}`
+        }
+        return identifier
+    }
+
+    removeItemFromFilter(inputType,dataType,item,inputTarget=undefined,filterIndex=this.currentFilterIndex) {
+        if (!inputTarget) {
+            inputTarget = this.#getCurrentInputTarget()
+        } 
+
+        const itemIdentifier = this.#getItemIdentifier(dataType,item)
+        
+        const FilterInputcheckBox = document.getElementById(`filterInput-checkbox-${itemIdentifier}`)
+        FilterInputcheckBox.checked = false
+        
+        const inputDropDownItem = document.getElementById(`inputsDropDown-${inputType}-${itemIdentifier}`)
+        inputDropDownItem.outerHTML = ""
+        
+        const filterTotalInputs = document.getElementById(`filterTotalInputs-${inputType}-${dataType}`)
+        filterTotalInputs.innerText = Number(filterTotalInputs.innerText ) - 1
+
+        console.log(inputType,dataType,item)
+        if (dataType==="attributes") {
+            const {trait_type,  value} = item
+            this.#removeAttribute(trait_type, value, filterIndex, inputTarget)
+        } else {
+            this.#removeInterger(item, filterIndex, inputTarget)
+        }
+        //remove from filter
+    }
+
+    addItemToFilter(inputType,dataType,item,inputTarget=undefined,filterIndex=this.currentFilterIndex) {
+        if (!inputTarget) {
+            inputTarget = this.#getCurrentInputTarget()
+        } 
+
+        const itemIdentifier = this.#getItemIdentifier(dataType,item)
+        
+        const FilterInputcheckBox = document.getElementById(`filterInput-checkbox-${itemIdentifier}`)
+        FilterInputcheckBox.checked = true
+        
+        const dropdown = document.getElementById(`${inputType}-${dataType}-dropDown`)
+        const itemElement = this.#getInputsDropDonwItem(inputType,dataType, item)
+        dropdown.insertBefore(itemElement, dropdown.lastElementChild)
+        
+        const filterTotalInputs = document.getElementById(`filterTotalInputs-${inputType}-${dataType}`)
+        filterTotalInputs.innerText = Number(filterTotalInputs.innerText ) + 1
+
+        console.log(inputType,dataType,item)
+        if (dataType==="attributes") {
+            const {trait_type,  value} = item
+            this.#addAttribute(trait_type, value, filterIndex, inputTarget)
+        } else {
+            this.#addInterger(item, filterIndex, inputTarget)
+        }
+        //remove from filter
     }
 
     //getters
@@ -205,18 +350,16 @@ export class FilterBuilder {
         return {inputType: inputTarget, dataType}
     }
 
-    #updateFilterTotalsUi(inputType, dataType, attribute) {
+    #updateFilterTotalsUi(inputType, dataType) {
         const currentFilter = this.getCurrentFilter()
         const amount = currentFilter[inputType][dataType].length
 
         const elementId = `${inputType}-${dataType}-amount`
         document.getElementById(elementId).innerText = amount
-
-
     }
 
     //attribute selector
-    addAttribute(traitType, traitValue, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
+    #addAttribute(traitType, traitValue, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
         if (!inputTarget) {
             inputTarget = this.#getCurrentInputTarget()
         } 
@@ -226,10 +369,9 @@ export class FilterBuilder {
         //{ "trait_type": "Hat", "value": "alien hat" }\
         const attribute = {["trait_type"]:traitType,["value"]:traitValue}
         this.filters[filterIndex][inputType].attributes.push({["trait_type"]:traitType,["value"]:traitValue})
-        this.#updateFilterTotalsUi(inputType, dataType, attribute)
     }
 
-    removeAttribute(traitType, traitValue, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
+    #removeAttribute(traitType, traitValue, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
         if (!inputTarget) {
             inputTarget = this.#getCurrentInputTarget()
         } 
@@ -238,16 +380,36 @@ export class FilterBuilder {
         //{ "trait_type": "Hat", "value": "alien hat" }
         const attribute = {["trait_type"]:traitType,["value"]:traitValue}
         this.filters[filterIndex][inputType].attributes = this.filters[filterIndex][inputType].attributes.filter((x)=>!(x.trait_type === traitType && x.value === traitValue))
-        this.#updateFilterTotalsUi(inputType, dataType, attribute)
+    }
+
+    #removeInterger(interger, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
+        if (!inputTarget) {
+            inputTarget = this.#getCurrentInputTarget()
+        } 
+        const {inputType, dataType} = inputTarget 
+        this.filters[filterIndex][inputType][dataType] = this.filters[filterIndex][inputType][dataType].filter((x)=>x===interger)
+    }
+
+    #addInterger(interger, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
+        if (!inputTarget) {
+            inputTarget = this.#getCurrentInputTarget()
+        } 
+        const {inputType, dataType} = inputTarget 
+
+        this.filters[filterIndex][inputType][dataType].push(interger)
     }
 
     #attributeCheckBoxHandler(event, traitType, traitValue) {
         console.log(event.target.checked,traitType, traitValue)
+        const {inputType, dataType} = this.#getCurrentInputTarget()
+        const item = {"trait_type":traitType, "value": traitValue};
         if(event.target.checked === true) { 
-            this.addAttribute(traitType, traitValue, this.currentFilterIndex, this.#getCurrentInputTarget() )
+            //this.addAttribute(traitType, traitValue, this.currentFilterIndex, this.#getCurrentInputTarget() )
+            this.addItemToFilter(inputType,dataType,item)
 
         } else  {
-            this.removeAttribute(traitType, traitValue, this.currentFilterIndex, this.#getCurrentInputTarget() )
+            // this.removeAttribute(traitType, traitValue, this.currentFilterIndex, this.#getCurrentInputTarget() )
+            this.removeItemFromFilter(inputType,dataType,item)
         }
     }
 
@@ -275,6 +437,9 @@ export class FilterBuilder {
 
     #createAttributeCheckBox(idsPerAttribute, attributeType, attribute) {
         const amount = idsPerAttribute[attributeType]["attributes"][attribute].amount
+        const dataType = "attributes"
+        const item = {"trait_type":attributeType, "value": attribute}
+        const itemName = this.#getItemIdentifier(dataType,item)
 
         const attributeSpan = document.createElement("span")
         attributeSpan.innerText = attribute
@@ -282,7 +447,7 @@ export class FilterBuilder {
         //which can cause the attribute name and amount not to be on the same line
         attributeSpan.style = "display:inline-block; width: 8em; text-overflow: ellipsis; overflow: hidden;"
 
-
+        
         const amountSpan = document.createElement("span")
         amountSpan.innerText = amount
         amountSpan.style = "color: grey; float:right;"
@@ -290,7 +455,7 @@ export class FilterBuilder {
 
         const input = document.createElement("input")
         input.type = "checkbox"
-        input.id = `${attributeType}-${attribute}-${this.collectionAddress}`
+        input.id = `filterInput-checkbox-${itemName}`
         input.name = `${attributeType}-${attribute}`
         input.className = "attributeCheckbox"
         input.addEventListener("change", (event)=>this.#attributeCheckBoxHandler(event, attributeType, attribute))
@@ -303,7 +468,7 @@ export class FilterBuilder {
         const wrapper = document.createElement("div")
         wrapper.class = "attributeDropDownItem"
         wrapper.append(input, label)
-        wrapper.id = `wrapper-${attributeType}-${attribute}-${this.collectionAddress}`
+        wrapper.id = `filterInput-wrapper-${itemName}}`
         return wrapper
     }
 
@@ -421,7 +586,8 @@ export class FilterBuilder {
             console.log(attribute)
             const {trait_type, value} = attribute
             //const attributeDataType = idsPerAttribute[trait_type].dataType
-            let checkBox = document.getElementById(`${trait_type}-${value}-${this.collectionAddress}`)
+            const itemName = this.#getItemIdentifier(dataType,attribute)
+            let checkBox = document.getElementById(`filterInput-checkbox-${itemName}`)
             if (checkBox) {
                 checkBox.checked = true
 
@@ -442,7 +608,7 @@ export class FilterBuilder {
         switch (dataType) {
             case "attributes":
                 [...document.getElementsByClassName("attributeCheckbox")].forEach((x)=>x.checked=false)
-                this.#updateFilterTotalsUi(inputType,dataType,"all")
+                //this.#updateFilterTotalsUi(inputType,dataType,"all")
                 this.#setCheckedStatusAttributes()
                 break;
             case "id":
@@ -465,6 +631,7 @@ export class FilterBuilder {
         switch (inputType) {
             case "attributes":
                 await this.#setAttributeTypeSelector(elementId);
+                [...document.getElementsByClassName("attributeCheckbox")].forEach((x)=>x.checked=false)
                 this.#setCheckedStatusAttributes()
                 break;
             case "conditions":
