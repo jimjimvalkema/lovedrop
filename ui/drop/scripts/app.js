@@ -16,18 +16,18 @@ async function connectProvider() {
         window.provider = new ethers.providers.Web3Provider(window.ethereum);
     } else {
         console.log("couldn't connect to window.ethereum using a external rpc")
-        const providerUrls = ["https://mainnet.infura.io/v3/", "https://eth.llamarpc.com"] 
+        const providerUrls = ["https://mainnet.infura.io/v3/", "https://eth.llamarpc.com"]
         const workingProviderUrl = await getFirstAvailableProvider(providerUrls)
-        console.log(workingProviderUrl) 
+        console.log(workingProviderUrl)
         window.provider = new ethers.providers.JsonRpcProvider(workingProviderUrl)
-    } 
+    }
 
 }
-  
+
 
 async function getFirstAvailableProvider(providerUrls) {
-    const isWorkingProvider = await Promise.all(providerUrls.map((url)=>isProviderAvailable(url)))
-    return providerUrls [isWorkingProvider.indexOf(true)]
+    const isWorkingProvider = await Promise.all(providerUrls.map((url) => isProviderAvailable(url)))
+    return providerUrls[isWorkingProvider.indexOf(true)]
 
 }
 
@@ -39,9 +39,15 @@ async function isProviderAvailable(url) {
     } catch (error) {
         console.warn(`couldnt connect to ${url}`)
         console.warn(error)
-        return false   
+        return false
     }
 }
+
+function message(message) {
+    console.log(message);
+    document.getElementById("message").innerText = message;
+}
+
 
 async function isClaimed(nftAddr, id) {
     if (id in window.isClaimedCache[nftAddr]) {
@@ -50,11 +56,6 @@ async function isClaimed(nftAddr, id) {
         window.isClaimedCache[nftAddr][id] = await window.mildayDropContract.isClaimed(nftAddr, id)
         return window.isClaimedCache[nftAddr][id]
     }
-}
-
-function message(message) {
-    console.log(message);
-    document.getElementById("message").innerText = message;
 }
 
 async function getClaimableStatus(allIds, eligableIdsAmounts, nftAddr) {
@@ -72,10 +73,10 @@ async function getClaimableStatus(allIds, eligableIdsAmounts, nftAddr) {
             message(`checked ${i + chunkSize} out of ${eligableUserIdsAmountsEntries.length} ids claimed status`)
         }
     } catch (error) {
-            
+
         message(`got a error try running in a normal browser without metamask/inject ethereum \n error: ${error}`)
         return 0
-        
+
     }
     message("")
 
@@ -130,17 +131,17 @@ function nftImagesFilter(id, nftDisplay) {
 }
 
 
-function makeIntoDivs(parentId, childIds) {
-    let parentElement = document.getElementById(parentId)
-    for (const childId of childIds) {
-        let childDiv = document.createElement("div");
-        childDiv.id = childId
-        childDiv.style.paddingTop = "1.5em"
-        parentElement.appendChild(childDiv)
-    }
+// function makeIntoDivs(parentId, childIds) {
+//     let parentElement = document.getElementById(parentId)
+//     for (const childId of childIds) {
+//         let childDiv = document.createElement("div");
+//         childDiv.id = childId
+//         childDiv.style.paddingTop = "1.5em"
+//         parentElement.appendChild(childDiv)
+//     }
 
-    return parentElement
-}
+//     return parentElement
+// }
 
 function getAmountAirdrop(id, collectionAddress) {
     if (id in window.idsPerCollection[collectionAddress]) {
@@ -176,7 +177,7 @@ window.removeAllChildNodes = removeAllChildNodes
 
 
 async function displayNfts(nftAddress = null) {
-    if(!nftAddress) {
+    if (!nftAddress) {
         nftAddress = window.allNftAddresses[0]
     }
 
@@ -198,38 +199,46 @@ async function displayNfts(nftAddress = null) {
     if (window.nftDisplays[nftAddress]) {
         display = window.nftDisplays[nftAddress]
     } else {
-        display = new NftDisplay(nftAddress, window.provider, "nfts", [], window.ipfsGateway, {["rowSize"]:7,["amountRows"]:2}, {["rowSize"]:4,["amountRows"]:5})
-        window.nftDisplays[nftAddress] = display
-        
-    }
+        display = new NftDisplay({
+            "collectionAddress": nftAddress,
+            "provider": window.provider,
+            "targetDivId": "nfts",
+            "ids": [],
+            "ipfsGateway": window.ipfsGateway,
+            "landscapeOrientation": { ["rowSize"]: 7, ["amountRows"]: 2 }, 
+            "portraitOrientation": { ["rowSize"]: 4, ["amountRows"]: 5 }
+        })
+    window.nftDisplays[nftAddress] = display
 
-    //empty the element if it already exist (incase user connects a new wallet)
+}
+
+//empty the element if it already exist (incase user connects a new wallet)
 
 
-    //display amount of token recieved
-    //const onclickToBuy = (id, display)=>window.open(`https://pro.opensea.io/nft/ethereum/${display.collectionAddress}/${id}`).focus()
-    display.imgOnclickFunction = onclickToBuy
-    display.divFunctions.push(nftImagesFilter)
-    display.divFunctions.push(clickToBuyMessage)
-    display.divFunctions.push(displayTokens)
-    display.displayNames()
-    const eligibleIds = Object.keys(window.idsPerCollection[window.currentNft])
+//display amount of token recieved
+//const onclickToBuy = (id, display)=>window.open(`https://pro.opensea.io/nft/ethereum/${display.collectionAddress}/${id}`).focus()
+display.imgOnclickFunction = onclickToBuy
+display.divFunctions.push(nftImagesFilter)
+display.divFunctions.push(clickToBuyMessage)
+display.divFunctions.push(displayTokens)
+display.displayNames()
+const eligibleIds = Object.keys(window.idsPerCollection[window.currentNft])
 
-    //process user ids
-    //window.idsByClaimableStatus[nftAddress] =  await getClaimableStatus(allIds, window.idsPerCollection[nftAddress], nftAddress)
-    //const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddress]
-    display.ids = sortIdsByEligibility(eligibleIds, display.collectionAddress)
+//process user ids
+//window.idsByClaimableStatus[nftAddress] =  await getClaimableStatus(allIds, window.idsPerCollection[nftAddress], nftAddress)
+//const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddress]
+display.ids = sortIdsByEligibility(eligibleIds, display.collectionAddress)
 
-    //display nfts
-    await display.createDisplay()
-    loadingDiv.remove()
-    //window.nftDisplays.push(display)
+//display nfts
+await display.createDisplay()
+loadingDiv.remove()
+//window.nftDisplays.push(display)
 
-    document.getElementById("collectionSelect").value = window.currentNft
-    await Promise.all(window.optionsResult)
-    document.getElementById("collectionSelect").value = window.currentNft
+document.getElementById("collectionSelect").value = window.currentNft
+await Promise.all(window.optionsResult)
+document.getElementById("collectionSelect").value = window.currentNft
 
-    return targetDomElement
+return targetDomElement
 }
 window.displayNfts = displayNfts
 
@@ -260,30 +269,30 @@ async function addDropTokenToMetamaskButton() {
     let addToMetaMaskButton = document.createElement("button")
     addToMetaMaskButton.innerText = `add to metamask`
     addToMetaMaskButton.style.fontSize = "1rem"
-    addToMetaMaskButton.onclick = ()=>addTokenToMetamask(window.airdropTokenContract.address,ticker,18)
+    addToMetaMaskButton.onclick = () => addTokenToMetamask(window.airdropTokenContract.address, ticker, 18)
     return addToMetaMaskButton
 }
 
-async function addTokenToMetamask(tokenAddress, tokenSymbol, tokenDecimals, tokenImage="") {
+async function addTokenToMetamask(tokenAddress, tokenSymbol, tokenDecimals, tokenImage = "") {
     //TODO get image from drop info from ipfs or somewhere else?
     if (await window.ticker === "CAKE") {
         tokenImage = "https://ipfs.io/ipfs/QmZZs6Y3ToYRkfMdi3jrU5QXSqNf6vk3j8Dxwvtf55vKvw"
     }
 
     try {
-    // 'wasAdded' is a boolean. Like any RPC method, an error can be thrown.
-    const wasAdded = await window.ethereum.request({
-        method: 'wallet_watchAsset',
-        params: {
-        type: 'ERC20',
-        options: {
-            address: tokenAddress, // The address of the token.
-            symbol: tokenSymbol, // A ticker symbol or shorthand, up to 5 characters.
-            decimals: tokenDecimals, // The number of decimals in the token.
-            image: tokenImage, // A string URL of the token logo.
-        },
-        },
-    });
+        // 'wasAdded' is a boolean. Like any RPC method, an error can be thrown.
+        const wasAdded = await window.ethereum.request({
+            method: 'wallet_watchAsset',
+            params: {
+                type: 'ERC20',
+                options: {
+                    address: tokenAddress, // The address of the token.
+                    symbol: tokenSymbol, // A ticker symbol or shorthand, up to 5 characters.
+                    decimals: tokenDecimals, // The number of decimals in the token.
+                    image: tokenImage, // A string URL of the token logo.
+                },
+            },
+        });
 
     } catch (error) {
         console.log(error);
@@ -297,9 +306,9 @@ async function loadAllContracts() {
     document.getElementById("dropInfo").innerHTML = `Claim at: <a href=../claim/?lovedrop=${window.urlVars["lovedrop"]}>claim page</a><br>`
     window.nftDisplays = {}
 
-    
+
     if (!window.urlVars["ipfsGateway"]) {
-        window.ipfsGateways = ["https://.mypinata.cloud","http://127.0.0.1:48084","http://127.0.0.1:8080","https://ipfs.io"] //no grifting pls thank :)
+        window.ipfsGateways = ["https://.mypinata.cloud", "http://127.0.0.1:48084", "http://127.0.0.1:8080", "https://ipfs.io"] //no grifting pls thank :)
     } else {
         window.ipfsGateways = [window.urlVars["ipfsGateway"]]
     }
@@ -387,9 +396,10 @@ const showClaimed = document.querySelector("#showClaimed");
 const showUnclaimed = document.querySelector("#showUnclaimed");
 const showAll = document.querySelector("#showAll");
 const displayId = document.querySelector("#displayId")
+//TODO switch to getElementById?
 
 const idInput = document.getElementById("idInput")
-idInput.onchange =  displayIdinputId
+idInput.onchange = displayIdinputId
 
 async function displayIdinputId() {
     if (displayId.checked) {
@@ -412,7 +422,7 @@ displayId.addEventListener("change", () => {
         currentDisplay.ids = [id]
         currentDisplay.refreshPage()
 
-    }else {
+    } else {
         displayId.checked = true
     }
 });
@@ -436,7 +446,7 @@ showEligible.addEventListener("change", () => {
         showAll.checked = false;
         displayId.checked = false;
 
-    }else {
+    } else {
         showEligible.checked = true
     }
 });
@@ -449,7 +459,7 @@ showClaimed.addEventListener("change", () => {
         showEligible.checked = false;
         displayId.checked = false;
         showClaimedIds()
-    }else {
+    } else {
         showClaimed.checked = true
     }
 });
@@ -487,7 +497,7 @@ showUnclaimed.addEventListener("change", () => {
         showEligible.checked = false;
         displayId.checked = false;
 
-    }else {
+    } else {
         showUnclaimed.checked = true
     }
 });
@@ -521,7 +531,7 @@ document.getElementById("collectionSelect").addEventListener("change", (event) =
     // currentDisplay.ids = sortIdsByEligibility(eligibleIds, window.currentNft)
     window.currentNft = event.target.value
     //TODO cleaner fix
-    
+
     if (window.currentNft in window.nftDisplays) {
         let currentDisplay = window.nftDisplays[window.currentNft]
         const eligibleIds = Object.keys(window.idsPerCollection[window.currentNft])
@@ -531,8 +541,6 @@ document.getElementById("collectionSelect").addEventListener("change", (event) =
     } else {
         displayNfts(window.currentNft)
     }
-    
-
 
     //currentDisplay.refreshPage()
     showEligible.checked = true;
