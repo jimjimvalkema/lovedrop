@@ -243,13 +243,35 @@
     }
 
     .inputsDropDown {
-        align-items: left;
+        position: absolute;
+        float:right;
+        background-color: white;
+        z-index: 2;
         text-align: left;
+        border-style: solid;
+        width: max-content;
     }
 
     .inputsDropDownItemName {
-        float: right;
         text-align: right;
+        float: right;
+    }
+
+    .editInput-removeAttributeButton {
+        position:relative;
+        float: right;
+
+    }
+
+    .inputsDropDownItemWrapper {
+        width:fit-content;
+        text-align: right;
+    }
+
+
+    .removeAllInputEditor {
+        float: left;
+
     }
 
 
@@ -384,21 +406,21 @@
                         Attributes: <span id="filterTotalInputs-inputs-attributes">0</span> items 
                         <button id="inputs-attributes-edit">edit</button>
                         <div  hidden="true" id="inputs-attributes-dropDown" class="inputsDropDown">
-                            <button id="inputs-attributes-removeAllButton">remove all</button>
+                            <button class="removeAllInputEditor"  id="inputs-attributes-removeAllButton">remove all</button>
                         </div>
                         <br>
 
                         nft ids: <span id="filterTotalInputs-inputs-idList">0</span> items 
                         <button  id="inputs-idList-edit">edit</button>
                         <div hidden="true" id="inputs-idList-dropDown" class="inputsDropDown">
-                            <button id="inputs-idList-removeAllButton">remove all</button>
+                            <button class="removeAllInputEditor"  id="inputs-idList-removeAllButton">remove all</button>
                         </div>
                         <br>
 
                         Filters: <span id="filterTotalInputs-inputs-conditions">0</span> items 
                         <button  id="inputs-conditions-edit">edit</button>
                         <div hidden="true" id="inputs-conditions-dropDown" class="inputsDropDown">
-                            <button id="inputs-conditions-removeAllButton">remove all</button>
+                            <button class="removeAllInputEditor"  id="inputs-conditions-removeAllButton">remove all</button>
                         </div>
 
                     </div> 
@@ -411,21 +433,21 @@
                         Attributes: <span id="filterTotalInputs-NOT-attributes">0</span> items 
                         <button id="NOT-attributes-edit">edit</button>
                         <div hidden="true" id="NOT-attributes-dropDown" class="inputsDropDown">
-                            <button id="NOT-attributes-removeAllButton">remove all</button>
+                            <button class="removeAllInputEditor"  id="NOT-attributes-removeAllButton">remove all</button>
                         </div>
                         <br>
 
                         nft ids: <span id="filterTotalInputs-NOT-idList">0</span> items 
                         <button  id="NOT-idList-edit">edit</button>
                         <div hidden="true" id="NOT-idList-dropDown" class="inputsDropDown">
-                            <button id="NOT-idList-removeAllButton">remove all</button>
+                            <button class="removeAllInputEditor"  id="NOT-idList-removeAllButton">remove all</button>
                         </div>
                         <br>
 
                         Filters: <span id="filterTotalInputs-NOT-conditions">0</span> items 
                         <button  id="NOT-conditions-edit">edit</button>
                         <div hidden="true" id="NOT-conditions-dropDown" class="inputsDropDown">
-                            <button id="NOT-conditions-removeAllButton">remove all</button>
+                            <button class="removeAllInputEditor" id="NOT-conditions-removeAllButton">remove all</button>
                         </div>
                         
                     </div> 

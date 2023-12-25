@@ -36,7 +36,7 @@ export class FilterBuilder {
         this.#setEditInputItemsHandlers()
         
         //initialize ui
-        this.#setInputTypeHandler()
+        this.#setInputTypeHandler({"target":{"value":"attributes"}})
         const newFilter = this.createNewFilter("AND")
         this.changeCurrentFilter(newFilter.index)
     }
@@ -48,8 +48,17 @@ export class FilterBuilder {
         for (const inputType of inputTypes) {
             for (const dataType of dataTypes) {
                 const items = currentFilter[inputType][dataType]
+                console.log(inputType,dataType,items)
 
                 const dropDown = document.getElementById(`${inputType}-${dataType}-dropDown`)
+                const removeAllButton = document.getElementById(`${inputType}-${dataType}-removeAllButton`)
+                dropDown.innerHTML = "" 
+                dropDown.append(removeAllButton)
+                
+                items.forEach((item)=>{
+                    const itemElement = this.#getInputsDropDownItem(inputType,dataType, item)
+                    dropDown.insertBefore(itemElement,removeAllButton)
+                })
             }
         }
     }
@@ -81,18 +90,33 @@ export class FilterBuilder {
         const itemIdentifier = this.#getItemIdentifier(dataType, item)
         const itemName = this.#getItemName(dataType,item)
 
-        const nameSpan = document.createElement("span")
-        nameSpan.innerText = itemName
-        nameSpan.className = "inputsDropDownItemName"
+        // const nameSpan = document.createElement("span")
+        // nameSpan.innerText = itemName
+        // nameSpan.className = "inputsDropDownItemName"
 
         const itemElement = document.createElement("div")
         itemElement.id = `inputsDropDown-${inputType}-${itemIdentifier}`
+        itemElement.className = "inputsDropDownItemWrapper"
+//////////////////////////
+        const input = document.createElement("input")
+        input.type = "checkbox"
+        input.id = `remove-${inputType}-${dataType}-${item}` //TODO collection address?
+        input.name = `remove ${inputType} ${dataType} ${item}`
+        input.className = "inputsDropDownItem"
+        input.addEventListener("click", (event)=>this.removeItemFromFilter(inputType,dataType,item,{inputType, dataType}))
+        input.checked = true
 
-        const removeButton = document.createElement("button")
-        removeButton.innerText = "X"
-        removeButton.addEventListener("click", (event)=>this.removeItemFromFilter(inputType,dataType,item,{inputType, dataType}))
+
+        const label = document.createElement("label")
+        label.for = input.id 
+        label.innerText = itemName
+            /////////////////////////
+        // const removeButton = document.createElement("checkboc")
+        // removeButton.innerText = "X"
+        // removeButton.addEventListener("click", (event)=>this.removeItemFromFilter(inputType,dataType,item,{inputType, dataType}))
+        // removeButton.className = "editInput-removeAttributeButton"
         
-        itemElement.prepend(removeButton, nameSpan)
+        itemElement.append(input,label)
         return itemElement
 
     }
@@ -333,7 +357,24 @@ export class FilterBuilder {
             this.changeCurrentFilter(filterterIndex)
         }
 
+        this.#updateAllFilterTotalsUi()
+        this.#updateInputsDropdowns()
+        this.#setInputTypeHandler({"target":{"value":"attributes"}})
+
+
     }
+
+    #updateAllFilterTotalsUi() {
+        const inputTypes = ["inputs", "NOT"]
+        const dataTypes = ["attributes", "idList", "conditions"]
+        for (const inputType of inputTypes) {
+            for (const dataType of dataTypes) {
+                this.#updateFilterTotalsUi(inputType, dataType)
+            }
+        }
+
+    }
+
 
     changeFilterType(type, index=this.currentFilterIndex) {
         this.filters[index].type = type
@@ -371,6 +412,7 @@ export class FilterBuilder {
     }
 
     #updateFilterTotalsUi(inputType, dataType) {
+
         const currentFilter = this.getCurrentFilter()
         const amount = currentFilter[inputType][dataType].length
 
