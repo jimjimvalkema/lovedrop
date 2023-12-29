@@ -5,9 +5,9 @@
         grid-gap: 1em;
 
         grid-template-rows: auto max-content;
-        grid-template-columns: 1fr 1fr 1fr 1fr ;
-        
-        grid-template-areas: 
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+
+        grid-template-areas:
             "aidropToken . . totalsDisplay"
             "filterEditor  filterEditor filterEditor filterEditor"
         ;
@@ -57,14 +57,14 @@
     }
 
     .tokenDisplay {
-        position: absolute; 
-        float: top-right; 
-        top: 1.5rem; 
-        right: 0.12rem; 
-        font-size: 1.7rem; 
-        font-weight: bold; 
-        -webkit-text-fill-color: #ffffff; 
-        -webkit-text-stroke-width: 0.1rem; 
+        position: absolute;
+        float: top-right;
+        top: 1.5rem;
+        right: 0.12rem;
+        font-size: 1.7rem;
+        font-weight: bold;
+        -webkit-text-fill-color: #ffffff;
+        -webkit-text-stroke-width: 0.1rem;
         -webkit-text-stroke-color: #000000;
         z-index: 3;
 
@@ -97,10 +97,10 @@
     .addressInput {
         width: 8em;
         text-overflow: ellipsis;
-        }
+    }
 
     .address {
-        display:inline-block;
+        display: inline-block;
         width: 10em;
         text-overflow: ellipsis;
         overflow: hidden;
@@ -128,53 +128,55 @@
         display: grid;
         grid-gap: 1em;
         bottom: 1em;
-        
+
         /* TODO fix this
         width: 98%; */
-        
+
         grid-template-rows: auto 7em max-content;
         grid-template-columns: 14em 1fr 1fr 1fr;
-        grid-template-areas: 
+        grid-template-areas:
             "criteriaManager filterInputs filterInputs totalscriteria"
             "filterselector nftDisplay nftDisplay nftDisplay"
             "filterInputSelecter nftDisplay nftDisplay nftDisplay"
         ;
-        
+
 
     }
 
-    #totalscriteria{
+    #totalscriteria {
         grid-area: totalscriteria;
         border: solid;
         text-align: right;
     }
-    
+
     #filterselector {
         grid-area: filterselector;
         border: solid;
     }
 
-    #filterInputs{
+    #filterInputs {
         grid-area: filterInputs;
 
         text-align: right;
 
         display: grid;
         grid-gap: 1em;
-        
+
         grid-template-rows: auto;
-        grid-template-columns: max-content max-content auto ;
-        grid-template-areas: 
-        "filterIncludedInputs filterExcludedInputs ."
+        grid-template-columns: max-content max-content auto;
+        grid-template-areas:
+            "filterIncludedInputs filterExcludedInputs ."
         ;
 
 
     }
+
     #filterIncludedInputs {
         grid-area: filterIncludedInputs;
         border: solid;
         height: 100%;
     }
+
     #filterExcludedInputs {
         grid-area: filterExcludedInputs;
         border: solid;
@@ -191,7 +193,7 @@
         grid-gap: 1em;
         grid-template-rows: max-content max-content;
         grid-template-columns: auto;
-        
+
     }
 
 
@@ -211,7 +213,7 @@
         width: 8em;
         overflow: hidden;
         text-overflow: ellipsis;
-        
+
     }
 
     .tempBox {
@@ -224,30 +226,30 @@
 
         display: grid;
         grid-gap: 0.01em;
-        grid-template-rows: max-content max-content  1fr;
+        grid-template-rows: max-content max-content 1fr;
         height: 68vh;
         width: 100%;
     }
 
     .nftImage {
-        max-width: 100%; 
+        max-width: 100%;
     }
 
     .nameInput {
         width: 5em;
     }
 
-    .amountTokenInput{
+    .amountTokenInput {
         width: 5em;
         text-overflow: ellipsis;
     }
 
     .inputsDropDown {
+        min-width: 15em;
         position: absolute;
-        float:right;
+        float: right;
         background-color: white;
         z-index: 2;
-        text-align: left;
         border-style: solid;
         width: max-content;
     }
@@ -258,33 +260,29 @@
     }
 
     .editInput-removeAttributeButton {
-        position:relative;
+        position: relative;
         float: right;
 
     }
 
     .inputsDropDownItemWrapper {
-        width:fit-content;
+        width: fit-content;
         text-align: right;
     }
 
 
     .removeAllInputEditor {
-        float: left;
+        float: right;
 
     }
-
-
-
-
 </style>
 
 <body>
     <nav class="mainNav">
         <ol>
-          <li class="mainNavItem"><a href="/">home</a></li>
-          <li class="mainNavItem"><a href="/create">create</a></li>
-          <li class="mainNavItem"><a href="/drop">drops</a></li>
+            <li class="mainNavItem"><a href="/">home</a></li>
+            <li class="mainNavItem"><a href="/create">create</a></li>
+            <li class="mainNavItem"><a href="/drop">drops</a></li>
         </ol>
     </nav>
 
@@ -302,14 +300,16 @@
         <div id="aidropToken">
             <div class="bold">Token</div>
             <div id="airdropTokenInfo" class="airdropTokenInfo">
-                TokenName: <span id="tokenName" class="airdropTokenInfo">TOKENNAME</span> 
+                TokenName: <span id="tokenName" class="airdropTokenInfo">TOKENNAME</span>
                 <br>
-                Ticker: <span id="ticker">TICKER</span> 
+                Ticker: <span id="ticker">TICKER</span>
                 <br>
-                Token contract: <a id="tokenContractHref" class="address" href="https://etherscan.io/address/0x3AEC26bf9FEDba55a55e970504f439101AbD7327">0x3AEC26bf9FEDba55a55e970504f439101AbD7327</a>
+                Token contract: <a id="tokenContractHref" class="address"
+                    href="https://etherscan.io/address/0x3AEC26bf9FEDba55a55e970504f439101AbD7327">0x3AEC26bf9FEDba55a55e970504f439101AbD7327</a>
                 <br>
             </div>
-                <label>Set airdrop token:  <input class="addressInput" id="airdropTokenContractAddressInput" type="text" value="0x3AEC26bf9FEDba55a55e970504f439101AbD7327" placeholder="contract address"></input></label>
+            <label>Set airdrop token: <input class="addressInput" id="airdropTokenContractAddressInput" type="text"
+                    value="0x3AEC26bf9FEDba55a55e970504f439101AbD7327" placeholder="contract address"></input></label>
         </div>
 
         <div id="totalsDisplay">
@@ -317,7 +317,7 @@
             Total airdrop: <span id="totalAirdrop">100.000</span> <span id="ticker">TICKER</span>
             <br>
             Totalsupply: <span id="totalsupply">69,690,690</span> <span id="ticker">TICKER</span>
-            
+
         </div>
 
         <div id="filterEditor">
@@ -331,29 +331,34 @@
                 </select>
                 <br>
 
-                set nft: <input class="addressInput" id="nftContractAddressInput" type="text" value="0x5af0d9827e0c53e4799bb226655a1de152a425a5" placeholder="contract address"></input>
+                set nft: <input class="addressInput" id="nftContractAddressInput" type="text"
+                    value="0x5af0d9827e0c53e4799bb226655a1de152a425a5" placeholder="contract address"></input>
                 <br>
-            
+
                 <label for="criteriaFilterSelectorInput">set filter:</label>
                 <select name="criteriaFilterSelectorInput" id="criteriaFilterSelectorInput">
                     <option value="">filter#1</option>
                 </select>
                 <button>edit</button>
                 <br>
-        
-                <label> <span id="ticker">TICKER</span>  per item: <input class="amountTokenInput" id="amountPerNftInput" type="number" value="1000000"></input></label>
-                
+
+                <label> <span id="ticker">TICKER</span> per item: <input class="amountTokenInput" id="amountPerNftInput"
+                        type="number" value="1000000"></input></label>
+
             </div>
 
             <div id="totalscriteria">
                 <div class="bold">Total tokens of criteria</div>
-                <span id="selectedcriteriaName">criteria#1</span> uses <span id="currentFilter"> filter#1 </span> wich has
+                <span id="selectedcriteriaName">criteria#1</span> uses <span id="currentFilter"> filter#1 </span> wich
+                has
                 <span id="amountItemsCurrentFilter"> 100</span> nfts
                 <br>
-                Each nft will recieve <span id="currentcriteriaAmountPerItem">1.000</span> <span id="ticker">TICKER</span>
+                Each nft will recieve <span id="currentcriteriaAmountPerItem">1.000</span> <span
+                    id="ticker">TICKER</span>
                 <br>
-                Total tokens <span id="selectedcriteriaName">criteria#1</span>: <span id="selectedcriteriaTotal"> 100.000 <span id="ticker">TICKER</span>
-                <br>
+                Total tokens <span id="selectedcriteriaName">criteria#1</span>: <span id="selectedcriteriaTotal">
+                    100.000 <span id="ticker">TICKER</span>
+                    <br>
             </div>
 
             <div id="filterInputSelecter">
@@ -365,15 +370,15 @@
                     </select>
 
                     <select name="inputTypeSelecterInput" id="inputTypeSelecterInput">
-                        
+
                         <option value="attributes">attribute</option>
                         <option value="conditions">filter</option>
                         <option value="idList">id</option>
-                        
-                       
-        
+
+
+
                     </select>
-                
+
                 </div>
                 <div id="inputSelecter">
                 </div>
@@ -381,7 +386,8 @@
 
             <div id="filterselector">
                 <span class="bold">Filter</span><br>
-                <label>filter name:  <input class="nameInput" id="filterNameInput" type="text" value="" placeholder="set filter name"></input></label>
+                <label>filter name: <input class="nameInput" id="filterNameInput" type="text" value=""
+                        placeholder="set filter name"></input></label>
                 <br>
 
                 <label for="filterSelectorInput">select filter:</label>
@@ -403,60 +409,62 @@
                 <div id="filterIncludedInputs">
                     <div class="bold">Included</div>
                     <div id="includedInputsEditor">
-                        Attributes: <span id="filterTotalInputs-inputs-attributes">0</span> items 
+                        Attributes: <span id="filterTotalInputs-inputs-attributes">0</span> items
                         <button id="inputs-attributes-edit">edit</button>
-                        <div  hidden="true" id="inputs-attributes-dropDown" class="inputsDropDown">
-                            <button class="removeAllInputEditor"  id="inputs-attributes-removeAllButton">remove all</button>
+                        <div hidden="true" id="inputs-attributes-dropDown" class="inputsDropDown">
+                            <button class="removeAllInputEditor" id="inputs-attributes-removeAllButton">remove
+                                all</button>
                         </div>
                         <br>
 
-                        nft ids: <span id="filterTotalInputs-inputs-idList">0</span> items 
-                        <button  id="inputs-idList-edit">edit</button>
+                        nft ids: <span id="filterTotalInputs-inputs-idList">0</span> items
+                        <button id="inputs-idList-edit">edit</button>
                         <div hidden="true" id="inputs-idList-dropDown" class="inputsDropDown">
-                            <button class="removeAllInputEditor"  id="inputs-idList-removeAllButton">remove all</button>
+                            <button class="removeAllInputEditor" id="inputs-idList-removeAllButton">remove all</button>
                         </div>
                         <br>
 
-                        Filters: <span id="filterTotalInputs-inputs-conditions">0</span> items 
-                        <button  id="inputs-conditions-edit">edit</button>
+                        Filters: <span id="filterTotalInputs-inputs-conditions">0</span> items
+                        <button id="inputs-conditions-edit">edit</button>
                         <div hidden="true" id="inputs-conditions-dropDown" class="inputsDropDown">
-                            <button class="removeAllInputEditor"  id="inputs-conditions-removeAllButton">remove all</button>
+                            <button class="removeAllInputEditor" id="inputs-conditions-removeAllButton">remove
+                                all</button>
                         </div>
 
-                    </div> 
+                    </div>
                 </div>
 
-            
+
                 <div id="filterExcludedInputs">
                     <div class="bold">Excluded</div>
                     <div id="ExcludedInputsEditor">
-                        Attributes: <span id="filterTotalInputs-NOT-attributes">0</span> items 
+                        Attributes: <span id="filterTotalInputs-NOT-attributes">0</span> items
                         <button id="NOT-attributes-edit">edit</button>
                         <div hidden="true" id="NOT-attributes-dropDown" class="inputsDropDown">
-                            <button class="removeAllInputEditor"  id="NOT-attributes-removeAllButton">remove all</button>
+                            <button class="removeAllInputEditor" id="NOT-attributes-removeAllButton">remove all</button>
                         </div>
                         <br>
 
-                        nft ids: <span id="filterTotalInputs-NOT-idList">0</span> items 
-                        <button  id="NOT-idList-edit">edit</button>
+                        nft ids: <span id="filterTotalInputs-NOT-idList">0</span> items
+                        <button id="NOT-idList-edit">edit</button>
                         <div hidden="true" id="NOT-idList-dropDown" class="inputsDropDown">
-                            <button class="removeAllInputEditor"  id="NOT-idList-removeAllButton">remove all</button>
+                            <button class="removeAllInputEditor" id="NOT-idList-removeAllButton">remove all</button>
                         </div>
                         <br>
 
-                        Filters: <span id="filterTotalInputs-NOT-conditions">0</span> items 
-                        <button  id="NOT-conditions-edit">edit</button>
+                        Filters: <span id="filterTotalInputs-NOT-conditions">0</span> items
+                        <button id="NOT-conditions-edit">edit</button>
                         <div hidden="true" id="NOT-conditions-dropDown" class="inputsDropDown">
                             <button class="removeAllInputEditor" id="NOT-conditions-removeAllButton">remove all</button>
                         </div>
-                        
-                    </div> 
+
+                    </div>
                 </div>
             </div>
 
 
             <div id="nftDisplay">
-            <!-- <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div>
+                <!-- <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div>
             <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
             <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
             <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
@@ -474,13 +482,13 @@
             <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
             <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
                 -->
-        
+
             </div>
-    
-    </div>
+
+        </div>
 
 
-    
+
 </body>
 <script src="../scripts/cbor.js" type="text/javascript"></script>
 <script type="module" src="./scripts/app.js" type="application/javascript"></script>

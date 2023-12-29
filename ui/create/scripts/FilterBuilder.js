@@ -103,7 +103,7 @@ export class FilterBuilder {
         input.id = `remove-${inputType}-${dataType}-${item}` //TODO collection address?
         input.name = `remove ${inputType} ${dataType} ${item}`
         input.className = "inputsDropDownItem"
-        input.addEventListener("click", (event)=>this.removeItemFromFilter(inputType,dataType,item,{inputType, dataType}))
+        input.addEventListener("click", (event)=>this.removeItemFromFilter(item,{inputType, dataType}))
         input.checked = true
 
 
@@ -138,23 +138,51 @@ export class FilterBuilder {
 
     #getItemName(dataType,item) {
         let name
-        if(dataType==="attributes") {
-            const {trait_type, value} = item
-            name = `${trait_type}: ${value}`
-        } else {
-            name = `${dataType}: ${item}`
+        switch (dataType) {
+            case "attributes":
+                const {trait_type, value} = item
+                name = `${trait_type}-${value}`
+                break;
+
+            case "conditions":
+                name = `${item.filterName}`
+                break;
+
+            case "idList":
+                name = `${item}`
+                break;
+        
+            default:
+                name = `${item}`
+                console.warn(`dataType: ${dataType} not recognized`)
+                break;
         }
+
+
         return name
 
     }
 
     #getItemIdentifier(dataType,item) {
         let identifier
-        if(dataType==="attributes") {
-            const {trait_type, value} = item
-            identifier = `${dataType}-${trait_type}-${value}-${this.collectionAddress}`
-        } else {
-            identifier = `${dataType}-${item}-${this.collectionAddress}`
+        switch (dataType) {
+            case "attributes":
+                const {trait_type, value} = item
+                identifier = `${dataType}-${trait_type}-${value}-${this.collectionAddress}`
+                break;
+
+            case "conditions":
+                identifier = `${dataType}-${item.index}-${this.collectionAddress}`
+                break;
+                
+            case "idList":
+                identifier = `${dataType}-${item}-${this.collectionAddress}`
+                break;
+        
+            default:
+                identifier = `${dataType}-${item}-${this.collectionAddress}`
+                console.warn(`dataType: ${dataType} not recognized`)
+                break;
         }
         return identifier
     }
@@ -162,8 +190,11 @@ export class FilterBuilder {
         this.filters[filterIndex][inputType][dataType] = []
         this.#clearEditInputDropdown(inputType,dataType,filterIndex)
         this.#updateFilterTotalsUi(inputType,dataType);
-        [...document.getElementsByClassName("attributeCheckbox")].forEach((x)=>x.checked=false)
-        await this.#setCheckedStatusAttributes()
+        if (dataType==="attributes") {
+            [...document.getElementsByClassName("attributeCheckbox")].forEach((x)=>x.checked=false)
+            await this.#setCheckedStatusAttributes()
+        }
+
     }
 
     #clearEditInputDropdown(inputType,dataType,filterIndex=this.currentFilterIndex) {
@@ -176,15 +207,16 @@ export class FilterBuilder {
     }
 
 
-    removeItemFromFilter(inputType,dataType,item,inputTarget=undefined,filterIndex=this.currentFilterIndex) {
+    removeItemFromFilter(item,inputTarget=undefined,filterIndex=this.currentFilterIndex) {
         if (!inputTarget) {
             inputTarget = this.#getCurrentInputTarget()
         } 
+        const {inputType,dataType} = inputTarget
+
 
         const itemIdentifier = this.#getItemIdentifier(dataType,item)
         
-        const FilterInputcheckBox = document.getElementById(`filterInput-checkbox-${itemIdentifier}`)
-        FilterInputcheckBox.checked = false
+
         
         const inputDropDownItem = document.getElementById(`inputsDropDown-${inputType}-${itemIdentifier}`)
         inputDropDownItem.outerHTML = ""
@@ -192,39 +224,58 @@ export class FilterBuilder {
         const filterTotalInputs = document.getElementById(`filterTotalInputs-${inputType}-${dataType}`)
         filterTotalInputs.innerText = Number(filterTotalInputs.innerText ) - 1
 
-        console.log(inputType,dataType,item)
-        if (dataType==="attributes") {
-            const {trait_type,  value} = item
-            this.#removeAttribute(trait_type, value, filterIndex, inputTarget)
-        } else {
-            this.#removeInterger(item, filterIndex, inputTarget)
+        switch (dataType) {
+            case "attributes":
+                this.#removeAttribute(item, filterIndex, inputTarget)
+                break;
+
+            case "conditions":
+                this.#removeFilter(item, filterIndex, inputTarget)
+                break;
+    
+            case "idList":
+                this.#removeInterger(item, filterIndex, inputTarget)
+                break;
+        
+            default:
+                break;
         }
-        //remove from filter
     }
 
-    addItemToFilter(inputType,dataType,item,inputTarget=undefined,filterIndex=this.currentFilterIndex) {
+    addItemToFilter(item,inputTarget=undefined,filterIndex=this.currentFilterIndex) {
         if (!inputTarget) {
             inputTarget = this.#getCurrentInputTarget()
         } 
-
-        const itemIdentifier = this.#getItemIdentifier(dataType,item)
+        const {inputType,dataType} = inputTarget
         
-        const FilterInputcheckBox = document.getElementById(`filterInput-checkbox-${itemIdentifier}`)
-        FilterInputcheckBox.checked = true
-        
-        const dropdown = document.getElementById(`${inputType}-${dataType}-dropDown`)
-        const itemElement = this.#getInputsDropDownItem(inputType,dataType, item)
-        dropdown.insertBefore(itemElement, dropdown.lastElementChild)
-        
-        const filterTotalInputs = document.getElementById(`filterTotalInputs-${inputType}-${dataType}`)
-        filterTotalInputs.innerText = Number(filterTotalInputs.innerText ) + 1
-
         console.log(inputType,dataType,item)
-        if (dataType==="attributes") {
-            const {trait_type,  value} = item
-            this.#addAttribute(trait_type, value, filterIndex, inputTarget)
-        } else {
-            this.#addInterger(item, filterIndex, inputTarget)
+
+        let isAdded
+        switch (dataType) {
+            case "attributes":
+                isAdded = this.#addAttribute(item, filterIndex, inputTarget)
+                break;
+
+            case "conditions":
+                isAdded = this.#addFilter(item, filterIndex, inputTarget)
+                break;
+    
+            case "idList":
+                isAdded = this.#addInterger(item, filterIndex, inputTarget)
+                break;
+        
+            default:
+                console.error(`dataType: ${dataType} is not recognized`)
+                break;
+        }
+
+        if (isAdded) { //incase its already inthere
+            const dropdown = document.getElementById(`${inputType}-${dataType}-dropDown`)
+            const itemElement = this.#getInputsDropDownItem(inputType,dataType, item)
+            dropdown.insertBefore(itemElement, dropdown.lastElementChild)
+            
+            const filterTotalInputs = document.getElementById(`filterTotalInputs-${inputType}-${dataType}`)
+            filterTotalInputs.innerText = Number(filterTotalInputs.innerText ) + 1    
         }
         //remove from filter
     }
@@ -359,7 +410,8 @@ export class FilterBuilder {
 
         this.#updateAllFilterTotalsUi()
         this.#updateInputsDropdowns()
-        this.#setInputTypeHandler({"target":{"value":"attributes"}})
+        const selectedDataType = document.getElementById("inputTypeSelecterInput").value
+        this.#setInputTypeHandler({"target":{"value":selectedDataType}})
 
 
     }
@@ -421,27 +473,49 @@ export class FilterBuilder {
     }
 
     //attribute selector
-    #addAttribute(traitType, traitValue, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
+    #addAttribute(attribute, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
+        const {trait_type,  value} = attribute
+
         if (!inputTarget) {
             inputTarget = this.#getCurrentInputTarget()
         } 
         const {inputType, dataType} = inputTarget 
         if (dataType !== "attributes") {throw error("inputTarget.dataType has to be attributes")}
     
-        //{ "trait_type": "Hat", "value": "alien hat" }\
-        const attribute = {["trait_type"]:traitType,["value"]:traitValue}
-        this.filters[filterIndex][inputType].attributes.push({["trait_type"]:traitType,["value"]:traitValue})
+        //{ "trait_type": "Hat", "value": "alien hat" }
+        console.log(trait_type, value)
+        console.log(this.filters[filterIndex][inputType].attributes)
+
+        const attributeIndex = this.filters[filterIndex][inputType].attributes.findIndex((x)=>(x.trait_type === trait_type && x.value === value))
+        console.log(attributeIndex)
+        if (attributeIndex===-1) {
+            this.filters[filterIndex][inputType].attributes.push(attribute)
+
+            const itemIdentifier = this.#getItemIdentifier(dataType,attribute)
+            const attributeInputcheckBox = document.getElementById(`filterInput-checkbox-${itemIdentifier}`)
+            attributeInputcheckBox.checked = true
+            return true
+        } else {
+            return false
+        }
+
+
     }
 
-    #removeAttribute(traitType, traitValue, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
+    #removeAttribute(attribute, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
+        const {trait_type,  value} = attribute
+
         if (!inputTarget) {
             inputTarget = this.#getCurrentInputTarget()
         } 
         const {inputType, dataType} = inputTarget 
     
         //{ "trait_type": "Hat", "value": "alien hat" }
-        const attribute = {["trait_type"]:traitType,["value"]:traitValue}
-        this.filters[filterIndex][inputType].attributes = this.filters[filterIndex][inputType].attributes.filter((x)=>!(x.trait_type === traitType && x.value === traitValue))
+        this.filters[filterIndex][inputType].attributes = this.filters[filterIndex][inputType].attributes.filter((x)=>!(x.trait_type === trait_type && x.value === value))
+
+        const itemIdentifier = this.#getItemIdentifier(dataType,attribute)
+        const attributeInputcheckBox = document.getElementById(`filterInput-checkbox-${itemIdentifier}`)
+        attributeInputcheckBox.checked = false
     }
 
     #removeInterger(interger, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
@@ -450,6 +524,10 @@ export class FilterBuilder {
         } 
         const {inputType, dataType} = inputTarget 
         this.filters[filterIndex][inputType][dataType] = this.filters[filterIndex][inputType][dataType].filter((x)=>x===interger)
+
+        // const itemIdentifier = this.#getItemIdentifier(dataType,interger)
+        // const itemInputcheckBox = document.getElementById(`filterInput-checkbox-${itemIdentifier}`)
+        // itemInputcheckBox.checked = false
     }
 
     #addInterger(interger, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
@@ -458,20 +536,50 @@ export class FilterBuilder {
         } 
         const {inputType, dataType} = inputTarget 
 
-        this.filters[filterIndex][inputType][dataType].push(interger)
+        if (this.filters[filterIndex][inputType][dataType].indexOf(interger) === -1) {
+            this.filters[filterIndex][inputType][dataType].push(interger)
+            return true
+        } else {
+            return false
+        }
+        
+    }
+
+    #addFilter(filter, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
+        if (!inputTarget) {
+            inputTarget = this.#getCurrentInputTarget()
+        } 
+        const {inputType, dataType} = inputTarget 
+
+        const indexOfFilter = this.filters[filterIndex][inputType][dataType].findIndex((x)=>x.index === filter.index)
+        if (indexOfFilter === -1) {
+            this.filters[filterIndex][inputType][dataType].push(filter)
+            return true
+        } else {
+            return false
+        }
+    }
+
+    #removeFilter(filter, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
+        if (!inputTarget) {
+            inputTarget = this.#getCurrentInputTarget()
+        } 
+        const {inputType, dataType} = inputTarget 
+
+        this.filters[filterIndex][inputType][dataType] = this.filters[filterIndex][inputType][dataType].filter((x)=>x.index===filter.index)
     }
 
     #attributeCheckBoxHandler(event, traitType, traitValue) {
         console.log(event.target.checked,traitType, traitValue)
-        const {inputType, dataType} = this.#getCurrentInputTarget()
+        const inputTarget = this.#getCurrentInputTarget()
         const item = {"trait_type":traitType, "value": traitValue};
         if(event.target.checked === true) { 
             //this.addAttribute(traitType, traitValue, this.currentFilterIndex, this.#getCurrentInputTarget() )
-            this.addItemToFilter(inputType,dataType,item)
+            this.addItemToFilter(item,inputTarget)
 
         } else  {
             // this.removeAttribute(traitType, traitValue, this.currentFilterIndex, this.#getCurrentInputTarget() )
-            this.removeItemFromFilter(inputType,dataType,item)
+            this.removeItemFromFilter(item,inputTarget)
         }
     }
 
@@ -688,6 +796,37 @@ export class FilterBuilder {
         }
     }
 
+    #addFilterButtonHandler(selector) {
+        const inputTarget = this.#getCurrentInputTarget()
+        const {inputType, dataType} =inputTarget
+        this.addItemToFilter( this.filters[selector.value], inputTarget, this.currentFilterIndex) //;(this.filters[selector.value], this.currentFilterIndex, {inputType, dataType} )
+        //this.#updateFilterTotalsUi(inputType, dataType)
+    }
+
+    #setConditionsSelector(elementId) {
+        const inputSelecterElement = document.getElementById(elementId)
+        const selector = document.createElement("select")
+        selector.name
+        selector.id
+
+        const defaultOption = document.createElement("option")
+        defaultOption.innerText = "--choose filter--"
+        selector.append(defaultOption)
+
+        this.filters.forEach((filter)=> {
+            const option = document.createElement("option")
+            option.value = filter.index
+            option.innerText = filter.filterName
+            selector.append(option)
+        })
+
+        const addButton = document.createElement("button")
+        addButton.innerText = "add"
+        addButton.addEventListener("click",(x)=>this.#addFilterButtonHandler(selector))
+        inputSelecterElement.append(selector, addButton)
+        
+    }
+
     //input type handler
     async #setInputTypeHandler(event={"target":{"value":"attributes"}}, elementId = "inputSelecter") {
         document.getElementById(elementId).innerHTML = ""
@@ -701,20 +840,17 @@ export class FilterBuilder {
                 [...document.getElementsByClassName("attributeCheckbox")].forEach((x)=>x.checked=false)
                 this.#setCheckedStatusAttributes()
                 break;
-            case "conditions":
+            case "idList":
                 document.getElementById(elementId).innerHTML = `<label>add id <input style="width:7em" type="number" /></label><button >add</button> (TODO)`
                 break
-            case "idList":
-                document.getElementById(elementId).innerHTML = `
-                <select name="filterInput" id="filterInput">
-                    <option value="">--choose filter--</option>
-                    <option value="filter1">filter1</option>
-                    <option value="filter2">filter2</option>
-                </select>
-                <button>add</button>
-                (TODO)
-         
-                `
+            case "conditions":
+                this.#setConditionsSelector(elementId)
+                // document.getElementById(elementId).innerHTML = `
+                // <select name="filterInput" id="filterInput">
+                //     <option value="">--choose filter--</option>
+                // </select>
+                // <button>add</button>
+                // `
                 break
             default:
      
