@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <style>
     #mainContent {
+        line-height: 1.5em;
         display: grid;
         grid-gap: 1em;
 
@@ -8,7 +9,7 @@
         grid-template-columns: 1fr 1fr 1fr 1fr;
 
         grid-template-areas:
-            "aidropToken . . totalsDisplay"
+            "aidropToken  totalsDisplay criteriaManager totalscriteria"
             "filterEditor  filterEditor filterEditor filterEditor"
         ;
     }
@@ -114,12 +115,14 @@
     #criteriaManager {
         grid-area: criteriaManager;
         border: solid;
+        align-items: right;
     }
 
     #totalsDisplay {
         text-align: right;
         grid-area: totalsDisplay;
         border: solid;
+        
     }
 
     #filterEditor {
@@ -135,8 +138,8 @@
         grid-template-rows: auto 7em max-content;
         grid-template-columns: 14em 1fr 1fr 1fr;
         grid-template-areas:
-            "criteriaManager filterInputs filterInputs totalscriteria"
-            "filterselector nftDisplay nftDisplay nftDisplay"
+            "filterselector filterInputs filterInputs none"
+            "filterInputSelecter nftDisplay nftDisplay nftDisplay"
             "filterInputSelecter nftDisplay nftDisplay nftDisplay"
         ;
 
@@ -144,9 +147,10 @@
     }
 
     #totalscriteria {
+        /* //TODO do this with a grid where there is a description, amount and ticker colum,  */
         grid-area: totalscriteria;
         border: solid;
-        text-align: right;
+        text-align: left;
     }
 
     #filterselector {
@@ -244,6 +248,8 @@
         text-overflow: ellipsis;
     }
 
+
+
     .inputsDropDown {
         min-width: 15em;
         position: absolute;
@@ -275,6 +281,76 @@
         float: right;
 
     }
+
+    .floatRightBlock {
+        float: right;
+        display: block;
+        position: relative;
+        height: 1em;
+        /* min-width: 8em; */
+        width: 9em;
+        /* overflow: hidden; */
+        text-align: left;
+
+    }
+
+    .floatRight {
+        float: right;
+        display: block;
+        position: relative;
+        height: 1em;
+        text-align: left;
+        /* overflow: hidden; */
+
+    }
+
+    .alignLeft {
+        text-align: left;
+        align-items: left;
+    }
+
+    .alignRight {
+        text-align: right;
+        align-items: right;
+    }
+
+    #criteriaManager input {
+        width: -webkit-fill-available;
+        text-overflow: ellipsis;
+    }
+
+    #criteriaManager select:not(#criteriaFilterSelectorInput) {
+        width: -webkit-fill-available;
+        text-overflow: ellipsis;
+    }
+
+    #criteriaFilterSelectorInput {
+        width: 6.2em;
+        text-overflow: ellipsis;
+    }
+
+    .alignTextRight {
+        float: right;
+        text-align: right;
+        width: fit-content;
+
+    }
+/* 
+    .floatRight input {
+        height: 0.9em;
+    }
+
+    .floatRight select {
+        height: 0.9em;
+    }
+    .floatRight button {
+        height: 1em;
+    } */
+    .floatRightTicker {
+        float: right;
+        width: 4em;
+    }
+
 </style>
 
 <body>
@@ -298,18 +374,19 @@
 
     <div id="mainContent">
         <div id="aidropToken">
-            <div class="bold">Token</div>
+            <div class="bold">Set token</div>
+            <label>Set airdrop token: <input class="addressInput" id="airdropTokenContractAddressInput" type="text"
+                value="0x3AEC26bf9FEDba55a55e970504f439101AbD7327" placeholder="contract address"></input></label>
             <div id="airdropTokenInfo" class="airdropTokenInfo">
                 TokenName: <span id="tokenName" class="airdropTokenInfo">TOKENNAME</span>
                 <br>
                 Ticker: <span id="ticker">TICKER</span>
                 <br>
-                Token contract: <a id="tokenContractHref" class="address"
-                    href="https://etherscan.io/address/0x3AEC26bf9FEDba55a55e970504f439101AbD7327">0x3AEC26bf9FEDba55a55e970504f439101AbD7327</a>
+                <!-- Token contract: <a id="tokenContractHref" class="address"
+                    href="https://etherscan.io/address/0x3AEC26bf9FEDba55a55e970504f439101AbD7327">0x3AEC26bf9FEDba55a55e970504f439101AbD7327</a> -->
                 <br>
             </div>
-            <label>Set airdrop token: <input class="addressInput" id="airdropTokenContractAddressInput" type="text"
-                    value="0x3AEC26bf9FEDba55a55e970504f439101AbD7327" placeholder="contract address"></input></label>
+           
         </div>
 
         <div id="totalsDisplay">
@@ -320,47 +397,68 @@
 
         </div>
 
+        <div id="criteriaManager">
+            <span class="bold">set criteria</span><br>
+            <div class="alignTextRight">
+                
+
+                <label for="criteriaselectorInput">edit criteria:</label>
+                <span class="floatRightBlock">
+                    <select name="criteriaselectorInput" id="criteriaselectorInput">
+                        <option value="">criteria#1</option>
+                        <option value="">new</option>
+                    </select>
+                </span>
+                <br>
+
+                set NFT: <span class="floatRightBlock">
+                    <input  id="nftContractAddressInput" type="text"
+                        value="0x5af0d9827e0c53e4799bb226655a1de152a425a5" placeholder="contract address"></input>
+                </span>
+                <br>
+
+                <label for="criteriaFilterSelectorInput">set filter: </label>
+                <span class="floatRightBlock">
+                    <select name="criteriaFilterSelectorInput" id="criteriaFilterSelectorInput">
+                        <option value="">filter#1</option>
+                    </select>
+                    <button>edit</button>
+                </span>
+                <br>
+
+                <label> <span id="ticker">TICKER</span> per item:  <span class="floatRightBlock">
+                    <input id="amountPerNftInput" 
+                        type="number" value="1000000"></input>
+                    </span>
+                </label>
+            </div>
+                    
+
+        </div>
+
+        <div id="totalscriteria">
+            <div class="bold">Distubution <span id="selectedcriteriaName">criteria#1</span> </div>
+            <div class="alignTextRight">
+                Amount NFT: <span class="floatRightBlock">
+                    <span id="amountItemsCurrentFilter"  class="alignLeft" > 100</span> <span id="nftSymbol" class="floatRightTicker" >MIL</span>
+                </span>
+                <br>
+
+                Tokens per NFT:  <span class="floatRightBlock">
+                    <span id="currentcriteriaAmountPerItem" class="alignLeft"  >1.000</span> <span id="ticker" class="floatRightTicker">TICKER</span>
+                </span>
+                <br>
+
+                Total tokens: <span class="floatRightBlock">
+                    <span id="selectedcriteriaTotal" class="alignLeft" >1.000.000 <span id="ticker" class="floatRightTicker" >TICKER</span>
+                </span>
+                <br>
+            </div>
+        </div>
+
+
+
         <div id="filterEditor">
-            <div id="criteriaManager">
-                <span class="bold">Criteria</span><br>
-
-                <label for="criteriaselectorInput">edit:</label>
-                <select name="criteriaselectorInput" id="criteriaselectorInput">
-                    <option value="">criteria#1</option>
-                    <option value="">new</option>
-                </select>
-                <br>
-
-                set nft: <input class="addressInput" id="nftContractAddressInput" type="text"
-                    value="0x5af0d9827e0c53e4799bb226655a1de152a425a5" placeholder="contract address"></input>
-                <br>
-
-                <label for="criteriaFilterSelectorInput">set filter:</label>
-                <select name="criteriaFilterSelectorInput" id="criteriaFilterSelectorInput">
-                    <option value="">filter#1</option>
-                </select>
-                <button>edit</button>
-                <br>
-
-                <label> <span id="ticker">TICKER</span> per item: <input class="amountTokenInput" id="amountPerNftInput"
-                        type="number" value="1000000"></input></label>
-
-            </div>
-
-            <div id="totalscriteria">
-                <div class="bold">Total tokens of criteria</div>
-                <span id="selectedcriteriaName">criteria#1</span> uses <span id="currentFilter"> filter#1 </span> wich
-                has
-                <span id="amountItemsCurrentFilter"> 100</span> nfts
-                <br>
-                Each nft will recieve <span id="currentcriteriaAmountPerItem">1.000</span> <span
-                    id="ticker">TICKER</span>
-                <br>
-                Total tokens <span id="selectedcriteriaName">criteria#1</span>: <span id="selectedcriteriaTotal">
-                    100.000 <span id="ticker">TICKER</span>
-                    <br>
-            </div>
-
             <div id="filterInputSelecter">
                 <div id="inputTypeSelecter">
                     <div class="bold">Inputs</div>
