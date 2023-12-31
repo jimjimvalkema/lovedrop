@@ -589,7 +589,12 @@ export class FilterBuilder {
      * @param {string} attribute  
      * @param {Element} dropDownDiv
      */
-    async #attributeAddButtonHandler(traitType, attribute, dropDownDiv) {
+    async #attributeAddButtonHandler(traitType, attribute, dropDownDiv, event=undefined) {
+        console.log(event)
+        //dont trigger on anything other then enter or add button press
+        if ((event.key!=="Enter" && event.key!==undefined)) {
+            return false
+        }
         const attributeCheckBox =  this.#createAttributeCheckBox(await this.getIdsPerAttribute(),traitType,attribute)
         const identifier = this.#getItemIdentifier("attributes", {"trait_type":traitType, "value":attribute})
         const wrapperId = `filterInput-wrapper-${identifier}`
@@ -665,7 +670,7 @@ export class FilterBuilder {
             numberInput.min = idsPerAttribute[traitType].min
             numberInput.max = idsPerAttribute[traitType].max
             numberInput.id = `${traitType}-${this.collectionAddress}`
-            numberInput.addEventListener("beforeinput", (event) => this.#attributeAddButtonHandler(traitType, numberInput.value, dropDownDiv));
+            numberInput.addEventListener("keypress", (event) => this.#attributeAddButtonHandler(traitType, numberInput.value, dropDownDiv, event));
             
             const label = document.createElement("label")
             label.for = numberInput.id
@@ -673,7 +678,7 @@ export class FilterBuilder {
 
             const button = document.createElement("button")
             button.innerText = "add"
-            button.addEventListener("click", (event)=>this.#attributeAddButtonHandler(traitType, numberInput.value, dropDownDiv))
+            button.addEventListener("click", (event)=>this.#attributeAddButtonHandler(traitType, numberInput.value, dropDownDiv, event))
             dropDownDiv.append(label, numberInput, button)
 
         } else if(dataType === "string") {
@@ -786,9 +791,14 @@ export class FilterBuilder {
                 //this.#updateFilterTotalsUi(inputType,dataType,"all")
                 this.#setCheckedStatusAttributes()
                 break;
-            case "id":
+            case "idList":
+                console.log("aa")
+                document.getElementById('inputSelecter').innerHTML = ""
+                this.#setInputTypeHandler({"target":{"value":"idList"}})
                 break;
-            case "filter":
+            case "conditions":
+                document.getElementById('inputSelecter').innerHTML = ""
+                this.#setInputTypeHandler({"target":{"value":"conditions"}})
                 break;
             
             default:
@@ -804,27 +814,81 @@ export class FilterBuilder {
     }
 
     #setConditionsSelector(elementId) {
+        //TODO prevent filters looping back into them selfs somehow
+        const {inputType, dataType} = this.#getCurrentInputTarget()
         const inputSelecterElement = document.getElementById(elementId)
         const selector = document.createElement("select")
-        selector.name
-        selector.id
+        selector.name = "filter selector"
+        selector.id = `${inputType}-${dataType}-selecter-${this.collectionAddress}`
 
         const defaultOption = document.createElement("option")
         defaultOption.innerText = "--choose filter--"
         selector.append(defaultOption)
 
         this.filters.forEach((filter)=> {
-            const option = document.createElement("option")
-            option.value = filter.index
-            option.innerText = filter.filterName
-            selector.append(option)
+            //prevent inputing a filter into it self
+            if (filter.index !== this.currentFilterIndex) {
+                const option = document.createElement("option")
+                option.value = filter.index
+                option.innerText = filter.filterName
+                selector.append(option)
+            }
+
         })
 
         const addButton = document.createElement("button")
-        addButton.innerText = "add"
+        if (inputType==="inputs") {
+            addButton.innerText = "add"
+        } else if (inputType === "NOT") {
+            addButton.innerText = "exclude"
+        }
+        
         addButton.addEventListener("click",(x)=>this.#addFilterButtonHandler(selector))
         inputSelecterElement.append(selector, addButton)
+    }
+
+    #addIdButtonHandler(id,event=undefined) {
+        console.log(event.key)
+        if (!id) {
+            return false
+        }
+        //dont trigger on anything other then enter or add button press
+        if ((event.key!=="Enter" && event.key!==undefined)) {
+            return false
+        }
+
+        const inputTarget = this.#getCurrentInputTarget()
+        const {inputType, dataType} =inputTarget
+        this.addItemToFilter( id, inputTarget, this.currentFilterIndex)
+    }
+
+    async #setIdListInput(elementId) {
+        const {inputType, dataType} = this.#getCurrentInputTarget()
+
+        const input = document.createElement("input")
+        //TODO better identifier naming scheme to prevent conflicts between collections and criteria
+        input.id = `${inputType}-${dataType}-selector`
+        input.className = "idList-selector"
+        input.type = "number"
+        input.min = await this.nftMetaData.getFirstId()
+        input.max = await this.nftMetaData.getLastId()
+        input.addEventListener("keypress", (event)=> this.#addIdButtonHandler(input.value,event))
+
+        const label = document.createElement("label") 
+        const addButton = document.createElement("button")
         
+        if (inputType==="inputs") {
+            label.innerText = `add id: `
+            addButton.innerText = "add"
+        } else if(inputType==="NOT") {
+            label.innerText = `exclude id: `
+            addButton.innerText = "exclude"
+        }
+
+        label.append(input)
+
+        addButton.addEventListener("click", (event)=> this.#addIdButtonHandler(input.value,event))
+        document.getElementById(elementId).append(label, addButton)
     }
 
     //input type handler
@@ -841,7 +905,8 @@ export class FilterBuilder {
                 this.#setCheckedStatusAttributes()
                 break;
             case "idList":
-                document.getElementById(elementId).innerHTML = `<label>add id <input style="width:7em" type="number" /></label><button >add</button> (TODO)`
+                this.#setIdListInput(elementId)
+                //document.getElementById(elementId).innerHTML = `<label>add id <input style="width:7em" type="number" /></label><button >add</button> (TODO)`
                 break
             case "conditions":
                 this.#setConditionsSelector(elementId)

@@ -113,7 +113,7 @@ export class NftMetaDataCollector {
     }
 
 
-    async getIdStartsAt() {
+    async getFirstId() {
         //cheeky way to check for off by one errors :p
         if (this.idStartsAt === undefined) {
             try {
@@ -200,6 +200,11 @@ export class NftMetaDataCollector {
         return imgURL;
 
     }
+    async getLastId() {
+        //TODO actually make the distinction
+        return await this.getTotalSupply()
+    }
+
     async getTotalSupply() {
         //TOD assumption totalsupply staysthesame
         //TODO remove temp test value and add metadata to extraUriMetaDataFile to handle this and default to a better error handling when this value is incorrect
@@ -722,7 +727,7 @@ export class NftMetaDataCollector {
 
         if ((!("NOT" in condition) && !("inputs" in condition)) ||
             ((this.amountOfItemsInInputs(condition.NOT) === 0) && (this.amountOfItemsInInputs(condition.inputs) === 0))) {
-            const firstId = await this.getIdStartsAt()
+            const firstId = await this.getFirstId()
             return new Set([...Array((await this.getTotalSupply()) - firstId).keys()].map(i => i + firstId))
 
         }
@@ -794,7 +799,7 @@ export class NftMetaDataCollector {
 
         if ((!("NOT" in condition) && !("inputs" in condition)) ||
             ((this.amountOfItemsInInputs(condition.NOT) === 0) && (this.amountOfItemsInInputs(condition.inputs) === 0))) {
-            const firstId = await this.getIdStartsAt()
+            const firstId = await this.getFirstId()
             return new Set([...Array((await this.getTotalSupply()) - firstId).keys()].map(i => i + firstId))
 
         }
@@ -886,7 +891,7 @@ export class NftMetaDataCollector {
         const inputs = condition.inputs //TODO make cleaner
         let excludeIdSet = new Set();
         if ((!("start" in inputs)) || !inputs.start || inputs.start === NaN) {
-            inputs["start"] = Number(await this.getIdStartsAt())
+            inputs["start"] = Number(await this.getFirstId())
         }
 
         if (!"stop" in inputs || !inputs.stop || inputs.stop === "totalSupply") {
@@ -1259,7 +1264,7 @@ export class NftMetaDataCollector {
     async getOwnerOfIdsWithOwnerOf(ids = undefined) {
         if (!ids || ids.length === 0) {
             const totalSupply = await this.getTotalSupply()
-            const firstId = await this.getIdStartsAt()
+            const firstId = await this.getFirstId()
             ids = [...Array(totalSupply - firstId).keys()].map(i => i + firstId) //await URIHandler.getTotalSupply()
         }
         let r = []

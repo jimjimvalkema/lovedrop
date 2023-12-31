@@ -152,7 +152,7 @@ export class NftDisplay {
         //write down ids mentioned in transfers
         //might not need to do that if #3 works
         const totalSupply = await this.nftMetaData.getTotalSupply()
-        const firstId = await this.nftMetaData.getIdStartsAt()
+        const firstId = await this.nftMetaData.getFirstId()
         console.log(firstId,totalSupply)
         this.ids = Array.from(new Array(totalSupply+1-firstId), (x,i) => (i + firstId).toString());
         return this.ids
