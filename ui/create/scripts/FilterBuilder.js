@@ -46,7 +46,7 @@ export class FilterBuilder {
         
         this.runFilter()
     }
-
+    
     async #onFilterChange() {
         await this.runFilter()
     }
@@ -229,6 +229,7 @@ export class FilterBuilder {
             [...document.getElementsByClassName("attributeCheckbox")].forEach((x)=>x.checked=false)
             await this.#setCheckedStatusAttributes()
         }
+        this.#onFilterChange()
 
     }
 
@@ -450,6 +451,8 @@ export class FilterBuilder {
         const selectedDataType = document.getElementById("inputTypeSelecterInput").value
         this.#setInputTypeHandler({"target":{"value":selectedDataType}})
 
+        this.#onFilterChange()
+
 
     }
 
@@ -487,6 +490,7 @@ export class FilterBuilder {
     #filterTypeHandler(event) {
         const type =  event.target.value
         this.changeFilterType(type)
+        this.#onFilterChange()
     }
 
     #filterNameHandler(event) {

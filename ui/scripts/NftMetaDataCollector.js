@@ -761,8 +761,9 @@ export class NftMetaDataCollector {
             }
         }
 
-
+        console.log("conditions?")
         if ("conditions" in inputs && typeof (inputs.conditions) === "object" && Object.keys(inputs.conditions).length) {//TODO this can be a function?
+            console.log("yes")
             const conditionsClone = structuredClone(inputs.conditions)
             let newIdSets = []
             for (const con of conditionsClone) {
@@ -774,14 +775,23 @@ export class NftMetaDataCollector {
             //TODO check if correct
             const resolvedNewIdSets = await Promise.all(newIdSets);
             //const resolvedNewIdSets = newIdSets.map((x) => [...x]);
+            console.log(resolvedNewIdSets)
             if (resolvedNewIdSets.length) {
                 for (const newIdSet of resolvedNewIdSets) {
-                    idSet = this.setIntersection(await idSet, await newIdSet)
+                    if (idSet.size){
+                        idSet = this.setIntersection(await idSet, await newIdSet)
+
+                    } else {
+                        idSet = newIdSet
+                    }
+                    console.log(idSet)
+                    
                 }
 
             }
         }
         idSet = this.setComplement(idSet, excludeIdSet)
+
         return idSet
     }
 
