@@ -72,6 +72,7 @@
 
     .nftdisplayInfo {
         font-size: 1.7rem;
+
     }
 
 
@@ -233,6 +234,8 @@
         grid-template-rows: max-content max-content 1fr;
         height: 68vh;
         width: 100%;
+
+        transition: all 1s;
     }
 
     .nftImage {
@@ -358,6 +361,19 @@
         width: 4em;
     }
 
+    #runFilter{
+        display: grid;
+        border-style: solid;
+    }
+    #runFilterButton{
+        font-size: 1.5em;
+        place-self: center;
+
+    }
+
+    .nftImagesDiv {
+        transition: all 0.2s;
+    }
 </style>
 
 <body>
@@ -567,8 +583,13 @@
                 </div>
             </div>
 
+            <div id="runFilter">
+                <button id="runFilterButton">run filter</button>
 
-            <div id="nftDisplay">
+            </div>
+
+
+            <div id="nftDisplay" hidden>
                 <!-- <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div>
             <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
             <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
@@ -587,7 +608,7 @@
             <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
             <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
                 -->
-
+        
             </div>
 
         </div>

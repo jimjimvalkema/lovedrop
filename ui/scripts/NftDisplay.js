@@ -5,7 +5,7 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 export class NftDisplay {
     collectionAddress;
     nftMetaData;
-    targetDivId;
+    displayElementId;
     ids;
 
     landscapeOrientation = {["rowSize"]:6,["amountRows"]:2}
@@ -31,13 +31,13 @@ export class NftDisplay {
      * initializes with the nft collection and ids if given
      * @param {string} collectionAddress 
      * @param {ethers.providers} provider 
-     * @param {string} targetDivId 
+     * @param {string} displayElementId 
      * @param {number[]} ids 
      * @param {string} ipfsGateway
      * @param {NftMetaDataCollector} nftMetaData
      */
     constructor(
-        {collectionAddress,provider, targetDivId="", ids=[], ipfsGateway = "https://ipfs.io", 
+        {collectionAddress,provider, displayElementId="", ids=[], ipfsGateway = "https://ipfs.io", 
         landscapeOrientation = {["rowSize"]:6,["amountRows"]:2}, 
         portraitOrientation = {["rowSize"]:4,["amountRows"]:3},
         nftMetaData}
@@ -51,7 +51,7 @@ export class NftDisplay {
         }
         
         this.ids = ids
-        this.targetDivId = targetDivId
+        this.displayElementId = displayElementId
 
         this.landscapeOrientation = landscapeOrientation
         this.portraitOrientation = portraitOrientation
@@ -204,7 +204,7 @@ export class NftDisplay {
      */
     addImageDivsFunction(func) {
         this.divFunctions.push(func)
-        if (document.getElementById(this.targetDivId).innerHTML) {
+        if (document.getElementById(this.displayElementId).innerHTML) {
             //TODO remove only the div created by that function that needs to be removed
             this.#removeAllDivImageFromRootElement();
             this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
@@ -358,7 +358,7 @@ export class NftDisplay {
      * @param {number} page 
      * @param {string} targetElementId 
      */
-    async selectPage(page, targetElementId=this.targetDivId) {
+    async selectPage(page, targetElementId=this.displayElementId) {
         //incase of refresh
         if (page !== this.currentPage) {
             this.#cancelLoadingImages(this.currentPage);
@@ -456,6 +456,7 @@ export class NftDisplay {
             const img = document.createElement("img")
             img.id = `img-${id}-${this.collectionAddress}`
             img.style = `width: 100%; vertical-align: top;`
+        
 
             imgElements.push(img)
             
@@ -527,19 +528,19 @@ export class NftDisplay {
      * @param {string} borderWidth 
      * @param {string} borderColor 
      */
-    async createDisplay(currentPage=this.currentPage, targetElementId=this.targetDivId, rowSize=this.rowSize, amountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor) {
+    async createDisplay(currentPage=this.currentPage, targetElementId=this.displayElementId, rowSize=this.rowSize, amountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor) {
         //TODO apply divFunctions and get image urls in 1 go
         //this.setImageRasterOrientation()
-        this.currentPage = currentPage
+        this.currentPage =  this.#getValidPage(currentPage,this.ids.length, rowSize,amountRows)
 
         const infoDiv =  this.#createInfoDiv(this.collectionAddress,this.nftMetaData, ids.length)
 
         let targetDiv = document.getElementById(targetElementId)
         if (ids.length>0) {
-            let imagesRasterDiv = await this.createImagesRaster(currentPage, rowSize, amountRows, ids, borderWidth, borderColor)
+            let imagesRasterDiv = await this.createImagesRaster(this.currentPage, rowSize, amountRows, ids, borderWidth, borderColor)
             imagesRasterDiv.id = `imagesRaster-${this.collectionAddress}`
 
-            let pageSelectorDiv = this.createPageSelector(currentPage, rowSize, amountRows, ids)
+            let pageSelectorDiv = this.createPageSelector(this.currentPage, rowSize, amountRows, ids)
             pageSelectorDiv.id = `pageSelector-${this.collectionAddress}`
 
             targetDiv.append(await infoDiv,pageSelectorDiv, imagesRasterDiv)
@@ -557,10 +558,10 @@ export class NftDisplay {
     }
 
     clear(){
-        if(document.getElementById(this.targetDivId).innerHTML) {
+        if(document.getElementById(this.displayElementId).innerHTML) {
             this.#removeAllDivImageFromRootElement()
             this.#cancelLoadingImages()
-            document.getElementById(this.targetDivId).innerHTML = ""
+            document.getElementById(this.displayElementId).innerHTML = ""
         }
     }
 
@@ -698,7 +699,7 @@ export class NftDisplay {
     }
 
     async refreshImages(page=this.currentPage) {
-        await this.selectPage(page, this.targetDivId, false)
+        await this.selectPage(page, this.displayElementId, false)
 
     }
 
@@ -711,8 +712,21 @@ export class NftDisplay {
         if (page===0) {
             page=1
         }
-        await this.refreshImages(page, this.targetDivId, false)
+        await this.refreshImages(page, this.displayElementId, false)
         await this.refreshInfo()
     }
+
+    #getValidPage(page,idsLength, rowSize,amountRows) {
+        const maxPerPage = rowSize*amountRows
+        const lastPage = Math.ceil(idsLength/maxPerPage)
+
+        if (page===0) {
+            return 1
+        } else if (page>lastPage) {
+            return lastPage
+        } else {
+            return page
+        }
+     }
 
 }

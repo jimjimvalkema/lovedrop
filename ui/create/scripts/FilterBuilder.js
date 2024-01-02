@@ -18,6 +18,7 @@ export class FilterBuilder {
     constructor({ collectionAddress, provider, ipfsGateway = "https://ipfs.io", displayElementId = "nftDisplay" }) {
         //globals
         this.nftMetaData = new NftMetaDataCollector(collectionAddress, provider, ipfsGateway)
+        console.log(collectionAddress)
         this.NftDisplay = new NftDisplay({
             collectionAddress: collectionAddress,
             provider: provider,
@@ -26,6 +27,7 @@ export class FilterBuilder {
             nftMetaData: this.nftMetaData
         })
         this.collectionAddress = collectionAddress
+        this.displayElementId = displayElementId
 
         //input handlers
         document.getElementById("inputTypeSelecterInput").addEventListener("change",(event)=>this.#setInputTypeHandler(event))
@@ -33,12 +35,45 @@ export class FilterBuilder {
         document.getElementById("filterTypeSelectorInput").addEventListener("change",(event)=>this.#filterTypeHandler(event))
         document.getElementById("filterNameInput").addEventListener("change",(event)=>this.#filterNameHandler(event))
         document.getElementById("inclusionSelectionInput").addEventListener("change",(event)=>this.#inclusionSelectionHandler(event))
+        document.getElementById("runFilterButton").addEventListener("click", ()=>this.runFilter())
         this.#setEditInputItemsHandlers()
         
         //initialize ui
         this.#setInputTypeHandler({"target":{"value":"attributes"}})
         const newFilter = this.createNewFilter("AND")
         this.changeCurrentFilter(newFilter.index)
+
+        
+        this.runFilter()
+    }
+
+    async #onFilterChange() {
+        await this.runFilter()
+    }
+
+    async runFilter() {
+        console.log(this.displayElementId)
+        
+        
+        const oldImgElements = [...document.getElementsByClassName("nftImagesDiv")]
+        oldImgElements.forEach((img)=> img.style.opacity = 0);
+        this.NftDisplay.clear()
+
+        const currentFilter = this.getCurrentFilter()
+        const resultIdSet = await this.nftMetaData.processFilter(currentFilter)
+        this.NftDisplay.ids = [...resultIdSet]
+        await this.NftDisplay.createDisplay()
+
+        // imgeElements.forEach((img)=> img.style.opacity = 0)
+        // setTimeout(() => {
+        //    imgeElements.forEach((img)=> img.style.opacity = 1)
+        //   }, 250);
+        const imgElements = [...document.getElementsByClassName("nftImagesDiv")]
+        imgElements.forEach((img)=> img.style.opacity = 0);
+        setTimeout(() => {imgElements.forEach((img)=> img.style.opacity = 1)}, 50)
+        
+   
+
     }
 
     #updateInputsDropdowns() {
@@ -240,6 +275,8 @@ export class FilterBuilder {
             default:
                 break;
         }
+
+        this.#onFilterChange()
     }
 
     addItemToFilter(item,inputTarget=undefined,filterIndex=this.currentFilterIndex) {
@@ -277,7 +314,7 @@ export class FilterBuilder {
             const filterTotalInputs = document.getElementById(`filterTotalInputs-${inputType}-${dataType}`)
             filterTotalInputs.innerText = Number(filterTotalInputs.innerText ) + 1    
         }
-        //remove from filter
+        this.#onFilterChange()
     }
 
     //getters
