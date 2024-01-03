@@ -392,7 +392,7 @@ export class NftDisplay {
         }
 
         if (this.divFunctions.length>0) {
-            //await this.#applyDivFuntionsOnCurrentIds(this.divFunctions,this.ids,this.currentPage)
+            await this.#applyDivFuntionsOnCurrentIds(this.divFunctions,this.ids,this.currentPage)
         }
         
 
@@ -553,7 +553,7 @@ export class NftDisplay {
 
     
 
-        //this.#applyDivFuntionsOnCurrentIds()
+        this.#applyDivFuntionsOnCurrentIds()
         this.#addOnclickFunctionToCurrentImages()
     }
 
@@ -622,7 +622,7 @@ export class NftDisplay {
         }
     }
 
-    async displayNames() {
+    displayNames() {
         const nftName = (id)=>this.#nftName(id)
         this.divFunctions.push(nftName)
         //this.addImageDivsFunction(nftName)

@@ -201,14 +201,20 @@ export class NftMetaDataCollector {
 
     }
     async getLastId() {
-        //TODO actually make the distinction
-        return await this.getTotalSupply()
+        if (await this.getFirstId() ===0) {
+            return (await this.getTotalSupply()) + 1
+        } else {
+            //TODO do better checking (ex ens)
+            return await this.getTotalSupply()
+        }
+
     }
 
     async getTotalSupply() {
         //TOD assumption totalsupply staysthesame
         //TODO remove temp test value and add metadata to extraUriMetaDataFile to handle this and default to a better error handling when this value is incorrect
         if (this.totalSupply !== undefined) {
+            console.log("already had a number")
 
             return this.totalSupply
         } else {
@@ -353,9 +359,12 @@ export class NftMetaDataCollector {
     }
 
 
-    async syncUriCacheByScraping(startId = 0, endId = null, chunkSize = 300, idList = null) {
+    async syncUriCacheByScraping(startId = 0, endId = null, chunkSize = 150, idList = null) {
+        console.log("chucnsue", chunkSize)
         let allUris = [];
         let allUrisFulFilled = [];
+        const messageProgressElement = document.getElementById("messageProgress")
+        messageProgressElement.hidden = false
         //iter from startId to endId
         if (idList === null) {
             //do entire supply if endId is null
@@ -381,10 +390,10 @@ export class NftMetaDataCollector {
                 }
 
                 if (!(id % 20)) {
-                    const m = `id:${id} out of:${this.totalSupply}`
+                    const m = `loading metadata. id:${id} out of:${this.totalSupply}`
                     //console.log(m)
                     if (!(typeof (document) === "undefined")) {
-                        document.getElementById("messageProgress").innerText = m
+                        messageProgressElement.innerText = m
 
                     }
                 }
@@ -413,6 +422,7 @@ export class NftMetaDataCollector {
         // }
         Object.assign(allUris, allUrisFulFilled)
         allUris = await Promise.all(allUris)
+        messageProgressElement.hidden = true
         return allUris
     }
 
@@ -461,7 +471,7 @@ export class NftMetaDataCollector {
         }
     }
 
-    async syncUriCache(startId = 0, endId = null, chunkSize = 200) {
+    async syncUriCache(startId = 0, endId = null, chunkSize = 100) {
         // const traitTypeKey = this.attributeFormat.traitTypeKey
         // const valueKey = this.attributeFormat.valueKey
         if ( this.extraMetaData.metaDataArray) {
@@ -494,7 +504,7 @@ export class NftMetaDataCollector {
         }
 
         //const reqObj = {method: 'GET'}
-        let retries = 0;
+        let retries = 1;
         let uriString = ""
         if (this.baseUriIsNonStandard) {
             try {
@@ -511,7 +521,7 @@ export class NftMetaDataCollector {
         }
 
         //const URI =  await (await this.getUrlByProtocol()).json()
-        while (retries < 1) {
+        while (retries <= 3) {
             try {
                 //await (await fetch("https://arweave.net/LGlMDKAWgcDyvYoft1YV6Y2pBBAwjWaFuZrDP9yD-RY/13.json")).json()
                 //console.log(`${await this.getBaseURI()}${id}${this.baseUriExtension}`)
@@ -521,12 +531,17 @@ export class NftMetaDataCollector {
             } catch (error) {
                 console.log(`errored on id: ${id} re-tried ${retries} times`)
                 console.log(`error is: ${error}`);
-                console.log(error)
                 console.log(`request was: ${uriString}`)
                 await delay(50);
             }
             retries += 1;
-        }
+
+            if (retries>3) {
+                console.warn(`couldn't get id: ${id} please double check to make sure it indeed doesnt exist!`)
+            }
+        } 
+            
+    
     }
 
     async getTokenUri(id, timeout=null) {

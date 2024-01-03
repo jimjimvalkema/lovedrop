@@ -82,23 +82,23 @@ async function test() {
 }
 window.onload = runOnLoad;
 
-async function handleSetNftContract(event) {
-    console.log(event.target.value)
-    let nftAddress = ""
-    try {
-        nftAddress = ethers.utils.getAddress(event.target.value)
+// async function handleSetNftContract(event) {
+//     console.log(event.target.value)
+//     let nftAddress = ""
+//     try {
+//         nftAddress = ethers.utils.getAddress(event.target.value)
         
-    } catch (error) {
-        console.log("not a real ethereum address")
-        await window.nftDisplay.clear()
-        return 0
+//     } catch (error) {
+//         console.log("not a real ethereum address")
+//         await window.nftDisplay.clear()
+//         return 0
         
-    }
+//     }
     
-    window.nftDisplay.setCollectionAddress(nftAddress)
-    await window.nftDisplay.setIdsToAll()
-    await window.nftDisplay.createDisplay()
+//     window.nftDisplay.setCollectionAddress(nftAddress)
+//     await window.nftDisplay.setIdsToAll()
+//     await window.nftDisplay.createDisplay()
 
-}
-document.getElementById("nftContractAddressInput").addEventListener("change",handleSetNftContract)
+// }
+// document.getElementById("nftContractAddressInput").addEventListener("change",handleSetNftContract)
 

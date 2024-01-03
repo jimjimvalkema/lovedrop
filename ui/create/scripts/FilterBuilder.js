@@ -1,5 +1,6 @@
 import { NftDisplay } from "../../scripts/NftDisplay.js"
 import { NftMetaDataCollector } from "../../scripts/NftMetaDataCollector.js"
+import { ethers } from "../../scripts/ethers-5.2.esm.min.js"
 
 export class FilterBuilder {
     validFilterTypes = ["RANGE", "AND", "OR"]
@@ -17,8 +18,12 @@ export class FilterBuilder {
      */
     constructor({ collectionAddress, provider, ipfsGateway = "https://ipfs.io", displayElementId = "nftDisplay" }) {
         //globals
+        this.collectionAddress = collectionAddress
+        this.ipfsGateway = ipfsGateway
+        this.provider = provider
+        this.displayElementId = displayElementId
+
         this.nftMetaData = new NftMetaDataCollector(collectionAddress, provider, ipfsGateway)
-        console.log(collectionAddress)
         this.NftDisplay = new NftDisplay({
             collectionAddress: collectionAddress,
             provider: provider,
@@ -26,8 +31,9 @@ export class FilterBuilder {
             ipfsGateway: ipfsGateway,
             nftMetaData: this.nftMetaData
         })
-        this.collectionAddress = collectionAddress
-        this.displayElementId = displayElementId
+
+
+        
 
         //input handlers
         document.getElementById("inputTypeSelecterInput").addEventListener("change",(event)=>this.#setInputTypeHandler(event))
@@ -36,15 +42,47 @@ export class FilterBuilder {
         document.getElementById("filterNameInput").addEventListener("change",(event)=>this.#filterNameHandler(event))
         document.getElementById("inclusionSelectionInput").addEventListener("change",(event)=>this.#inclusionSelectionHandler(event))
         document.getElementById("runFilterButton").addEventListener("click", ()=>this.runFilter())
+        document.getElementById("nftContractAddressInput").addEventListener("keypress", (event)=>this.#setCollectionAddressHandler(event))
         this.#setEditInputItemsHandlers()
         
         //initialize ui
-        this.#setInputTypeHandler({"target":{"value":"attributes"}})
-        const newFilter = this.createNewFilter("AND")
-        this.changeCurrentFilter(newFilter.index)
+        this.initializeUi()
 
-        
+    }
+
+    initializeUi() {
+        if (!this.filters.length) {
+            const newFilter = this.createNewFilter("AND")
+            this.changeCurrentFilter(newFilter.index)
+        }
+        this.#setInputTypeHandler({"target":{"value":"attributes"}})
+        this.NftDisplay.displayNames()
+
         this.runFilter()
+
+    }
+
+    #setCollectionAddressHandler(event) {
+        if ((event.key!=="Enter" && event.key!==undefined && event.target.value!==undefined)) {
+            return false
+        }
+        this.setCollectionAddress(event.target.value)
+    }
+
+    setCollectionAddress(addres) {
+        this.collectionAddress = ethers.utils.getAddress(addres)
+        console.log(this.collectionAddress)
+        this.NftDisplay.clear()
+        this.nftMetaData = new NftMetaDataCollector(this.collectionAddress, this.provider, this.ipfsGateway)
+        this.NftDisplay = new NftDisplay({
+            collectionAddress: this.collectionAddress,
+            provider: this.provider,
+            displayElementId: this.displayElementId,
+            ipfsGateway: this.ipfsGateway,
+            nftMetaData: this.nftMetaData
+        })
+
+        this.initializeUi()
     }
     
     async #onFilterChange() {
