@@ -83,12 +83,24 @@ export class NftMetaDataCollector {
     )
         
     {
-        _contractAddr = ethers.utils.getAddress(_contractAddr)
-        this.contractObj = new ethers.Contract(_contractAddr, ERC721ABI, _provider);;
+        
         this.ipfsGateway = _ipfsGateway;
         this.useCustomCompressedImages = _customCompressedImages;
         this.provider = _provider
         this.extraMetaData = this.getExtraUriMetaData(_contractAddr, allExtraMetaData);
+        this.contractObj = this.createContractObj(_contractAddr)
+    }
+
+    createContractObj(_contractAddr) {
+        if (!_contractAddr) {
+            return 
+        } else {
+            _contractAddr = ethers.utils.getAddress(_contractAddr)
+            const newContract = new ethers.Contract(_contractAddr, ERC721ABI, this.provider);
+            return newContract;
+        }
+
+
     }
 
     getExtraUriMetaData(contractAddr, allExtraMetaData) {

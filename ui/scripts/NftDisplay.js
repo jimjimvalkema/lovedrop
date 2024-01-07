@@ -1,4 +1,5 @@
 import {NftMetaDataCollector} from "./NftMetaDataCollector.js";
+import { ethers } from "./ethers-5.2.esm.min.js";
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 
@@ -43,7 +44,7 @@ export class NftDisplay {
         nftMetaData}
     ) {
         this.ipfsGateway = ipfsGateway
-        this.collectionAddress = collectionAddress
+        this.setCollectionAddress(collectionAddress)
         if (!nftMetaData) {
             this.nftMetaData = new NftMetaDataCollector(collectionAddress,provider,this.ipfsGateway)
         } else {
@@ -62,9 +63,15 @@ export class NftDisplay {
     }
 
     setCollectionAddress(collectionAddress) {
-        this.collectionAddress = collectionAddress
-        this.nftMetaData = new NftMetaDataCollector(this.collectionAddress,provider,this.ipfsGateway)
         this.clear()
+        if (!collectionAddress) {
+            console.warn(`collection address is not set`)
+            return
+        } else {
+            this.collectionAddress = ethers.utils.getAddress(collectionAddress)
+            this.nftMetaData = new NftMetaDataCollector(this.collectionAddress,provider,this.ipfsGateway)
+        }
+        
     }
 
     setNftMetaDataCollector(nftMetaData) {
@@ -558,7 +565,8 @@ export class NftDisplay {
     }
 
     clear(){
-        if(document.getElementById(this.displayElementId).innerHTML) {
+        const displayElement = document.getElementById(this.displayElementId)
+        if(displayElement && displayElement.innerHTML) {
             this.#removeAllDivImageFromRootElement()
             this.#cancelLoadingImages()
             document.getElementById(this.displayElementId).innerHTML = ""

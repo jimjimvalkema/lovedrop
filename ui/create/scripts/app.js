@@ -2,6 +2,7 @@ import { IpfsIndexer } from "../../scripts/IpfsIndexer.js";
 import { ethers } from "../../scripts/ethers-5.2.esm.min.js";
 import { NftDisplay } from "../../scripts/NftDisplay.js";
 import { FilterBuilder } from "./FilterBuilder.js";
+import {CriteriaBuilder} from "./CriteriaBuilder.js"
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 async function getUrlVars() {
@@ -69,11 +70,11 @@ async function runOnLoad() {
 }
 
 async function test() {
-    window.filterBuilderTest = new FilterBuilder({
-        collectionAddress : "0x5af0d9827e0c53e4799bb226655a1de152a425a5",
+    window.criteriaBuilderTest = new CriteriaBuilder({
+        collectionAddress : undefined,
         provider : window.provider,
         ipfsGateway : window.ipfsGateway,
-        displayElementId : "nftDisplay"
+        nftDisplayElementId : "nftDisplay"
     });
     //filterbuilder per criteria per collection.
     //copy paste filters

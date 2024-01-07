@@ -18,19 +18,14 @@ export class FilterBuilder {
      */
     constructor({ collectionAddress, provider, ipfsGateway = "https://ipfs.io", displayElementId = "nftDisplay" }) {
         //globals
-        this.collectionAddress = ethers.utils.getAddress(collectionAddress)
+        
+        //this.collectionAddress = ethers.utils.getAddress(collectionAddress)
         this.ipfsGateway = ipfsGateway
         this.provider = provider
         this.displayElementId = displayElementId
+        this.setCollectionAddress(collectionAddress)
 
-        this.nftMetaData = new NftMetaDataCollector(this.collectionAddress, provider, ipfsGateway)
-        this.NftDisplay = new NftDisplay({
-            collectionAddress: this.collectionAddress,
-            provider: provider,
-            displayElementId: displayElementId,
-            ipfsGateway: ipfsGateway,
-            nftMetaData: this.nftMetaData
-        })
+
         this.NftDisplay.displayNames()
 
 
@@ -43,12 +38,12 @@ export class FilterBuilder {
         document.getElementById("filterNameInput").addEventListener("change",(event)=>this.#filterNameHandler(event))
         document.getElementById("inclusionSelectionInput").addEventListener("change",(event)=>this.#inclusionSelectionHandler(event))
         document.getElementById("runFilterButton").addEventListener("click", ()=>this.runFilter())
-        document.getElementById("nftContractAddressInput").addEventListener("keypress", (event)=>this.#setCollectionAddressHandler(event))
-        document.getElementById("submitNftContract").addEventListener(("click"), (event)=>this.#setCollectionAddressHandler(event))
+        // document.getElementById("nftContractAddressInput").addEventListener("keypress", (event)=>this.setCollectionAddressHandler(event))
+        // document.getElementById("submitNftContract").addEventListener(("click"), (event)=>this.setCollectionAddressHandler(event))
         this.#setEditInputItemsHandlers()
         
         //initialize ui
-        this.reinitializeUi()
+        //this.reinitializeUi()
 
     }
 
@@ -57,6 +52,7 @@ export class FilterBuilder {
     //setting collectionAddress = add to this.filtersPerCollection
 
     reinitializeUi() {
+        console.log("initializing")
         if (!(this.collectionAddress in this.filtersPerCollection)) {
             this.filtersPerCollection[this.collectionAddress] = []
         }
@@ -97,7 +93,7 @@ export class FilterBuilder {
 
     }
 
-    #setCollectionAddressHandler(event) {
+    setCollectionAddressHandler(event) {
         const value = document.getElementById("nftContractAddressInput").value
         if ((event.key!=="Enter" && event.key!==undefined && value!==undefined)) {
             return false
@@ -106,12 +102,17 @@ export class FilterBuilder {
     }
 
     setCollectionAddress(addres) {
+        if (!addres) {
+            console.warn("collection address not set")
+            return
+        }
         this.collectionAddress = ethers.utils.getAddress(addres)
         if ((this.collectionAddress in this.filtersPerCollection) === false) {
             this.filtersPerCollection[this.collectionAddress] = []
         }
-
-        this.NftDisplay.clear()
+        if (this.NftDisplay) {
+            this.NftDisplay.clear()
+        }
         this.nftMetaData = new NftMetaDataCollector(this.collectionAddress, this.provider, this.ipfsGateway)
         this.NftDisplay = new NftDisplay({
             collectionAddress: this.collectionAddress,
