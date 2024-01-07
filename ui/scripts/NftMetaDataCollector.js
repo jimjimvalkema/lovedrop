@@ -200,6 +200,17 @@ export class NftMetaDataCollector {
         return imgURL;
 
     }
+
+    /**
+     * assumes ids are minted incrementally
+     */
+    async checkLastIdWithChain(startingPointId, maxFailedChecks=20, chunkSize=10) {
+        //walk back find first valid id
+        //walk up till maxFailed 
+        //return highest know valid id
+
+    }
+
     async getLastId() {
         if (await this.getFirstId() ===0) {
             return (await this.getTotalSupply()) + 1
@@ -491,7 +502,7 @@ export class NftMetaDataCollector {
                 }
             });
             //assumes that it starts either at 0 or 1 ofc
-            if (this.uriCache[0].attributes.length === 0) {
+            if (this.uriCache[0].attributes) {
                 this.idStartsAt = 1
             }
         }
@@ -525,7 +536,12 @@ export class NftMetaDataCollector {
             try {
                 //await (await fetch("https://arweave.net/LGlMDKAWgcDyvYoft1YV6Y2pBBAwjWaFuZrDP9yD-RY/13.json")).json()
                 //console.log(`${await this.getBaseURI()}${id}${this.baseUriExtension}`)
-                const URI = await (await this.getUrlByProtocol(uriString, timeout)).json()
+                const res = await this.getUrlByProtocol(uriString, timeout)
+                if (res.status === 404) {
+                    return undefined
+                }
+
+                const URI = await res.json()
                 //await (await fetch(`${await this.getBaseURI()}${id}`)).json();
                 return URI
             } catch (error) {

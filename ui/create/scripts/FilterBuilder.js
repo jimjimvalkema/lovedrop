@@ -7,7 +7,7 @@ export class FilterBuilder {
     filterTemplate = { "type": "OR", "inputs": { "idList": [], "conditions": [], "attributes": [] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }
 
     nftMetaData;
-    filters = [];
+    filtersPerCollection = {};
     currentFilterIndex=0;
     //TODO better way to set elementIds 
     /**
@@ -18,19 +18,20 @@ export class FilterBuilder {
      */
     constructor({ collectionAddress, provider, ipfsGateway = "https://ipfs.io", displayElementId = "nftDisplay" }) {
         //globals
-        this.collectionAddress = collectionAddress
+        this.collectionAddress = ethers.utils.getAddress(collectionAddress)
         this.ipfsGateway = ipfsGateway
         this.provider = provider
         this.displayElementId = displayElementId
 
-        this.nftMetaData = new NftMetaDataCollector(collectionAddress, provider, ipfsGateway)
+        this.nftMetaData = new NftMetaDataCollector(this.collectionAddress, provider, ipfsGateway)
         this.NftDisplay = new NftDisplay({
-            collectionAddress: collectionAddress,
+            collectionAddress: this.collectionAddress,
             provider: provider,
             displayElementId: displayElementId,
             ipfsGateway: ipfsGateway,
             nftMetaData: this.nftMetaData
         })
+        this.NftDisplay.displayNames()
 
 
         
@@ -43,35 +44,73 @@ export class FilterBuilder {
         document.getElementById("inclusionSelectionInput").addEventListener("change",(event)=>this.#inclusionSelectionHandler(event))
         document.getElementById("runFilterButton").addEventListener("click", ()=>this.runFilter())
         document.getElementById("nftContractAddressInput").addEventListener("keypress", (event)=>this.#setCollectionAddressHandler(event))
+        document.getElementById("submitNftContract").addEventListener(("click"), (event)=>this.#setCollectionAddressHandler(event))
         this.#setEditInputItemsHandlers()
         
         //initialize ui
-        this.initializeUi()
+        this.reinitializeUi()
 
     }
 
-    initializeUi() {
-        if (!this.filters.length) {
+    //TODO
+    //every filter add, remove, read
+    //setting collectionAddress = add to this.filtersPerCollection
+
+    reinitializeUi() {
+        if (!(this.collectionAddress in this.filtersPerCollection)) {
+            this.filtersPerCollection[this.collectionAddress] = []
+        }
+
+        this.#resetfilterSelectorInputsUi()
+
+
+
+        //this.#setInputTypeHandler({"target":{"value":"attributes"}})
+
+        if (this.getFiltersOfCollection().length === 0) {
             const newFilter = this.createNewFilter("AND")
             this.changeCurrentFilter(newFilter.index)
+        } else {
+            this.changeCurrentFilter(0)
         }
-        this.#setInputTypeHandler({"target":{"value":"attributes"}})
-        this.NftDisplay.displayNames()
 
-        this.runFilter()
+
+
+        //this.runFilter()
+        //fix select filter
+        //reset inputs ui
+    }
+
+    #resetfilterSelectorInputsUi(elementId="filterSelectorInput") {
+        const filterSelector = document.getElementById(elementId)
+        const children = [...filterSelector.children]
+        children.forEach((x)=>{
+            //skip add new filter
+            if (x.value>-1){
+                x.outerHTML = ""
+            }
+        })
+
+        this.#addAllFilterOptionsToSelector({selector:filterSelector})
+        filterSelector.value = 0
+        
 
     }
 
     #setCollectionAddressHandler(event) {
-        if ((event.key!=="Enter" && event.key!==undefined && event.target.value!==undefined)) {
+        const value = document.getElementById("nftContractAddressInput").value
+        if ((event.key!=="Enter" && event.key!==undefined && value!==undefined)) {
             return false
         }
-        this.setCollectionAddress(event.target.value)
+        this.setCollectionAddress(value)
     }
 
     setCollectionAddress(addres) {
         this.collectionAddress = ethers.utils.getAddress(addres)
-        console.log(this.collectionAddress)
+        if ((this.collectionAddress in this.filtersPerCollection) === false) {
+            this.filtersPerCollection[this.collectionAddress] = []
+        }
+
         this.NftDisplay.clear()
         this.nftMetaData = new NftMetaDataCollector(this.collectionAddress, this.provider, this.ipfsGateway)
         this.NftDisplay = new NftDisplay({
@@ -82,7 +121,7 @@ export class FilterBuilder {
             nftMetaData: this.nftMetaData
         })
 
-        this.initializeUi()
+        this.reinitializeUi()
     }
     
     async #onFilterChange() {
@@ -99,7 +138,8 @@ export class FilterBuilder {
 
         const currentFilter = this.getCurrentFilter()
         const resultIdSet = await this.nftMetaData.processFilter(currentFilter)
-        this.NftDisplay.ids = [...resultIdSet]
+        const ids  = [...resultIdSet]
+        this.NftDisplay.ids = ids
         await this.NftDisplay.createDisplay()
 
         // imgeElements.forEach((img)=> img.style.opacity = 0)
@@ -109,6 +149,7 @@ export class FilterBuilder {
         const imgElements = [...document.getElementsByClassName("nftImagesDiv")]
         imgElements.forEach((img)=> img.style.opacity = 0);
         setTimeout(() => {imgElements.forEach((img)=> img.style.opacity = 1)}, 50)
+        return ids
         
    
 
@@ -260,7 +301,8 @@ export class FilterBuilder {
         return identifier
     }
     async #clearAllEditInputHandler(inputType,dataType,filterIndex=this.currentFilterIndex) {
-        this.filters[filterIndex][inputType][dataType] = []
+        const currentFilter = this.getCurrentFilter()
+        currentFilter[inputType][dataType] = []
         this.#clearEditInputDropdown(inputType,dataType,filterIndex)
         this.#updateFilterTotalsUi(inputType,dataType);
         if (dataType==="attributes") {
@@ -304,7 +346,7 @@ export class FilterBuilder {
                 break;
 
             case "conditions":
-                this.#removeFilter(item, filterIndex, inputTarget)
+                this.#removeFilterFromInputs(item, filterIndex, inputTarget)
                 break;
     
             case "idList":
@@ -333,7 +375,7 @@ export class FilterBuilder {
                 break;
 
             case "conditions":
-                isAdded = this.#addFilter(item, filterIndex, inputTarget)
+                isAdded = this.#addFilterToInputs(item, filterIndex, inputTarget)
                 break;
     
             case "idList":
@@ -356,9 +398,32 @@ export class FilterBuilder {
         this.#onFilterChange()
     }
 
+
+    getFiltersOfCollection(collection=this.collectionAddress) {
+        if(collection in this.filtersPerCollection) {
+            return this.filtersPerCollection[collection]
+        } else {
+            this.filtersPerCollection[collection] = []
+            return this.filtersPerCollection[collection] 
+        }
+        
+
+    }
     //getters
     getCurrentFilter() {
-        return this.filters[this.currentFilterIndex]
+        return this.getFiltersOfCollection()[this.currentFilterIndex]
+    }
+
+    getFilter(index) {
+        return this.getFiltersOfCollection()[index]
+    }
+
+    addFilterToCollection(filter, collection=this.collectionAddress) {
+        const currentFilterArr = this.getFiltersOfCollection(collection)
+        const index = currentFilterArr.length
+        currentFilterArr.push(this.formatNewFilter(filter,index))
+        console.log(currentFilterArr)
+
     }
 
     async getAllExtraMetaData() {
@@ -416,7 +481,7 @@ export class FilterBuilder {
         }
     }
 
-    formatNewFilter(filter, index) {
+    formatNewFilter(filter={}, index=undefined) {
         const keys = Object.keys(this.filterTemplate)
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i]
@@ -434,6 +499,9 @@ export class FilterBuilder {
                     continue
             }
         }
+        if("index" in filter && index === undefined) {
+            console.warn("filter already has a index and is not overwritten. This might create conflicts!")
+        }
 
         filter.index = index
         if (!("filterName" in filter) || !filter.filterName) {
@@ -446,30 +514,44 @@ export class FilterBuilder {
     createNewFilter(type, name="") {
         //TODO filtername to just name
         //TODO set filter dropdown of criteria field
-        const filtersIndex= this.filters.length
-        this.filters.push(this.formatNewFilter(
-            {
-                "type":type, 
-                "filterName": name
-            }
-            ,filtersIndex
-        )) 
+        const filtersIndex= this.getFiltersOfCollection().length
+        // this.filtersPerCollection.push(this.formatNewFilter(
+        //     {
+        //         "type":type, 
+        //         "filterName": name
+        //     }
+        //     ,filtersIndex
+        // )) 
+
+        this.addFilterToCollection({"type":type, "filterName": name})
+        const newFilter = this.getFiltersOfCollection()[filtersIndex]
+
+
         const newFilterOption = document.createElement("option")
         newFilterOption.value = filtersIndex
-        newFilterOption.innerText = this.filters[filtersIndex].filterName 
+        newFilterOption.innerText = newFilter.filterName 
         
         const filterSelector = document.getElementById("filterSelectorInput")
         filterSelector.insertBefore(newFilterOption, filterSelector.lastElementChild)
         filterSelector.value = filtersIndex
 
-        return this.filters[filtersIndex]
+        return newFilter
     } 
 
     changeCurrentFilter(index) {
+        console.log("changing to ", index)
+        const currentFilter = this.getFiltersOfCollection()[index]
         document.getElementById("filterSelectorInput").value = index
-        document.getElementById("filterNameInput").value = this.filters[index].filterName
-        document.getElementById("filterTypeSelectorInput").value = this.filters[index].type
+        document.getElementById("filterNameInput").value = currentFilter.filterName
+        document.getElementById("filterTypeSelectorInput").value = currentFilter.type
         this.currentFilterIndex = index
+
+        this.#updateAllFilterTotalsUi()
+        this.#updateInputsDropdowns()
+        const selectedDataType = document.getElementById("inputTypeSelecterInput").value
+        this.#setInputTypeHandler({"target":{"value":selectedDataType}})
+
+        this.#onFilterChange()
     }
 
    
@@ -483,15 +565,6 @@ export class FilterBuilder {
         } else {
             this.changeCurrentFilter(filterterIndex)
         }
-
-        this.#updateAllFilterTotalsUi()
-        this.#updateInputsDropdowns()
-        const selectedDataType = document.getElementById("inputTypeSelecterInput").value
-        this.#setInputTypeHandler({"target":{"value":selectedDataType}})
-
-        this.#onFilterChange()
-
-
     }
 
     #updateAllFilterTotalsUi() {
@@ -507,17 +580,17 @@ export class FilterBuilder {
 
 
     changeFilterType(type, index=this.currentFilterIndex) {
-        this.filters[index].type = type
+       this.getFilter(index).type = type
         //TODO filter type formatting???
     }
 
     changeFilterName(name, index=this.currentFilterIndex) {
         if (name) {
-            this.filters[index].filterName = name
+           this.getFilter(index).filterName = name
         } else {
             //name cant be empty
-            name =  this.filters[index].filterName
-            document.getElementById("filterNameInput").value = this.filters[index].filterName
+            name = this.getFilter(index).filterName
+            document.getElementById("filterNameInput").value =this.getFilter(index).filterName
 
         }
         const filterSelector = document.getElementById("filterSelectorInput")
@@ -562,13 +635,11 @@ export class FilterBuilder {
         if (dataType !== "attributes") {throw error("inputTarget.dataType has to be attributes")}
     
         //{ "trait_type": "Hat", "value": "alien hat" }
-        console.log(trait_type, value)
-        console.log(this.filters[filterIndex][inputType].attributes)
 
-        const attributeIndex = this.filters[filterIndex][inputType].attributes.findIndex((x)=>(x.trait_type === trait_type && x.value === value))
+        const attributeIndex =this.getFilter(filterIndex)[inputType].attributes.findIndex((x)=>(x.trait_type === trait_type && x.value === value))
         console.log(attributeIndex)
         if (attributeIndex===-1) {
-            this.filters[filterIndex][inputType].attributes.push(attribute)
+           this.getFilter(filterIndex)[inputType].attributes.push(attribute)
 
             const itemIdentifier = this.#getItemIdentifier(dataType,attribute)
             const attributeInputcheckBox = document.getElementById(`filterInput-checkbox-${itemIdentifier}`)
@@ -590,7 +661,7 @@ export class FilterBuilder {
         const {inputType, dataType} = inputTarget 
     
         //{ "trait_type": "Hat", "value": "alien hat" }
-        this.filters[filterIndex][inputType].attributes = this.filters[filterIndex][inputType].attributes.filter((x)=>!(x.trait_type === trait_type && x.value === value))
+       this.getFilter(filterIndex)[inputType].attributes =this.getFilter(filterIndex)[inputType].attributes.filter((x)=>!(x.trait_type === trait_type && x.value === value))
 
         const itemIdentifier = this.#getItemIdentifier(dataType,attribute)
         const attributeInputcheckBox = document.getElementById(`filterInput-checkbox-${itemIdentifier}`)
@@ -602,7 +673,7 @@ export class FilterBuilder {
             inputTarget = this.#getCurrentInputTarget()
         } 
         const {inputType, dataType} = inputTarget 
-        this.filters[filterIndex][inputType][dataType] = this.filters[filterIndex][inputType][dataType].filter((x)=>x===interger)
+       this.getFilter(filterIndex)[inputType][dataType] = this.getFilter(filterIndex)[inputType][dataType].filter((x)=>x===interger)
 
         // const itemIdentifier = this.#getItemIdentifier(dataType,interger)
         // const itemInputcheckBox = document.getElementById(`filterInput-checkbox-${itemIdentifier}`)
@@ -615,8 +686,8 @@ export class FilterBuilder {
         } 
         const {inputType, dataType} = inputTarget 
 
-        if (this.filters[filterIndex][inputType][dataType].indexOf(interger) === -1) {
-            this.filters[filterIndex][inputType][dataType].push(interger)
+        if (this.getFilter(filterIndex)[inputType][dataType].indexOf(interger) === -1) {
+            this.getFilter(filterIndex)[inputType][dataType].push(interger)
             return true
         } else {
             return false
@@ -624,28 +695,28 @@ export class FilterBuilder {
         
     }
 
-    #addFilter(filter, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
+    #addFilterToInputs(filter, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
         if (!inputTarget) {
             inputTarget = this.#getCurrentInputTarget()
         } 
         const {inputType, dataType} = inputTarget 
 
-        const indexOfFilter = this.filters[filterIndex][inputType][dataType].findIndex((x)=>x.index === filter.index)
+        const indexOfFilter = this.getFilter(filterIndex)[inputType][dataType].findIndex((x)=>x.index === filter.index)
         if (indexOfFilter === -1) {
-            this.filters[filterIndex][inputType][dataType].push(filter)
+            this.getFilter(filterIndex)[inputType][dataType].push(filter)
             return true
         } else {
             return false
         }
     }
 
-    #removeFilter(filter, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
+    #removeFilterFromInputs(filter, filterIndex = this.currentFilterIndex, inputTarget=undefined) {
         if (!inputTarget) {
             inputTarget = this.#getCurrentInputTarget()
         } 
         const {inputType, dataType} = inputTarget 
 
-        this.filters[filterIndex][inputType][dataType] = this.filters[filterIndex][inputType][dataType].filter((x)=>x.index===filter.index)
+        this.getFilter(filterIndex)[inputType][dataType] = this.getFilter(filterIndex)[inputType][dataType].filter((x)=>x.index===filter.index)
     }
 
     #attributeCheckBoxHandler(event, traitType, traitValue) {
@@ -888,8 +959,30 @@ export class FilterBuilder {
     #addFilterButtonHandler(selector) {
         const inputTarget = this.#getCurrentInputTarget()
         const {inputType, dataType} =inputTarget
-        this.addItemToFilter( this.filters[selector.value], inputTarget, this.currentFilterIndex) //;(this.filters[selector.value], this.currentFilterIndex, {inputType, dataType} )
+        this.addItemToFilter( this.getFilter(selector.value), inputTarget, this.currentFilterIndex) //;(this.filters[selector.value], this.currentFilterIndex, {inputType, dataType} )
         //this.#updateFilterTotalsUi(inputType, dataType)
+    }
+
+    #addAllFilterOptionsToSelector({selector, skipSelf = false}) {
+        const addNewOption = [...selector.children].find((x)=>x.value==="-1")
+        console.log([...selector.children][0].value)
+        console.log(addNewOption)
+        this.getFiltersOfCollection().forEach((filter)=> {
+            //prevent inputing a filter into it self
+    
+            if (!skipSelf || filter.index !== this.currentFilterIndex) {
+                const option = document.createElement("option")
+                option.value = filter.index
+                option.innerText = filter.filterName
+                if (addNewOption) {
+                    selector.insertBefore(option, addNewOption)
+                } else {
+                    selector.append(option)
+                }
+               
+            }
+
+        })
     }
 
     #setConditionsSelector(elementId) {
@@ -904,16 +997,7 @@ export class FilterBuilder {
         defaultOption.innerText = "--choose filter--"
         selector.append(defaultOption)
 
-        this.filters.forEach((filter)=> {
-            //prevent inputing a filter into it self
-            if (filter.index !== this.currentFilterIndex) {
-                const option = document.createElement("option")
-                option.value = filter.index
-                option.innerText = filter.filterName
-                selector.append(option)
-            }
-
-        })
+        this.#addAllFilterOptionsToSelector({selector:selector, skipSelf:true})
 
         const addButton = document.createElement("button")
         if (inputType==="inputs") {

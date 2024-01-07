@@ -6,6 +6,8 @@
 
         grid-template-rows: auto max-content;
         grid-template-columns: 1fr 1fr 1fr 1fr;
+        width: 100%;
+
 
         grid-template-areas:
             "aidropToken  totalsDisplay criteriaManager totalscriteria"
@@ -226,6 +228,7 @@
     }
 
     #nftDisplay {
+        
         grid-area: nftDisplay;
         border: solid;
 
@@ -233,8 +236,9 @@
         grid-gap: 0.01em;
         grid-template-rows: max-content max-content 1fr;
         /* height: 64vh; */
-        height: 100%;
-        width: 100%;
+        height: fit-content;
+        min-height: 77vh;
+        width: -webkit-fill-available;
         overflow: hidden;
 
         transition: all 1s;
@@ -323,7 +327,7 @@
         line-height: 1.5em;
     }
 
-    #criteriaManager input {
+    #criteriaManager input:not(#nftContractAddressInput) {
         width: -webkit-fill-available;
         text-overflow: ellipsis;
     }
@@ -335,6 +339,11 @@
 
     #criteriaFilterSelectorInput {
         width: 6.2em;
+        text-overflow: ellipsis;
+    }
+
+    #nftContractAddressInput {
+        width: 6em;
         text-overflow: ellipsis;
     }
 
@@ -431,8 +440,8 @@
                 <label for="criteriaselectorInput">edit criteria:</label>
                 <span class="floatRightBlock">
                     <select name="criteriaselectorInput" id="criteriaselectorInput">
-                        <option value="">criteria#1</option>
-                        <option value="">new</option>
+                        <option value="0">criteria#1</option>
+                        <option value="-1">new</option>
                     </select>
                 </span>
                 <br>
@@ -440,7 +449,9 @@
                 set NFT: <span class="floatRightBlock">
                     <input  id="nftContractAddressInput" type="text"
                         value="0x5af0d9827e0c53e4799bb226655a1de152a425a5" placeholder="contract address"></input>
+                        <button id="submitNftContract">set</button>
                 </span>
+                
                 <br>
 
                 <label for="criteriaFilterSelectorInput">set filter: </label>
