@@ -250,7 +250,7 @@
     }
 
     .nameInput {
-        width: 5em;
+        width: 6em;
     }
 
     .amountTokenInput {
@@ -386,6 +386,7 @@
     .nftImagesDiv {
         transition: all 0.2s;
     }
+
 </style>
 
 <body>
@@ -440,8 +441,7 @@
                 <label for="criteriaselectorInput">edit criteria:</label>
                 <span class="floatRightBlock">
                     <select name="criteriaselectorInput" id="criteriaselectorInput">
-                        <option value="0">criteria#1</option>
-                        <option value="-1">new</option>
+                        <option title="Tooltip" value="-1">add new</option>
                     </select>
                 </span>
                 <br>
@@ -457,7 +457,6 @@
                 <label for="criteriaFilterSelectorInput">set filter: </label>
                 <span class="floatRightBlock">
                     <select name="criteriaFilterSelectorInput" id="criteriaFilterSelectorInput">
-                        <option value="">filter#1</option>
                     </select>
                     <button>edit</button>
                 </span>

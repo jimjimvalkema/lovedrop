@@ -110,6 +110,7 @@ export class FilterBuilder {
             console.warn("collection address not set")
             return
         }
+        //set defaults if not exist
         this.collectionAddress = ethers.utils.getAddress(addres)
         if ((this.collectionAddress in this.filtersPerCollection) === false) {
             this.filtersPerCollection[this.collectionAddress] = []
@@ -118,9 +119,12 @@ export class FilterBuilder {
             this.filtersMadePerCollectionCount[this.collectionAddress] = 0
         }
 
+        //clear nfts
         if (this.NftDisplay) {
             this.NftDisplay.clear()
         }
+
+        //reinitialize metaData and display
         this.nftMetaData = new NftMetaDataCollector(this.collectionAddress, this.provider, this.ipfsGateway)
         this.NftDisplay = new NftDisplay({
             collectionAddress: this.collectionAddress,
@@ -451,7 +455,7 @@ export class FilterBuilder {
         return this.getFiltersOfCollection()[index]
     }
 
-    addFilterToCollection(filter, collection=this.collectionAddress) {
+    #addFilterToCollection(filter, collection=this.collectionAddress) {
         const currentFilterArr = this.getFiltersOfCollection(collection)
         const index = currentFilterArr.length
         currentFilterArr.push(this.formatNewFilter(filter,index))
@@ -550,7 +554,7 @@ export class FilterBuilder {
     createNewFilter(type, name="") {
         //TODO filtername to just name
         //TODO set filter dropdown of criteria field
-        const filtersIndex= this.getFiltersOfCollection().length
+        const newFiltersIndex= this.getFiltersOfCollection().length
         // this.filtersPerCollection.push(this.formatNewFilter(
         //     {
         //         "type":type, 
@@ -559,8 +563,8 @@ export class FilterBuilder {
         //     ,filtersIndex
         // )) 
 
-        this.addFilterToCollection({"type":type, "filterName": name})
-        const newFilter = this.getFiltersOfCollection()[filtersIndex]
+        this.#addFilterToCollection({"type":type, "filterName": name})
+        const newFilter = this.getFiltersOfCollection()[newFiltersIndex]
         this.#addOptionToFilterSelectors(newFilter)
 
         return newFilter
