@@ -57,6 +57,7 @@ export class NftMetaDataCollector {
     contractObj = undefined;
     provider = undefined
     extraMetaData = undefined;
+    defaultTotalSupply = 10000
 
     uriCache = []
     baseUriIsNonStandard = undefined;
@@ -216,20 +217,96 @@ export class NftMetaDataCollector {
     /**
      * assumes ids are minted incrementally
      */
-    async checkLastIdWithChain(startingPointId, maxFailedChecks=20, chunkSize=10) {
-        //walk back find first valid id
-        //walk up till maxFailed 
-        //return highest know valid id
+    async #getLastIdFromChain(startingPointId=10000, maxAmountChecks=2000, chunkSize=50) {
+        const messageProgressElement = document.getElementById("messageProgress")
+        messageProgressElement.hidden = false
+
+        this.lastId = 0
+        let pendingIsLastIdRes=[]
+        const maxChecksHalf = Math.round(maxAmountChecks/2)
+
+
+        for (let checkCount = 0; checkCount < maxChecksHalf; checkCount++) {
+            const higherId = startingPointId+checkCount
+            const lowerId = startingPointId-checkCount
+
+            pendingIsLastIdRes.push(MakeQuerablePromise(this.isLastId(higherId)))
+            pendingIsLastIdRes.push(MakeQuerablePromise(this.isLastId(lowerId)))
+
+            if (pendingIsLastIdRes.length >= chunkSize) {
+                pendingIsLastIdRes = await Promise.all(pendingIsLastIdRes)
+                console.log(this.lastId,...pendingIsLastIdRes)
+                this.lastId = Math.max(this.lastId,...pendingIsLastIdRes)
+                console.log(this.lastId)
+                pendingIsLastIdRes = []
+            }
+
+            if (!(checkCount % 20)) {
+                const m = `searching lastId. checked ${checkCount} id out of:${maxAmountChecks} ids`
+                //console.log(m)
+                if (!(typeof (document) === "undefined")) {
+                    messageProgressElement.innerText = m
+
+                }
+            }
+        }
+        messageProgressElement.hidden = true
+        return this.lastId
 
     }
 
-    async getLastId() {
-        if (await this.getFirstId() ===0) {
-            return (await this.getTotalSupply()) + 1
+
+
+    async isLastId(id) {
+        if (id <= this.lastId) {
+            return 0
         } else {
-            //TODO do better checking (ex ens)
-            return await this.getTotalSupply()
+            if(await this.idExist(id)) {
+                return id
+            } else {
+                return 0
+            }
         }
+        return 0
+
+    }
+
+    async idExist(id) {
+        try {
+            const res  = await this.contractObj.ownerOf(id)
+            return true
+
+            // if (res === "0x0000000000000000000000000000000000000000") {
+            //     return false
+            // } else {
+            //     return true
+            // } 
+            
+        } catch (error) {
+            return false   
+        }
+    }
+
+    async getLastId(maxAmountChecks=100) {
+        console.log("aaaaaa",this.lastId)
+        if(this.lastId) {
+            return this.lastId
+        }
+
+        let totalSupply = await this.getTotalSupply()
+        if (!totalSupply) {
+            totalSupply = this.defaultTotalSupply
+            maxAmountChecks = 2000
+            console.warn(`couldnt get totalsupply from contract checking a ${maxAmountChecks/2} ids above and below id ${totalSupply}`)
+            console.warn(`this is very cringe btw`)
+        }
+
+        if (await this.getFirstId() ===0) {
+            totalSupply += 1
+        } 
+
+        await this.#getLastIdFromChain(totalSupply, maxAmountChecks)
+        return this.lastId
 
     }
 
@@ -248,7 +325,7 @@ export class NftMetaDataCollector {
             } catch (error) {
                 console.warn("uriHandeler had a error")
                 console.warn(error)
-                return undefined
+                return this.lastId
             }
 
             //of by 100 error fix :P
@@ -387,14 +464,15 @@ export class NftMetaDataCollector {
         let allUris = [];
         let allUrisFulFilled = [];
         const messageProgressElement = document.getElementById("messageProgress")
-        messageProgressElement.hidden = false
         //iter from startId to endId
         if (idList === null) {
             //do entire supply if endId is null
             if (endId === null) {
-                endId = await this.getTotalSupply()
+                endId = await this.getLastId()
+
             }
 
+            console.log("syncing from till",startId, endId)
             for (let id = startId; id < endId; id++) {
 
 
@@ -413,7 +491,8 @@ export class NftMetaDataCollector {
                 }
 
                 if (!(id % 20)) {
-                    const m = `loading metadata. id:${id} out of:${this.totalSupply}`
+                    messageProgressElement.hidden = false
+                    const m = `loading metadata. id:${id} out of:${this.lastId}`
                     //console.log(m)
                     if (!(typeof (document) === "undefined")) {
                         messageProgressElement.innerText = m
@@ -771,7 +850,8 @@ export class NftMetaDataCollector {
         if ((!("NOT" in condition) && !("inputs" in condition)) ||
             ((this.amountOfItemsInInputs(condition.NOT) === 0) && (this.amountOfItemsInInputs(condition.inputs) === 0))) {
             const firstId = await this.getFirstId()
-            return new Set([...Array((await this.getTotalSupply()) - firstId).keys()].map(i => i + firstId))
+            const lastId = await this.getLastId()
+            return new Set([...Array((lastId+1) - firstId).keys()].map(i => i + firstId))
 
         }
 
@@ -853,7 +933,8 @@ export class NftMetaDataCollector {
         if ((!("NOT" in condition) && !("inputs" in condition)) ||
             ((this.amountOfItemsInInputs(condition.NOT) === 0) && (this.amountOfItemsInInputs(condition.inputs) === 0))) {
             const firstId = await this.getFirstId()
-            return new Set([...Array((await this.getTotalSupply()) - firstId).keys()].map(i => i + firstId))
+            const lastId = await this.getLastId()
+            return new Set([...Array((lastId+1) - firstId).keys()].map(i => i + firstId))
 
         }
 
@@ -948,7 +1029,8 @@ export class NftMetaDataCollector {
         }
 
         if (!"stop" in inputs || !inputs.stop || inputs.stop === "totalSupply") {
-            inputs["stop"] = Number((await this.getTotalSupply())) + 1
+            const lastId = await this.getLastId()
+            inputs["stop"] = Number(lastId) + 1
         }
         let idSet = new Set([...Array(inputs.stop - inputs.start).keys()].map(i => i + inputs.start)) //range(inputs.start, inputs.stop)
 
