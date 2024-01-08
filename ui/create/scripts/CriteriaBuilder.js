@@ -10,6 +10,7 @@ export class CriteriaBuilder {
     criteria = []
     criterionFormat = {"name":"", "amountPerItem":0, "ids":[], "selectedFilter":{}, "collectionAddress":"0x0"}       
     currentCriterionIndex = 0
+    filterSelectorId = "criteriaFilterSelectorInput"
 
     constructor({ipfsGateway, provider, nftDisplayElementId, collectionAddress=undefined}) {
         this.ipfsGateway = ipfsGateway
@@ -40,7 +41,8 @@ export class CriteriaBuilder {
             collectionAddress: collectionAddress,
             provider: this.provider,
             ipfsGateway: this.ipfsGateway,
-            displayElementId: this.nftDisplayElementId
+            displayElementId: this.nftDisplayElementId,
+            filterSelectors: [this.filterSelectorId]
         })
         return filterBuilder
 
@@ -65,9 +67,9 @@ export class CriteriaBuilder {
         } else {
             this.filterBuilder = this.#createNewFilterBuilder(this.collectionAddress)
         }
+
+        this.#updateCriterionName()
     }
-
-
 
     getCurrentCriterion() {
         return this.criteria[this.currentCriterionIndex]
@@ -76,5 +78,30 @@ export class CriteriaBuilder {
     setAmountPerItem(amount, criterionIndex) {
         const criterion = this.criteria[criterionIndex]
         criterion.amountPerItem = amount
+    }
+
+    async #updateCriterionName(criterionIndex=this.currentCriterionIndex, newName=undefined) {
+        const criterion = this.criteria[criterionIndex]
+        const collectionName = await this.filterBuilder.nftMetaData.getContractName()
+        if (newName) {
+            criterion.name = `${newName}-${collectionName}`
+
+        } else {
+            const oldName = criterion.name.split("-")[0]
+            criterion.name = `${oldName}-${collectionName}`
+        }
+        //TODO update criteriaselectorInput
+    }
+
+    async createCriterion(collectionAddress) {
+        this.setCollectionAddress(collectionAddress)
+        const newCriterion = structuredClone(this.criterionFormat)
+        const collectionName = await this.filterBuilder.nftMetaData.getContractName()
+        newCriterion.name =  `NewCriterion#${this.criteria.length}-${collectionName}`
+        newCriterion.collectionAddress = collectionAddress
+
+        //add option ui
+        //set option.title to filtername
+        //set option.name to newCriterion.name
     }
 }

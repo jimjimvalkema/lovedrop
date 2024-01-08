@@ -6,9 +6,11 @@ export class FilterBuilder {
     validFilterTypes = ["RANGE", "AND", "OR"]
     filterTemplate = { "type": "OR", "inputs": { "idList": [], "conditions": [], "attributes": [] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }
 
+    filtersMadePerCollectionCount = {}
     nftMetaData;
     filtersPerCollection = {};
     currentFilterIndex=0;
+    filterSelectors = ["filterSelectorInput"]
     //TODO better way to set elementIds 
     /**
      * 
@@ -16,13 +18,14 @@ export class FilterBuilder {
      * @param {ethers.providers} provider 
      * @param {*} ipfsGateway 
      */
-    constructor({ collectionAddress, provider, ipfsGateway = "https://ipfs.io", displayElementId = "nftDisplay" }) {
+    constructor({ collectionAddress, provider, ipfsGateway = "https://ipfs.io", displayElementId = "nftDisplay", filterSelectors=[] }) {
         //globals
         
         //this.collectionAddress = ethers.utils.getAddress(collectionAddress)
         this.ipfsGateway = ipfsGateway
         this.provider = provider
         this.displayElementId = displayElementId
+        this.filterSelectors = [...this.filterSelectors, ...filterSelectors] //used by addOptionToFilterSelectors removeOptionToFilterSelectors and updateOptionNameFromFilterSelectors
         this.setCollectionAddress(collectionAddress)
 
 
@@ -32,6 +35,7 @@ export class FilterBuilder {
         
 
         //input handlers
+
         document.getElementById("inputTypeSelecterInput").addEventListener("change",(event)=>this.#setInputTypeHandler(event))
         document.getElementById("filterSelectorInput").addEventListener("change",(event)=>this.#filterSelectorHandler(event))
         document.getElementById("filterTypeSelectorInput").addEventListener("change",(event)=>this.#filterTypeHandler(event))
@@ -110,6 +114,10 @@ export class FilterBuilder {
         if ((this.collectionAddress in this.filtersPerCollection) === false) {
             this.filtersPerCollection[this.collectionAddress] = []
         }
+        if(!(this.collectionAddress in this.filtersMadePerCollectionCount )) {
+            this.filtersMadePerCollectionCount[this.collectionAddress] = 0
+        }
+
         if (this.NftDisplay) {
             this.NftDisplay.clear()
         }
@@ -128,6 +136,30 @@ export class FilterBuilder {
     async #onFilterChange() {
         await this.runFilter()
     }
+
+    // #onNewFilter(filterOption) {
+    //     for (const hook of this.onNewFilterHooks) {
+    //         hook(filterOption)
+    //     }
+    // }
+
+    // addOnNewFilterHook(hook) {
+    //     if (!hook.name) {
+    //         throw new Error('unnamed function cant be added.');
+    //     }
+    //     this.onNewFilterHooks.push(hook)
+    // }
+
+    // removeOnNewFilterHook(hook) {
+    //     if (!hook.name) {
+    //         throw new Error('unnamed function cant be removed like this. Use .removeOnNewFilterHookByIndex().');
+    //     }
+    //     this.onNewFilterHooks = this.onNewFilterHooks.filter((x)=>x.name===hook.name)
+    // }
+
+    // removeOnNewFilterHookByIndex(index) {
+    //     this.onNewFilterHooks.splice(index,1);
+    // }
 
     async runFilter() {
         console.log(this.displayElementId)
@@ -506,10 +538,13 @@ export class FilterBuilder {
 
         filter.index = index
         if (!("filterName" in filter) || !filter.filterName) {
-            filter.filterName = `NewFilter${filter.index}`
+            let filterCount = this.filtersMadePerCollectionCount[this.collectionAddress] +=1
+            filter.filterName = `NewFilter#${filterCount}`
         }
         return filter
     }
+
+
 
     //filter selector
     createNewFilter(type, name="") {
@@ -526,18 +561,74 @@ export class FilterBuilder {
 
         this.addFilterToCollection({"type":type, "filterName": name})
         const newFilter = this.getFiltersOfCollection()[filtersIndex]
-
-
-        const newFilterOption = document.createElement("option")
-        newFilterOption.value = filtersIndex
-        newFilterOption.innerText = newFilter.filterName 
-        
-        const filterSelector = document.getElementById("filterSelectorInput")
-        filterSelector.insertBefore(newFilterOption, filterSelector.lastElementChild)
-        filterSelector.value = filtersIndex
+        this.#addOptionToFilterSelectors(newFilter)
 
         return newFilter
     } 
+
+    #createNewFilterOptionElement(newFilter) {
+        const newFilterOption = document.createElement("option")
+        newFilterOption.value = newFilter.index
+        newFilterOption.innerText = newFilter.filterName 
+        return newFilterOption
+    }
+
+    #addOptionToFilterSelectors(newFilter) {
+        console.log( this.filterSelectors)
+        for (const selectorId of this.filterSelectors) {
+            const newFilterOption = this.#createNewFilterOptionElement(newFilter)
+            
+            const filterSelector = document.getElementById(selectorId)
+            const addNewOption = [...filterSelector.children].find((x)=>x.value==="-1")
+
+            if (addNewOption) {
+                filterSelector.insertBefore(newFilterOption, filterSelector.lastElementChild)
+            } else {
+                filterSelector.append(newFilterOption)
+            }
+
+            //TODO make "filterSelectorInput" a global or each selectorId have option like this
+            if(selectorId === "filterSelectorInput") {
+                filterSelector.value = newFilterOption.value
+            }
+            
+        }
+    }
+
+    #updateOptionNameFromFilterSelectors(name, filterIndex) {
+        for (const selectorId of this.filterSelectors) {
+            const filterSelector = document.getElementById(selectorId)
+            const optionElement = [...filterSelector.children].find((element)=>Number(element.value) === filterIndex)
+            optionElement.innerText = name
+        }
+    }
+
+    #removeOptionNameFromFilterSelectors(filterIndex) {
+        for (const selectorId of this.filterSelectors) {
+            const filterSelector = document.getElementById(selectorId)
+            const optionElements = [...filterSelector.children]
+            const optionElement = optionElements.find((element)=>Number(element.value) === filterIndex)
+            optionElement.outerHTML = ""
+
+            const optionsToBeShifted = optionElements.filter((x)=>x.value>filterIndex)
+            optionsToBeShifted.forEach((x)=>x.value-=1)
+        }
+    }
+
+    addOptionElement(elementId) {
+        this.filterSelectors.push(elementId)
+    }
+
+    removeOptionElement(elementId) {
+        this.filterSelectors = this.filterSelectors.filter((x)=>x===elementId)
+    }
+
+    removeFilter(filterIndex) {
+        let currentFilters = this.getFiltersOfCollection()
+        currentFilters.splice(filterIndex,1)
+        this.#removeOptionNameFromFilterSelectors(filterIndex)
+    }
+
 
     changeCurrentFilter(index) {
         console.log("changing to ", index)
@@ -588,15 +679,14 @@ export class FilterBuilder {
     changeFilterName(name, index=this.currentFilterIndex) {
         if (name) {
            this.getFilter(index).filterName = name
+           this.#updateOptionNameFromFilterSelectors(name, index)
         } else {
             //name cant be empty
             name = this.getFilter(index).filterName
             document.getElementById("filterNameInput").value =this.getFilter(index).filterName
 
         }
-        const filterSelector = document.getElementById("filterSelectorInput")
-        const optionElement = [...filterSelector.children].find((element)=>Number(element.value) === index)
-        optionElement.innerText = name
+        
     }
 
     #filterTypeHandler(event) {
