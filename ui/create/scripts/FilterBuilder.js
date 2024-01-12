@@ -97,7 +97,7 @@ export class FilterBuilder {
 
     }
 
-    setCollectionAddressHandler(event) {
+    #setCollectionAddressHandler(event) {
         const value = document.getElementById("nftContractAddressInput").value
         if ((event.key!=="Enter" && event.key!==undefined && value!==undefined)) {
             return false
@@ -619,6 +619,10 @@ export class FilterBuilder {
         }
     }
 
+    #setFilterIndexes(filters=this.getFiltersOfCollection()) {
+        return filters.map((filter, realIndex)=>filter.index = realIndex)
+    }
+
     addOptionElement(elementId) {
         this.filterSelectors.push(elementId)
     }
@@ -630,7 +634,10 @@ export class FilterBuilder {
     removeFilter(filterIndex) {
         let currentFilters = this.getFiltersOfCollection()
         currentFilters.splice(filterIndex,1)
+        //const optionsToBeShifted = this.filtes.filter((x)=>x.index>=filterIndex)
         this.#removeOptionNameFromFilterSelectors(filterIndex)
+        let filters = this.getFiltersOfCollection()
+        filters = this.#setFilterIndexes(filters)
     }
 
 

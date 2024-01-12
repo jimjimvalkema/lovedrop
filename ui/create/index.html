@@ -327,7 +327,7 @@
         line-height: 1.5em;
     }
 
-    #criteriaManager input:not(#nftContractAddressInput) {
+    #criteriaManager input:not(#nftContractAddressInput, #amountPerNftInput) {
         width: -webkit-fill-available;
         text-overflow: ellipsis;
     }
@@ -385,6 +385,10 @@
 
     .nftImagesDiv {
         transition: all 0.2s;
+    }
+
+    #amountPerNftInput {
+        width: 6em;
     }
 
 </style>
@@ -463,8 +467,9 @@
                 <br>
 
                 <label> <span id="ticker">TICKER</span> per item:  <span class="floatRightBlock">
-                    <input id="amountPerNftInput" 
-                        type="number" value="1000000"></input>
+                        <input id="amountPerNftInput" 
+                            type="number" value="1000000"></input>
+                        <button id="submitAmountPerNft">set</button>
                     </span>
                 </label>
             </div>
