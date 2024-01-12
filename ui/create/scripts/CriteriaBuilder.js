@@ -10,8 +10,16 @@ export class CriteriaBuilder {
     criteria = []
     criterionFormat = {"name":"", "amountPerItem":"", "ids":[], "selectedFilter":{}, "collectionAddress":"0x0"}       
     currentCriterionIndex = 0
+
+    contractInput = "nftContractAddressInput"
+    submitContractId = "submitNftContract"
+
+    amountInputId = "amountPerNftInput"
+    submitAmountId = "submitAmountPerNft"
+
     filterSelectorId = "criteriaFilterSelectorInput"
     criteriaSelectorId = "criteriaselectorInput"
+
     criteriaMade = 0
 
     constructor({ipfsGateway, provider, nftDisplayElementId, collectionAddress=undefined}) {
@@ -20,11 +28,11 @@ export class CriteriaBuilder {
         this.nftDisplayElementId = nftDisplayElementId
 
 
-        document.getElementById("nftContractAddressInput").addEventListener("keypress", (event)=>this.#setCollectionAddressHandler(event))
-        document.getElementById("submitNftContract").addEventListener(("click"), (event)=>this.#setCollectionAddressHandler(event))
+        document.getElementById(this.contractInput).addEventListener("keypress", (event)=>this.#setCollectionAddressHandler(event))
+        document.getElementById(this.submitContractId).addEventListener(("click"), (event)=>this.#setCollectionAddressHandler(event))
 
-        document.getElementById("amountPerNftInput").addEventListener("keypress", (event)=>this.#setAmountPerItemHandler(event))
-        document.getElementById("submitAmountPerNft").addEventListener(("click"), (event)=>this.#setAmountPerItemHandler(event))
+        document.getElementById(this.amountInputId).addEventListener("keypress", (event)=>this.#setAmountPerItemHandler(event))
+        document.getElementById(this.submitAmountId).addEventListener(("click"), (event)=>this.#setAmountPerItemHandler(event))
 
         this.initializeUi(collectionAddress)
 
@@ -37,7 +45,7 @@ export class CriteriaBuilder {
     }
 
     #setCollectionAddressHandler(event) {
-        const value = document.getElementById("nftContractAddressInput").value
+        const value = document.getElementById(this.contractInput).value
         if ((event.key!=="Enter" && event.key!==undefined && value!==undefined)) {
             return false
         }
@@ -83,11 +91,13 @@ export class CriteriaBuilder {
 
 
     #handleAddressUserInput(address) {
+        
         if(address) {
             try {
                 return ethers.utils.getAddress(address) 
             } catch (error) {
-                console.warn("not an address TODO warn user")
+                console.warn(`${address} is not an address TODO warn user"`)
+                console.warn(error)
                 return false    
             }
         } else {
@@ -109,13 +119,14 @@ export class CriteriaBuilder {
     }
 
     #setAmountPerItemHandler(event) {
-        const value = document.getElementById("amountPerNftInput").value
+        const value = document.getElementById(this.amountInputId).value
         if ((event.key!=="Enter" && event.key!==undefined && value!==undefined)) {
             return false
         } else {
             const criterion = this.getCurrentCriterion()
             // value stays as string for accuracy
             criterion.amountPerItem = value
+            console.log(value)
         }
     }
 

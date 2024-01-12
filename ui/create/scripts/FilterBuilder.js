@@ -81,20 +81,24 @@ export class FilterBuilder {
         //reset inputs ui
     }
 
-    #resetfilterSelectorInputsUi(elementId="filterSelectorInput") {
-        const filterSelector = document.getElementById(elementId)
-        const children = [...filterSelector.children]
-        children.forEach((x)=>{
-            //skip add new filter
-            if (x.value>-1){
-                x.outerHTML = ""
-            }
-        })
-
-        this.#addAllFilterOptionsToSelector({selector:filterSelector})
-        filterSelector.value = 0
-        
-
+    #resetfilterSelectorInputsUi() {
+        for (const elementId of this.filterSelectors) {
+           
+            const filterSelector = document.getElementById(elementId)
+            const children = [...filterSelector.children]
+            children.forEach((x)=>{
+                //skip add new filter
+                if (x.value>-1){
+                    x.outerHTML = ""
+                }
+            })
+    
+            this.#addAllFilterOptionsToSelector({selector:filterSelector})
+            console.log(elementId)
+            console.log(filterSelector)
+            console.log(filterSelector.value)
+            filterSelector.value = 0
+        }
     }
 
     #setCollectionAddressHandler(event) {
@@ -1067,8 +1071,6 @@ export class FilterBuilder {
 
     #addAllFilterOptionsToSelector({selector, skipSelf = false}) {
         const addNewOption = [...selector.children].find((x)=>x.value==="-1")
-        console.log([...selector.children][0].value)
-        console.log(addNewOption)
         this.getFiltersOfCollection().forEach((filter)=> {
             //prevent inputing a filter into it self
     
