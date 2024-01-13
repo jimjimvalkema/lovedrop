@@ -217,7 +217,7 @@ export class NftMetaDataCollector {
     /**
      * assumes ids are minted incrementally
      */
-    async #getLastIdFromChain(startingPointId=10000, maxAmountChecks=2000, chunkSize=50) {
+    async #getLastIdFromChain(startingPointId=10000, maxAmountChecks=5000, chunkSize=50) {
         const messageProgressElement = document.getElementById("messageProgress")
         messageProgressElement.hidden = false
 
@@ -230,14 +230,14 @@ export class NftMetaDataCollector {
             const higherId = startingPointId+checkCount
             const lowerId = startingPointId-checkCount
 
+            //change maxAmountChecks to maxFailedChecksStreak 
+            //to make sure it only stops checking if it failed to check a existing id for n times in a row
             pendingIsLastIdRes.push(MakeQuerablePromise(this.isLastId(higherId)))
             pendingIsLastIdRes.push(MakeQuerablePromise(this.isLastId(lowerId)))
 
             if (pendingIsLastIdRes.length >= chunkSize) {
                 pendingIsLastIdRes = await Promise.all(pendingIsLastIdRes)
-                console.log(this.lastId,...pendingIsLastIdRes)
                 this.lastId = Math.max(this.lastId,...pendingIsLastIdRes)
-                console.log(this.lastId)
                 pendingIsLastIdRes = []
             }
 
@@ -288,7 +288,6 @@ export class NftMetaDataCollector {
     }
 
     async getLastId(maxAmountChecks=100) {
-        console.log("aaaaaa",this.lastId)
         if(this.lastId) {
             return this.lastId
         }

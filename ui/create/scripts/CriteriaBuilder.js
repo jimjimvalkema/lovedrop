@@ -73,7 +73,7 @@ export class CriteriaBuilder {
             const criterion = this.getCurrentCriterion()
             // value stays as string for accuracy
             criterion.amountPerItem = value
-            console.log(value)
+
 
         } else {
             return false
@@ -96,7 +96,7 @@ export class CriteriaBuilder {
             const criterion = this.getCurrentCriterion()
             criterion.collectionAddress = collectionAddress
             this.#updateCriterionName()
-            const filterSelector = document.getElementById("filterSelectorId")
+            const filterSelector = document.getElementById(this.filterSelectorId)
             filterSelector.value = "-1" 
         }
     }
