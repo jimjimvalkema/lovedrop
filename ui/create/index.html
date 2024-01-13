@@ -298,7 +298,7 @@
         position: relative;
         height: 1em;
         /* min-width: 8em; */
-        width: 9em;
+        width: 12em;
         /* overflow: hidden; */
         text-align: left;
 
@@ -327,7 +327,7 @@
         line-height: 1.5em;
     }
 
-    #criteriaManager input:not(#nftContractAddressInput, #amountPerNftInput) {
+    #criteriaManager input:not(.criteriaManagerTextInput) {
         width: -webkit-fill-available;
         text-overflow: ellipsis;
     }
@@ -338,12 +338,14 @@
     }
 
     #criteriaFilterSelectorInput {
-        width: 6.2em;
+        max-width: 9.2em;
+        width: min-content;
         text-overflow: ellipsis;
     }
 
-    #nftContractAddressInput {
-        width: 6em;
+    .criteriaManagerTextInput {
+        max-width: 9.05em;
+        width: min-content;
         text-overflow: ellipsis;
     }
 
@@ -387,9 +389,6 @@
         transition: all 0.2s;
     }
 
-    #amountPerNftInput {
-        width: 6em;
-    }
 
 </style>
 
@@ -438,41 +437,54 @@
         </div>
 
         <div id="criteriaManager">
+            <!-- TODO make this into grids instead of whacky floats -->
             <span class="bold">set criteria</span><br>
             <div class="alignTextRight">
                 
 
-                <label for="criteriaselectorInput">edit criteria:</label>
+                <label for="criteriaSelectorInput">select:</label>
                 <span class="floatRightBlock">
-                    <select name="criteriaselectorInput" id="criteriaselectorInput">
+                    <select name="criteriaSelectorInput" id="criteriaSelectorInput">
                         <option title="Tooltip" value="-1">add new</option>
                     </select>
                 </span>
                 <br>
 
-                set NFT: <span class="floatRightBlock">
-                    <input  id="nftContractAddressInput" type="text"
+                <label for="criteriaNameInput">name:</label>
+                <span class="floatRightBlock">
+                        <input id="criteriaNameInput" class="criteriaManagerTextInput" type="text" placeholder="criterion name"></input>
+                        <button id="submitCriterionName">set</button>
+                </span>
+                <br>
+
+                <label for="nftContractAddressInput">NFT:</label> <span class="floatRightBlock">
+                    <input  id="nftContractAddressInput" type="text" class="criteriaManagerTextInput"
                         value="0x5af0d9827e0c53e4799bb226655a1de152a425a5" placeholder="contract address"></input>
                         <button id="submitNftContract">set</button>
                 </span>
                 
                 <br>
 
+
+                <label for="amountPerNftInput"> amount <span id="ticker">TICKER</span>:  <span class="floatRightBlock">
+                        <input id="amountPerNftInput" class="criteriaManagerTextInput" 
+                            type="number" value="" placeholder="amount per nft"></input>
+                        <button id="submitAmountPerNft">set</button>
+                    </span>
+                </label>
+                <br>
+
                 <label for="criteriaFilterSelectorInput">set filter: </label>
                 <span class="floatRightBlock">
                     <select name="criteriaFilterSelectorInput" id="criteriaFilterSelectorInput">
+                        <option value="-1">--choose filter--</option>
                     </select>
                     <button>edit</button>
                 </span>
                 <br>
-
-                <label> <span id="ticker">TICKER</span> per item:  <span class="floatRightBlock">
-                        <input id="amountPerNftInput" 
-                            type="number" value=""></input>
-                        <button id="submitAmountPerNft">set</button>
-                    </span>
-                </label>
             </div>
+
+            
                     
 
         </div>

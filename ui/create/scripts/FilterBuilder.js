@@ -70,9 +70,10 @@ export class FilterBuilder {
         if (this.getFiltersOfCollection().length === 0) {
             const newFilter = this.createNewFilter("AND")
             this.changeCurrentFilter(newFilter.index)
-        } else {
-            this.changeCurrentFilter(0)
         }
+        // } else {
+        //     this.changeCurrentFilter(0)
+        // }
 
 
 
@@ -97,7 +98,7 @@ export class FilterBuilder {
             console.log(elementId)
             console.log(filterSelector)
             console.log(filterSelector.value)
-            filterSelector.value = 0
+            //filterSelector.value = 0
         }
     }
 

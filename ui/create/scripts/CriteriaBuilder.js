@@ -18,7 +18,10 @@ export class CriteriaBuilder {
     submitAmountId = "submitAmountPerNft"
 
     filterSelectorId = "criteriaFilterSelectorInput"
-    criteriaSelectorId = "criteriaselectorInput"
+    criteriaSelectorId = "criteriaSelectorInput"
+
+    criteriaNameInputId = "criteriaNameInput"
+    submitCriterionNameId = "submitCriterionName"
 
     criteriaMade = 0
 
@@ -28,11 +31,14 @@ export class CriteriaBuilder {
         this.nftDisplayElementId = nftDisplayElementId
 
 
-        document.getElementById(this.contractInput).addEventListener("keypress", (event)=>this.#setCollectionAddressHandler(event))
-        document.getElementById(this.submitContractId).addEventListener(("click"), (event)=>this.#setCollectionAddressHandler(event))
+        document.getElementById(this.contractInput).addEventListener("keypress", (event)=>this.#setCollectionAddressHandler(event ,this.contractInput))
+        document.getElementById(this.submitContractId).addEventListener(("click"), (event)=>this.#setCollectionAddressHandler(event, this.contractInput))
 
-        document.getElementById(this.amountInputId).addEventListener("keypress", (event)=>this.#setAmountPerItemHandler(event))
-        document.getElementById(this.submitAmountId).addEventListener(("click"), (event)=>this.#setAmountPerItemHandler(event))
+        document.getElementById(this.amountInputId).addEventListener("keypress", (event)=>this.#setAmountPerItemHandler(event, this.amountInputId))
+        document.getElementById(this.submitAmountId).addEventListener(("click"), (event)=>this.#setAmountPerItemHandler(event, this.amountInputId))
+
+        document.getElementById(this.criteriaNameInputId).addEventListener("keypress", (event)=>this.#setCriterionNameHandler(event, this.criteriaNameInputId))
+        document.getElementById(this.submitCriterionNameId).addEventListener(("click"), (event)=>this.#setCriterionNameHandler(event, this.criteriaNameInputId))
 
         this.initializeUi(collectionAddress)
 
@@ -41,14 +47,44 @@ export class CriteriaBuilder {
 
     async initializeUi(collectionAddress=this.collectionAddress) {
         await this.createCriterion(collectionAddress)
-        this.setCollectionAddress(collectionAddress)
     }
 
-    #setCollectionAddressHandler(event) {
-        const value = document.getElementById(this.contractInput).value
+    #isValidSubmitEvent(event, inputId) {
+        const value = document.getElementById(inputId).value
         if ((event.key!=="Enter" && event.key!==undefined && value!==undefined)) {
             return false
+        }else {
+            return value
         }
+    }
+
+    #setCriterionNameHandler(event, inputId) {
+        const value =  this.#isValidSubmitEvent(event, inputId)
+        if (value) {
+            this.#updateCriterionName(this.currentCriterionIndex, value)
+        } else {
+            return false
+        }
+    }
+
+    #setAmountPerItemHandler(event ,inputId) {
+        const value =  this.#isValidSubmitEvent(event, inputId)
+        if (value) {
+            const criterion = this.getCurrentCriterion()
+            // value stays as string for accuracy
+            criterion.amountPerItem = value
+            console.log(value)
+
+        } else {
+            return false
+
+        }
+    }
+
+    #setCollectionAddressHandler(event, inputId) {
+        console.log(event)
+        const value = this.#isValidSubmitEvent(event, inputId)
+        console.log(value)
         this.setCollectionAddress(value)
     }
 
@@ -60,6 +96,8 @@ export class CriteriaBuilder {
             const criterion = this.getCurrentCriterion()
             criterion.collectionAddress = collectionAddress
             this.#updateCriterionName()
+            const filterSelector = document.getElementById("filterSelectorId")
+            filterSelector.value = "-1" 
         }
     }
 
@@ -118,17 +156,6 @@ export class CriteriaBuilder {
         criterion.amountPerItem = amount
     }
 
-    #setAmountPerItemHandler(event) {
-        const value = document.getElementById(this.amountInputId).value
-        if ((event.key!=="Enter" && event.key!==undefined && value!==undefined)) {
-            return false
-        } else {
-            const criterion = this.getCurrentCriterion()
-            // value stays as string for accuracy
-            criterion.amountPerItem = value
-            console.log(value)
-        }
-    }
 
     async #getCriterionOptionName(criterion) {
         let collectionName
@@ -149,7 +176,6 @@ export class CriteriaBuilder {
     }
 
     async #updateCriterionName(criterionIndex=this.currentCriterionIndex, newName=undefined) {
-        console.log("updating nameaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
         const criterion = this.criteria[criterionIndex]
         
         if (newName) {
@@ -158,6 +184,9 @@ export class CriteriaBuilder {
         const criteriaSelector = document.getElementById(this.criteriaSelectorId)
         const criterionOptionElement = [...criteriaSelector.children].find((x)=>x.value===criterionIndex.toString())
         criterionOptionElement.innerText = await    this.#getCriterionOptionName(criterion)
+        const criteriaNameInput = document.getElementById(this.criteriaNameInputId)
+        criteriaNameInput.value = criterion.name
+        
 
         
     }
@@ -170,7 +199,12 @@ export class CriteriaBuilder {
         
         newCriterion.name =  `NewCriterion#${this.criteriaMade}`
         newCriterion.collectionAddress = collectionAddress
+        newCriterion.selectedFilter = {}
         this.criteria.push(newCriterion)
+
+
+        const criteriaNameInput = document.getElementById(this.criteriaNameInputId)
+        criteriaNameInput.value = newCriterion.name
 
         const criteriaSelector = document.getElementById(this.criteriaSelectorId)
         const addNewOption = [...criteriaSelector.children].find((x)=>x.value==="-1")
@@ -179,7 +213,10 @@ export class CriteriaBuilder {
         newCriterionOption.innerText = await this.#getCriterionOptionName(newCriterion)
         newCriterionOption.value = newCriterionIndex
 
+
         criteriaSelector.insertBefore(newCriterionOption, addNewOption)
         criteriaSelector.value = newCriterionIndex
+
+        
     }
 }
