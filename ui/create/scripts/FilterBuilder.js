@@ -12,6 +12,7 @@ export class FilterBuilder {
     currentFilterIndex=0;
     filterNameInput = "filterNameInput"
     filterSelector = "filterSelectorInput"
+    deleteFilterId = "deleteFilter"
     filterSelectors = [this.filterSelector]
     //TODO better way to set elementIds 
     /**
@@ -40,6 +41,7 @@ export class FilterBuilder {
 
         document.getElementById("inputTypeSelecterInput").addEventListener("change",(event)=>this.#setInputTypeHandler(event))
         document.getElementById(this.filterSelector).addEventListener("change",(event)=>this.#filterSelectorHandler(event))
+        document.getElementById(this.deleteFilterId).addEventListener("click",(event)=>this.#deleteFilterHandler(event))
         document.getElementById("filterTypeSelectorInput").addEventListener("change",(event)=>this.#filterTypeHandler(event))
         document.getElementById(this.filterNameInput).addEventListener("change",(event)=>this.#filterNameHandler(event))
         document.getElementById("inclusionSelectionInput").addEventListener("change",(event)=>this.#inclusionSelectionHandler(event))
@@ -86,6 +88,19 @@ export class FilterBuilder {
         //reset inputs ui
     }
 
+    #deleteFilterHandler() {
+        this.removeFilter(this.currentFilterIndex)
+        const currentFiltersList = this.getFiltersOfCollection()
+        console.log("len",currentFiltersList.length)
+
+        if(currentFiltersList.length===0) {
+            const type = document.getElementById("filterTypeSelectorInput").value
+            const newFilter = this.createNewFilter(type)
+            this.changeCurrentFilter(newFilter.index)
+        } else {
+            this.changeCurrentFilter(currentFiltersList.length-1)
+        }
+    }
     #resetfilterSelectorInputsUi() {
         for (const elementId of this.filterSelectors) {
            
