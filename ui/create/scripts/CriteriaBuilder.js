@@ -17,11 +17,14 @@ export class CriteriaBuilder {
     amountInputId = "amountPerNftInput"
     submitAmountId = "submitAmountPerNft"
 
-    filterSelectorId = "criteriaFilterSelectorInput"
-    criteriaSelectorId = "criteriaSelectorInput"
-
     criteriaNameInputId = "criteriaNameInput"
     submitCriterionNameId = "submitCriterionName"
+
+    criteriaSelectorId = "criteriaSelectorInput"
+    deleteCriterionId = "deleteCriterion"
+
+    filterSelectorId = "criteriaFilterSelectorInput"
+
 
     criteriaMade = 0
 
@@ -40,17 +43,70 @@ export class CriteriaBuilder {
         document.getElementById(this.criteriaNameInputId).addEventListener("keypress", (event)=>this.#setCriterionNameHandler(event, this.criteriaNameInputId))
         document.getElementById(this.submitCriterionNameId).addEventListener(("click"), (event)=>this.#setCriterionNameHandler(event, this.criteriaNameInputId))
 
+        document.getElementById(this.criteriaSelectorId).addEventListener("change", (event)=>this.#criteriaSelectorHandler(event))
+        document.getElementById(this.filterSelectorId).addEventListener("change", (event)=>this.#filterSelectorHandler(event))
+
+        document.getElementById(this.deleteCriterionId).addEventListener("click",  (event)=>this.#deleteCriterionHandler(event))
+
         this.initializeUi(collectionAddress)
 
     
     }
 
+
     async initializeUi(collectionAddress=this.collectionAddress) {
         await this.createCriterion(collectionAddress)
     }
 
+    #deleteCriterionHandler(event) {
+        const indexToRemove = this.currentCriterionIndex
+
+        //collection address is inside the criterion that is being deleted
+        const currentCollection = this.getCurrentCollectionAddress()
+        this.removeCriterion(indexToRemove)
+        
+        //prevent no criterion being left / selected
+        if(this.criteria.length===0) {
+            this.createCriterion(currentCollection)
+            this.currentCriterionIndex = this.criteria.length
+        } else {
+            this.changeCurrentCriterion(this.criteria.length-1)
+        }
+    
+    }
+    #filterSelectorHandler(event) {
+        const value = Number(event.target.value)
+        console.log(value)
+        this.selectFilterForCriterion(value, this.getCurrentCriterion())
+    }
+
+    selectFilterForCriterion(filterIndex, criterion = this.getCurrentCriterion()) {
+        if(filterIndex>=0) {
+            const filter = this.filterBuilder.getFiltersOfCollection()[filterIndex]
+            criterion.selectedFilter = filter
+            console.log(criterion)
+            console.log(filter)
+        } else {
+            criterion.selectedFilter = {}
+        }
+
+    }
+
+    #criteriaSelectorHandler(event) {
+        const value = Number(event.target.value)
+        if (value === -1) {
+            const currentCollection = this.getCurrentCollectionAddress()
+            
+            this.createCriterion(currentCollection)
+        } else {
+            this.changeCurrentCriterion(value)
+        }
+
+    }
+
     #isValidSubmitEvent(event, inputId) {
         const value = document.getElementById(inputId).value
+        console.log(value)
         if ((event.key!=="Enter" && event.key!==undefined && value!==undefined)) {
             return false
         }else {
@@ -90,15 +146,20 @@ export class CriteriaBuilder {
 
     setCollectionAddress(collectionAddress){
         collectionAddress = this.#handleAddressUserInput(collectionAddress)
+        const criterion = this.getCurrentCriterion()
         if (collectionAddress) {
-            this.#setCollectionFilterBuilder(collectionAddress)
-
-            const criterion = this.getCurrentCriterion()
+            this.#setCollectionFilterBuilder(collectionAddress) 
             criterion.collectionAddress = collectionAddress
-            this.#updateCriterionName()
-            const filterSelector = document.getElementById(this.filterSelectorId)
-            filterSelector.value = "-1" 
+        } else {
+            criterion.collectionAddress = ""
         }
+        console.log(collectionAddress)
+    
+        criterion.collectionAddress = collectionAddress
+        this.#updateCriterionName()
+        document.getElementById(this.contractInput).value = collectionAddress
+        const filterSelector = document.getElementById(this.filterSelectorId)
+        filterSelector.value = "-1"
     }
 
     getCurrentCollectionAddress() {
@@ -107,8 +168,13 @@ export class CriteriaBuilder {
     }
 
     #setCollectionFilterBuilder(address) {
+        
         if (this.filterBuilder) {
-            this.filterBuilder.setCollectionAddress(address)
+            if (this.filterBuilder.collectionAddress !== address) {
+                this.filterBuilder.setCollectionAddress(address)
+
+            }
+           
         } else {
             this.filterBuilder = this.#createNewFilterBuilder(address)
         }
@@ -140,7 +206,7 @@ export class CriteriaBuilder {
             }
         } else {
             console.warn("no collection address provided")
-            return false
+            return ""
         }
 
 
@@ -192,31 +258,75 @@ export class CriteriaBuilder {
     }
 
     async createCriterion(collectionAddress) {
-        this.setCollectionAddress(collectionAddress)
+        //create new criterion
         const newCriterion = structuredClone(this.criterionFormat)
         const newCriterionIndex = this.criteria.length
+        this.currentCriterionIndex = newCriterionIndex
         this.criteriaMade += 1
         
         newCriterion.name =  `NewCriterion#${this.criteriaMade}`
-        newCriterion.collectionAddress = collectionAddress
+        //newCriterion.collectionAddress = collectionAddress
         newCriterion.selectedFilter = {}
         this.criteria.push(newCriterion)
 
-
-        const criteriaNameInput = document.getElementById(this.criteriaNameInputId)
-        criteriaNameInput.value = newCriterion.name
-
+        
+        //add option to selector
         const criteriaSelector = document.getElementById(this.criteriaSelectorId)
         const addNewOption = [...criteriaSelector.children].find((x)=>x.value==="-1")
-
         const newCriterionOption = document.createElement("option")
         newCriterionOption.innerText = await this.#getCriterionOptionName(newCriterion)
         newCriterionOption.value = newCriterionIndex
-
-
         criteriaSelector.insertBefore(newCriterionOption, addNewOption)
-        criteriaSelector.value = newCriterionIndex
 
-        
+        this.changeCurrentCriterion(newCriterionIndex)
+
+        this.setCollectionAddress(collectionAddress)
     }
+
+    changeCurrentCriterion(index) {
+        this.currentCriterionIndex = index
+        const currentCollection = this.getCurrentCollectionAddress()
+        const currentCriterion = this.criteria[index]
+        if (currentCollection) {
+            document.getElementById(this.contractInput).value = currentCollection
+            document.getElementById(this.criteriaSelectorId).value = index
+        }
+
+        const criteriaNameInput = document.getElementById(this.criteriaNameInputId)
+        criteriaNameInput.value = currentCriterion.name
+        const criteriaSelector = document.getElementById(this.criteriaSelectorId)
+        criteriaSelector.value = index
+        const amountInput = document.getElementById(this.amountInputId)
+        amountInput.value = currentCriterion.amountPerItem
+
+        const filterSelector = document.getElementById(this.filterSelectorId)
+
+        if ("index" in currentCriterion.selectedFilter) {
+            filterSelector.value = currentCriterion.selectedFilter.index
+
+        } else {
+            filterSelector.value = "-1"
+        }
+    }
+
+    removeCriterion(criterionIndex=this.currentCriterionIndex) {
+        this.criteria.splice(criterionIndex, 1)
+        this.#removeOptionCriteriaSelector(criterionIndex) 
+        if (criterionIndex === this.currentCriterionIndex){
+            this.currentCriterionIndex = -1
+        } 
+    }
+
+    #removeOptionCriteriaSelector(criterionIndex) {
+
+        const selectorId = this.criteriaSelectorId
+        const criterionSelector = document.getElementById(selectorId)
+        const optionElements = [...criterionSelector.children]
+        const optionElement = optionElements.find((element)=>Number(element.value) === criterionIndex)
+        optionElement.outerHTML = ""
+
+        const optionsToBeShifted = optionElements.filter((x)=>x.value>criterionIndex)
+        optionsToBeShifted.forEach((x)=>x.value-=1)
+    }
+
 }
