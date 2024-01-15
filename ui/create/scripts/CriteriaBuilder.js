@@ -290,12 +290,15 @@ export class CriteriaBuilder {
         if (currentCollection) {
             document.getElementById(this.contractInput).value = currentCollection
             document.getElementById(this.criteriaSelectorId).value = index
+            this.setCollectionAddress(currentCollection)
         }
+
 
         const criteriaNameInput = document.getElementById(this.criteriaNameInputId)
         criteriaNameInput.value = currentCriterion.name
         const criteriaSelector = document.getElementById(this.criteriaSelectorId)
         criteriaSelector.value = index
+        console.log(currentCriterion)
         const amountInput = document.getElementById(this.amountInputId)
         amountInput.value = currentCriterion.amountPerItem
 
@@ -307,6 +310,8 @@ export class CriteriaBuilder {
         } else {
             filterSelector.value = "-1"
         }
+
+        
     }
 
     removeCriterion(criterionIndex=this.currentCriterionIndex) {
