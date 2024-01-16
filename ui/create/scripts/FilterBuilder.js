@@ -31,10 +31,6 @@ export class FilterBuilder {
         this.filterSelectors = [...this.filterSelectors, ...filterSelectors] //used by addOptionToFilterSelectors removeOptionToFilterSelectors and updateOptionNameFromFilterSelectors
         this.setCollectionAddress(collectionAddress)
 
-
-        this.NftDisplay.displayNames()
-
-
         
 
         //input handlers
@@ -164,6 +160,8 @@ export class FilterBuilder {
             ipfsGateway: this.ipfsGateway,
             nftMetaData: this.nftMetaData
         })
+        this.NftDisplay.displayNames()
+        this.NftDisplay.showAttributes()
 
         this.reinitializeUi()
     }

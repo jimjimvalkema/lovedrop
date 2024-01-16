@@ -158,7 +158,7 @@ export class NftDisplay {
         //if it is you have to scan all txs
         //write down ids mentioned in transfers
         //might not need to do that if #3 works
-        const totalSupply = await this.nftMetaData.getTotalSupply()
+        const totalSupply = await this.nftMetaData.getLastId()
         const firstId = await this.nftMetaData.getFirstId()
         console.log(firstId,totalSupply)
         this.ids = Array.from(new Array(totalSupply+1-firstId), (x,i) => (i + firstId).toString());
@@ -561,7 +561,10 @@ export class NftDisplay {
     
 
         this.#applyDivFuntionsOnCurrentIds()
-        this.#addOnclickFunctionToCurrentImages()
+        if(this.imgOnclickFunction) {
+            this.#addOnclickFunctionToCurrentImages()
+        }
+    
     }
 
     clear(){
@@ -735,6 +738,45 @@ export class NftDisplay {
         } else {
             return page
         }
-     }
+    }
+
+    async #showAttributesElement(id) {
+        const rootElement = document.createElement("div")
+        const contentElement = document.createElement("div")
+        const attributes = (await this.nftMetaData.getTokenMetaData(id))["attributes"]
+        console.log(attributes)
+        for (const attribute of attributes) {
+            //IDEA make clickable so it creates a filter with this attribute
+            const attributeElement = document.createElement("div")
+
+            const attributeType = document.createElement("span")
+            attributeType.innerText = `${attribute.trait_type}: `
+            attributeType.className = "attributeType"
+            const attributeValue = document.createElement("span")
+            attributeValue.innerText = attribute.value
+            attributeValue.className = "attributeValue"
+            //TODO list % of collection has this attribute by checking in nftMetadata idsPerAttribute
+
+            // contentElement.append(attributeType, attributeValue)
+            attributeElement.append(attributeType, attributeValue)
+            
+            attributeElement.className = "attributesNftDisplayItems"
+            contentElement.append(attributeElement)
+        }
+        //TODO make toggle to always show
+        rootElement.className = "attributesNftDisplayContainer"
+        rootElement.id = `attributes-${id}-${this.collectionAddress}`
+        rootElement.addEventListener("mouseover", (event) => {rootElement.style.opacity=1});
+        rootElement.addEventListener("mouseout", (event) => {rootElement.style.opacity=0});
+        contentElement.className = "attributesNftDisplayContent"
+        rootElement.append(contentElement)
+
+        return rootElement
+    }
+
+    showAttributes() {
+        const showAttributesFunc = (id)=>this.#showAttributesElement(id)
+        this.addImageDivsFunction(showAttributesFunc)
+    }
 
 }

@@ -199,7 +199,7 @@ export class NftMetaDataCollector {
         let imgURL = "";
         switch (this.extraMetaData.type) {
             case "standard":
-                imgURL = (await this.getUrlByProtocol((await this.getTokenUri(id))["image"], true)) //(await fetch(await this.contractObj.tokenURI(id), reqObj))["image"];
+                imgURL = (await this.getUrlByProtocol((await this.getTokenMetaData(id))["image"], true)) //(await fetch(await this.contractObj.tokenURI(id), reqObj))["image"];
                 break;
             case "milady":
                 // miladymaker.net cors wont allow me to get metadata :(
@@ -207,7 +207,7 @@ export class NftMetaDataCollector {
                 break;
             default:
                 //imgURL = `https://www.miladymaker.net/milady/${id}.png`;
-                imgURL = (await this.getUrlByProtocol((await this.getTokenUri(id))["image"], true))
+                imgURL = (await this.getUrlByProtocol((await this.getTokenMetaData(id))["image"], true))
                 break;
         }
         return imgURL;
@@ -367,7 +367,7 @@ export class NftMetaDataCollector {
 
     async getTokenName(id, timeout=90000) {
 
-        const tokenUri = await this.getTokenUri(id, timeout)
+        const tokenUri = await this.getTokenMetaData(id, timeout)
 
         if (tokenUri && "name" in tokenUri) {
             return tokenUri["name"]
@@ -444,14 +444,14 @@ export class NftMetaDataCollector {
 
                     }
                 }
-                uris.push(this.getTokenUriNoCache(id));
+                uris.push(this.getTokenMetaDataNoCache(id));
             }
 
             //iter ofer idList
         } else {
             for (let i = 0; i < idList.length; i++) {
                 let id = idList[i]
-                uris.push(this.getTokenUriNoCache(id));
+                uris.push(this.getTokenMetaDataNoCache(id));
             }
         }
         return Promise.all(uris)
@@ -475,7 +475,7 @@ export class NftMetaDataCollector {
             for (let id = startId; id < endId; id++) {
 
 
-                allUris.push(MakeQuerablePromise(this.getTokenUriNoCache(id)))
+                allUris.push(MakeQuerablePromise(this.getTokenMetaDataNoCache(id)))
 
                 let fulfilledIndex = allUris.findIndex((x) => isFulfilled(x))
                 allUrisFulFilled[fulfilledIndex] = allUris[fulfilledIndex]
@@ -599,7 +599,7 @@ export class NftMetaDataCollector {
         return this.uriCache
     }
 
-    async getTokenUriNoCache(id, timeout=null) {
+    async getTokenMetaDataNoCache(id, timeout=null) {
         if (id < this.startId) {
             throw Error(`id: ${id} doenst exist`)
         }
@@ -650,11 +650,11 @@ export class NftMetaDataCollector {
     
     }
 
-    async getTokenUri(id, timeout=null) {
+    async getTokenMetaData(id, timeout=null) {
         if (this.uriCache[id]) {
             return await this.uriCache[id]
         } else {
-            this.uriCache[id] = await this.getTokenUriNoCache(id, timeout)
+            this.uriCache[id] = await this.getTokenMetaDataNoCache(id, timeout)
             return this.uriCache[id]
         }
 
@@ -665,7 +665,7 @@ export class NftMetaDataCollector {
         //just incase this standart changes
         let tokenURI = null
         try {
-            tokenURI = await this.getTokenUri(id)
+            tokenURI = await this.getTokenMetaData(id)
         } catch (error) {
             console.error(`couldn't get token uri from token id: ${id} at base URI ${await this.getBaseURI()}. The error below is wat triggered this:`)
             console.error(error);
