@@ -58,6 +58,17 @@ export class CriteriaBuilder {
         await this.createCriterion(collectionAddress)
     }
 
+    #onFilterChange(filter, ids) {
+        console.log(filter)
+        for (const criterion of this.criteria) {
+            console.log(criterion)
+            if (criterion.selectedFilter === filter) {
+                console.log(ids)
+                criterion.ids = ids
+            }
+        }
+    }
+
     #deleteCriterionHandler(event) {
         const indexToRemove = this.currentCriterionIndex
 
@@ -74,10 +85,18 @@ export class CriteriaBuilder {
         }
     
     }
-    #filterSelectorHandler(event) {
+
+    async #filterSelectorHandler(event) {
         const value = Number(event.target.value)
         console.log(value)
+        const currentCriterion = this.getCurrentCriterion()
         this.selectFilterForCriterion(value, this.getCurrentCriterion())
+        
+        //run filter
+        const resultIdSet = await this.filterBuilder.nftMetaData.processFilter(currentCriterion.selectedFilter)
+        const ids  = [...resultIdSet]
+
+        this.#onFilterChange(currentCriterion.selectedFilter, ids)
     }
 
     selectFilterForCriterion(filterIndex, criterion = this.getCurrentCriterion()) {
@@ -189,6 +208,8 @@ export class CriteriaBuilder {
             displayElementId: this.nftDisplayElementId,
             filterSelectors: [this.filterSelectorId]
         })
+        const updateCriteriaIds = (filter, ids)=>this.#onFilterChange(filter, ids)
+        filterBuilder.addOnFilterChangeFunc(updateCriteriaIds)
         return filterBuilder
 
     }

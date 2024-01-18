@@ -10,6 +10,8 @@ export class FilterBuilder {
     nftMetaData;
     filtersPerCollection = {};
     currentFilterIndex=0;
+    onfilterChangeFunc = []
+
     filterNameInput = "filterNameInput"
     filterSelector = "filterSelectorInput"
     deleteFilterId = "deleteFilter"
@@ -160,42 +162,47 @@ export class FilterBuilder {
             ipfsGateway: this.ipfsGateway,
             nftMetaData: this.nftMetaData
         })
-        this.NftDisplay.displayNames()
+        this.NftDisplay.displayNames({redirect:true})
         this.NftDisplay.showAttributes()
 
         this.reinitializeUi()
     }
     
     async #onFilterChange() {
-        await this.runFilter()
+        const ids = await this.runFilter()
+        const currentFilter = this.getCurrentFilter()
+
+        for (const func of this.onfilterChangeFunc) {
+            func(currentFilter, ids)
+        }
     }
 
-    // #onNewFilter(filterOption) {
-    //     for (const hook of this.onNewFilterHooks) {
-    //         hook(filterOption)
-    //     }
-    // }
 
-    // addOnNewFilterHook(hook) {
-    //     if (!hook.name) {
-    //         throw new Error('unnamed function cant be added.');
-    //     }
-    //     this.onNewFilterHooks.push(hook)
-    // }
+    addOnFilterChangeFunc(func) {
+        if(!typeof(func)) {
+            throw new Error('not a function');
+        }
+        if (!func.name) {
+            throw new Error('unnamed function cant be added.');
+        }
+        this.onfilterChangeFunc.push(func)
+    }
 
-    // removeOnNewFilterHook(hook) {
-    //     if (!hook.name) {
-    //         throw new Error('unnamed function cant be removed like this. Use .removeOnNewFilterHookByIndex().');
-    //     }
-    //     this.onNewFilterHooks = this.onNewFilterHooks.filter((x)=>x.name===hook.name)
-    // }
+    removeOnFilterChangeFunc(func) {
+        if(!typeof(func)) {
+            throw new Error('not a function');
+        }
+        if (!func.name) {
+            throw new Error('unnamed function cant be removed like this. Use .removeOnFilterChangeFuncByIndex().');
+        }
+        this.onfilterChangeFunc = this.onfilterChangeFunc.filter((x)=>x.name===func.name)
+    }
 
-    // removeOnNewFilterHookByIndex(index) {
-    //     this.onNewFilterHooks.splice(index,1);
-    // }
+    removeOnFilterChangeFuncByIndex(index) {
+        this.onfilterChangeFunc.splice(index,1);
+    }
 
     async runFilter() {
-        
         
         const oldImgElements = [...document.getElementsByClassName("nftImagesDiv")]
         oldImgElements.forEach((img)=> img.style.opacity = 0);
