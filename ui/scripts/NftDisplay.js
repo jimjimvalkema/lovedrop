@@ -410,6 +410,12 @@ export class NftDisplay {
 
     }
 
+    getIdsOfCurrentPage(currentPage=this.currentPage, rowSize=this.rowSize, maxAmountRows=this.amountRows, ids=this.ids) {
+        const maxPerPage = rowSize*maxAmountRows
+        const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
+        return idsCurrentPage
+    }
+
     /**
      * 
      * @param {number} currentPage 
@@ -424,9 +430,7 @@ export class NftDisplay {
         //hacky way to preload the base uri
         await this.nftMetaData.getBaseURI()
 
-
-        const maxPerPage = rowSize*maxAmountRows
-        const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
+        const idsCurrentPage = this.getIdsOfCurrentPage(currentPage, rowSize, maxAmountRows, ids)
         const realAmountRows = Math.ceil(idsCurrentPage.length/rowSize)
         const imageWidth = Math.floor(100/(rowSize))
         const minTotalWidth = `${9.4*rowSize}ch`
@@ -623,6 +627,7 @@ export class NftDisplay {
 
     async #nftName(id) {
         let div = document.createElement("div")
+        //TODO why not selectable?
         if (this.notSelectable.indexOf(id)===-1) { 
             div.innerText = await this.nftMetaData.getTokenName(id)
             div.id = `nftName-${id}-${this.collectionAddress}`
@@ -633,9 +638,26 @@ export class NftDisplay {
         }
     }
 
-    displayNames() {
-        const nftName = (id)=>this.#nftName(id)
-        this.divFunctions.push(nftName)
+    async #nftNameWithOpenSeaProRedirect(id) {
+        const chain = "ethereum"
+        const url = `https://pro.opensea.io/nft/${chain}/${this.collectionAddress}/${id}`
+        const nameElement = await this.#nftName(id)
+        nameElement.onclick = ()=>window.open(url)
+        nameElement.style.cursor = "pointer"
+        nameElement.title = "see on openSeaPro"
+
+        return nameElement
+    }
+
+    displayNames({redirect}={redirect:false}) {
+        if (redirect) {
+            const nftNameWithOpenSeaProRedirect = (id)=>this.#nftNameWithOpenSeaProRedirect(id)
+            this.divFunctions.push(nftNameWithOpenSeaProRedirect)
+        } else {
+            const nftName = (id)=>this.#nftName(id)
+            this.divFunctions.push(nftName)
+        }
+  
         //this.addImageDivsFunction(nftName)
     }
 
@@ -744,7 +766,6 @@ export class NftDisplay {
         const rootElement = document.createElement("div")
         const contentElement = document.createElement("div")
         const attributes = (await this.nftMetaData.getTokenMetaData(id))["attributes"]
-        console.log(attributes)
         for (const attribute of attributes) {
             //IDEA make clickable so it creates a filter with this attribute
             const attributeElement = document.createElement("div")
