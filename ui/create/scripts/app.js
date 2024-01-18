@@ -1,8 +1,9 @@
 import { IpfsIndexer } from "../../scripts/IpfsIndexer.js";
 import { ethers } from "../../scripts/ethers-5.2.esm.min.js";
-import { NftDisplay } from "../../scripts/NftDisplay.js";
-import { FilterBuilder } from "./FilterBuilder.js";
-import {CriteriaBuilder} from "./CriteriaBuilder.js"
+// import {CriteriaBuilder} from "./CriteriaBuilder.js";
+import {DropBuilder} from "./DropBuilder.js"
+
+
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 async function getUrlVars() {
@@ -70,36 +71,16 @@ async function runOnLoad() {
 }
 
 async function test() {
-    window.criteriaBuilderTest = new CriteriaBuilder({
+    window.DropBuilderTest = new DropBuilder({
         collectionAddress : undefined,
         provider : window.provider,
         ipfsGateway : window.ipfsGateway,
         nftDisplayElementId : "nftDisplay"
     });
-    //filterbuilder per criteria per collection.
+    
     //copy paste filters
     //detect if filters feed into them selfs
 
 }
 window.onload = runOnLoad;
-
-// async function handleSetNftContract(event) {
-//     console.log(event.target.value)
-//     let nftAddress = ""
-//     try {
-//         nftAddress = ethers.utils.getAddress(event.target.value)
-        
-//     } catch (error) {
-//         console.log("not a real ethereum address")
-//         await window.nftDisplay.clear()
-//         return 0
-        
-//     }
-    
-//     window.nftDisplay.setCollectionAddress(nftAddress)
-//     await window.nftDisplay.setIdsToAll()
-//     await window.nftDisplay.createDisplay()
-
-// }
-// document.getElementById("nftContractAddressInput").addEventListener("change",handleSetNftContract)
 
