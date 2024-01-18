@@ -43,7 +43,9 @@ export class FilterBuilder {
         document.getElementById("filterTypeSelectorInput").addEventListener("change",(event)=>this.#filterTypeHandler(event))
         document.getElementById(this.filterNameInput).addEventListener("change",(event)=>this.#filterNameHandler(event))
         document.getElementById("inclusionSelectionInput").addEventListener("change",(event)=>this.#inclusionSelectionHandler(event))
-        document.getElementById("runFilterButton").addEventListener("click", ()=>this.runFilter())
+        //run filter button isn't needed for now
+        //document.getElementById("runFilterButton").addEventListener("click", ()=>this.runFilter())
+
         // document.getElementById("nftContractAddressInput").addEventListener("keypress", (event)=>this.setCollectionAddressHandler(event))
         // document.getElementById("submitNftContract").addEventListener(("click"), (event)=>this.setCollectionAddressHandler(event))
         this.#setEditInputItemsHandlers()

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <style>
-    #mainContent {
+    #criteriaBuilder {
         display: grid;
         grid-gap: 1em;
 
@@ -13,6 +13,9 @@
             "aidropToken  totalsDisplay criteriaManager totalscriteria"
             "filterEditor  filterEditor filterEditor filterEditor"
         ;
+    }
+    #dropBuilder {
+        display: block;
     }
 
     nav {
@@ -376,11 +379,11 @@
         width: 4em;
     }
 
-    #runFilter{
+    #finalizeDrop{
         display: grid;
         border-style: solid;
     }
-    #runFilterButton{
+    #finalizeDropButton{
         font-size: 1.5em;
         place-self: center;
 
@@ -469,7 +472,7 @@
         </div>
     </div>
 
-    <div id="mainContent">
+    <div id="criteriaBuilder">
         <div id="aidropToken">
             <div class="bold">Set token</div>
             <label>Set airdrop token: <input class="addressInput" id="airdropTokenContractAddressInput" type="text"
@@ -674,8 +677,8 @@
                 </div>
             </div>
 
-            <div id="runFilter">
-                <button id="runFilterButton">run filter</button>
+            <div id="finalizeDrop">
+                <button id="finalizeDropButton">finalize drop</button>
 
             </div>
 
@@ -703,7 +706,11 @@
             </div>
 
         </div>
-        
+    </div>
+    <div id="dropBuilder">
+        hiiiiiiiii :D
+
+    </div>
 
 
 
