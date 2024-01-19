@@ -9,8 +9,8 @@ export class NftDisplay {
     displayElementId;
     ids;
 
-    landscapeOrientation = {["rowSize"]:6,["amountRows"]:2}
-    portraitOrientation= {["rowSize"]:4,["amountRows"]:3}
+    landscapeOrientation = {}
+    portraitOrientation= {}
     currentPage=1
     rowSize=7
     amountRows=2
@@ -39,7 +39,7 @@ export class NftDisplay {
      */
     constructor(
         {collectionAddress,provider, displayElementId="", ids=[], ipfsGateway = "https://ipfs.io", 
-        landscapeOrientation = {["rowSize"]:6,["amountRows"]:2}, 
+        landscapeOrientation = {["rowSize"]:7,["amountRows"]:2}, 
         portraitOrientation = {["rowSize"]:4,["amountRows"]:3},
         nftMetaData}
     ) {
@@ -267,7 +267,7 @@ export class NftDisplay {
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
         let allResults = []
         for (const [index, id] of idsCurrentPage.entries()) {
-            let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
+            let imageDiv = document.getElementById(`rootDiv-${id}-${this.collectionAddress}`)
             let results = divFunctions.map((x)=>x(id, this))
             for (const result of results) {
                 allResults.push(result)
@@ -280,6 +280,14 @@ export class NftDisplay {
         }
         //To make sure function resolves when all are applied
         allResults = await Promise.all(allResults)
+
+        //TODO this breaks when nftName function name changes
+        if(this.currentAllImagesDiv) {
+            if (-1 !== divFunctions.findIndex((f)=>f.name ==="nftNameWithOpenSeaProRedirect" ||f.name ==="nftName")) {
+                this.#resizeImagesWidthNameHeight()
+            }
+        }
+
     }
     
     /**
@@ -454,7 +462,7 @@ export class NftDisplay {
         border-width: max(2px, 0.25vi);
         
         min-width: ${minTotalWidth};
-        max-height: 100%;
+        max-height: 97%;
         height: fit-content;
         
        
@@ -466,19 +474,20 @@ export class NftDisplay {
         for (const [index, id] of idsCurrentPage.entries()) {
             const img = document.createElement("img")
             img.id = `img-${id}-${this.collectionAddress}`
-            img.style = `width: 100%; vertical-align: top;`
+            img.style = `width: 100%; height: 100%; object-fit: scale-down; vertical-align: center;`
+            img.className = "nftDisplayImageElement"
         
 
             imgElements.push(img)
             
             let imgRootDiv =  document.createElement("div")
             imgRootDiv.id = `rootDiv-${id}-${this.collectionAddress}`
-            imgRootDiv.style = ` overflow: hidden;`//`width: ${imageWidth}%; position: relative; display: inline-block;`
-            imgRootDiv.className = "nftImagesDiv"
+            imgRootDiv.style = `background-color: canvas; overflow: hidden; height:100%`//`width: ${imageWidth}%; position: relative; display: inline-block;`
+            imgRootDiv.className = "nftImagesDiv" 
 
             let imageDiv = document.createElement("div")
             imageDiv.id = `imageDiv-${id}-${this.collectionAddress}`
-            imageDiv.style = `overflow: hidden;`
+            imageDiv.style = `overflow: hidden; height:100%; align-items: center`
             
             imageDiv.append(img)
             //imgBorderDiv.append(imageDiv)
@@ -500,7 +509,7 @@ export class NftDisplay {
                 position: relative; 
                 width: 103%; 
                 height: 105%;
-                background-color: Canvas; 
+                background-color: canvas; 
                 z-index:2;
                 `
                 if (realAmountRows===1) {
@@ -525,7 +534,7 @@ export class NftDisplay {
             });
             
         })
-
+        this.currentAllImagesDiv = allImagesDiv
         return allImagesDiv
     }
 
@@ -568,6 +577,8 @@ export class NftDisplay {
         if(this.imgOnclickFunction) {
             this.#addOnclickFunctionToCurrentImages()
         }
+
+    
     
     }
 
@@ -657,10 +668,19 @@ export class NftDisplay {
             const nftName = (id)=>this.#nftName(id)
             this.divFunctions.push(nftName)
         }
-  
-        //this.addImageDivsFunction(nftName)
     }
 
+    #resizeImagesWidthNameHeight() {
+        const imgElements = [...this.currentAllImagesDiv.querySelectorAll(".nftDisplayImageElement")]
+        const nftNameElement = [...this.currentAllImagesDiv.querySelectorAll(".nftName")][0]
+        console.log(nftNameElement)
+        const nftNameSize = getComputedStyle(nftNameElement).height
+        for (const img of imgElements) {
+            img.style.height = `calc(100% - ${nftNameSize})`
+        }
+    }
+
+    
 
     /**
      * makes all selectable that arent in this.notSelectable TODO better name

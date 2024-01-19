@@ -14,9 +14,6 @@
             "filterEditor  filterEditor filterEditor filterEditor"
         ;
     }
-    #dropBuilder {
-        display: block;
-    }
 
     nav {
         border-bottom: 1px solid black;
@@ -226,9 +223,6 @@
 
     }
 
-    .tempBox {
-        border: solid;
-    }
 
     #nftDisplay {
         
@@ -239,17 +233,18 @@
         grid-gap: 0.01em;
         grid-template-rows: max-content max-content 1fr;
         /* height: 64vh; */
-        height: fit-content;
-        min-height: 77vh;
+        height: 62vh;
+        min-height: 30em;
         width: -webkit-fill-available;
         overflow: hidden;
 
-        transition: all 1s;
+        transition: opacity 1s;
     }
 
 
     .nftImage {
         max-width: 100%;
+        overflow: hidden;
     }
 
     .nameInput {
@@ -447,6 +442,30 @@
         font-weight: normal;
         -webkit-text-stroke-color: black;
     }
+
+    #dropBuilder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #duplicatesNftDisplay{
+
+        grid-area: nftDisplay;
+        border: solid;
+
+        display: grid;
+        grid-gap: 0.01em;
+        grid-template-rows: max-content max-content 1fr;
+        max-height: 50vh;
+        max-width: 80vw;
+        width: -webkit-fill-available;
+        overflow: hidden;
+
+        transition: opacity 1s;
+
+    }
+
 
 
 
@@ -708,7 +727,9 @@
         </div>
     </div>
     <div id="dropBuilder">
-        hiiiiiiiii :D
+        <div id="duplicatesNftDisplay">
+
+        </div>
 
     </div>
 
