@@ -86,7 +86,7 @@
     .nftName {
         text-overflow: ellipsis;
         overflow: hidden;
-        white-space: nowrap;
+        /* white-space: nowrap; */
         position: relative;
         font-size: 1.2rem;
         text-align: center;
@@ -453,11 +453,12 @@
 
         grid-area: nftDisplay;
         border: solid;
+        position: relative;
 
         display: grid;
         grid-gap: 0.01em;
         grid-template-rows: max-content max-content 1fr;
-        max-height: 50vh;
+        max-height: 35vh;
         max-width: 80vw;
         width: -webkit-fill-available;
         overflow: hidden;

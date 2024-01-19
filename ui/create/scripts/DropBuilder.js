@@ -106,7 +106,8 @@ export class DropBuilder {
                 provider: this.provider,
                 displayElementId: this.duplicatesNftDisplayId,
                 ipfsGateway: this.ipfsGateway,
-                nftMetaData: this.nftMetaData
+                nftMetaData: this.nftMetaData,
+                landscapeOrientation: {["rowSize"]:7,["amountRows"]:1}
 
             })
             this.NftDisplay.ids = ids

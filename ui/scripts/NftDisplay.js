@@ -27,6 +27,7 @@ export class NftDisplay {
 
 
     collectionInfoCssClass = "nftdisplayInfo"
+    //TODO maybe make a function that calculates a rowsize based on the widht of the images loaded to maximize screen realestate
 
     /**
      * initializes with the nft collection and ids if given
@@ -39,7 +40,7 @@ export class NftDisplay {
      */
     constructor(
         {collectionAddress,provider, displayElementId="", ids=[], ipfsGateway = "https://ipfs.io", 
-        landscapeOrientation = {["rowSize"]:7,["amountRows"]:2}, 
+        landscapeOrientation = {["rowSize"]:6,["amountRows"]:2}, 
         portraitOrientation = {["rowSize"]:4,["amountRows"]:3},
         nftMetaData}
     ) {
@@ -448,25 +449,27 @@ export class NftDisplay {
         allImagesDiv.style= `
         display: grid;
         margin: 0.2em;
-        min-height: 0;
     
         
         grid-template-columns: repeat(${rowSize},1fr);
         grid-template-rows: repeat(${realAmountRows}, 1fr);
         
         background-color: #101010;
-        grid-gap: max(2px, 0.25vi);
+        grid-gap: max(2px, 0.5vi);
 
         border: black;
         border-style: solid;
-        border-width: max(2px, 0.25vi);
+        border-width: max(2px, 0.5vi);
         
         min-width: ${minTotalWidth};
-        max-height: 97%;
+
+        position: relative;
+        min-height: 0;
+        max-height: calc(100% - 0.5vi *2 - 0.4em); 
         height: fit-content;
         
        
-        `//`width: 100%; border-left: solid; border-width: ${borderWidth}; border-color: ${borderColor}`
+        `//css seems to think a 100% max-height is larger then it actually is. i think it forgets to add the borders and margin but not sure 
 
   
 
@@ -671,12 +674,21 @@ export class NftDisplay {
     }
 
     #resizeImagesWidthNameHeight() {
+        //TODO do this separate function
+        const attributeElements = [...this.currentAllImagesDiv.querySelectorAll(".attributesNftDisplayContent")]
         const imgElements = [...this.currentAllImagesDiv.querySelectorAll(".nftDisplayImageElement")]
         const nftNameElement = [...this.currentAllImagesDiv.querySelectorAll(".nftName")][0]
         console.log(nftNameElement)
         const nftNameSize = getComputedStyle(nftNameElement).height
         for (const img of imgElements) {
             img.style.height = `calc(100% - ${nftNameSize})`
+        }
+
+        if(attributeElements.length) {
+            for (const attribute of attributeElements) {
+                attribute.style.marginTop = `calc(${nftNameSize}*1.1)`
+                attribute.style.marginBottom = `calc(${nftNameSize}*1.1)`
+            }
         }
     }
 
