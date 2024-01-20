@@ -51,6 +51,10 @@ export class DropBuilder {
             this.dropBuilderElement.style.display = "none"
         }
 
+        this.criteriaPerIds = this.getCriteriaPerId()
+        this.duplicates = this.getIdsWithDuplicateCriteria(this.criteriaPerIds)
+        this.displayDuplicates()
+
     }
 
 
@@ -90,15 +94,15 @@ export class DropBuilder {
     }
 
     async displayDuplicates() {
-        const criteriaPerIds = this.getCriteriaPerId()
-        const duplicates = this.getIdsWithDuplicateCriteria(criteriaPerIds)
-        for (const collection in duplicates) {
+        //display
+        for (const collection in this.duplicates) {
             const collectionAddress =ethers.utils.getAddress(collection)
-            console.log("aaaaaaaaaaaaaaa",collectionAddress)
-            const ids = Object.keys(duplicates[collection])
-            console.log(ids)
-            console.log(this.duplicatesNftDisplayId)
+            const ids = Object.keys(this.duplicates[collection])
 
+            const duplicatesDisplayElement = document.getElementById(this.duplicatesNftDisplayId)
+            duplicatesDisplayElement.hidden= false
+
+            //nftDisplay setup
             this.nftMetaData = new NftMetaDataCollector(collectionAddress, this.provider, this.ipfsGateway)
             this.NftDisplay = new NftDisplay({
                 ids: ids,
@@ -110,12 +114,31 @@ export class DropBuilder {
                 landscapeOrientation: {["rowSize"]:7,["amountRows"]:1}
 
             })
-            this.NftDisplay.ids = ids
             await this.NftDisplay.createDisplay()
             this.NftDisplay.displayNames({ redirect: true })
             this.NftDisplay.showAttributes()
+        }
+
+    }
+
+    selectLargestAmount() {
+        let onlyLargestCriteria = structuredClone(this.criteriaPerIds)
+        for (const collection in this.criteriaPerIds) {
+            for (const id in this.criteriaPerIds[collection]) {
+                const initialCiteria = this.criteriaPerIds[collection][id][0]
+                const largestCriteria = this.criteriaPerIds[collection][id].reduce(
+                    (selectedCriteria, currentCriteria) => {
+                        if(currentCriteria.amountPerItem > selectedCriteria.amountPerItem ) {
+                            selectedCriteria = currentCriteria
+                        } 
+                        return selectedCriteria
+                    },initialCiteria
+                );
+                onlyLargestCriteria[collection][id] = largestCriteria
+            }
 
         }
+        return onlyLargestCriteria
 
     }
 

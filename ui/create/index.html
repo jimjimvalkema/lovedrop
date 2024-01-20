@@ -198,9 +198,24 @@
         border: solid;
         display: grid;
         grid-gap: 1em;
-        grid-template-rows: max-content max-content;
+        grid-template-rows: max-content auto;
         grid-template-columns: auto;
+        overflow-y: scroll;
+        overflow-x: hidden;
+        min-height: 25em;
+        height: 62vh;
 
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none;  /* Internet Explorer 10+ */
+        scrollbar-width: none;
+        /* margin-bottom: 5em; */
+
+
+    }
+
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    #filterInputSelecter::-webkit-scrollbar {
+        display: none;
     }
 
 
@@ -232,9 +247,9 @@
         display: grid;
         grid-gap: 0.01em;
         grid-template-rows: max-content max-content 1fr;
-        /* height: 64vh; */
+        /* height: 62vh; */
         height: 62vh;
-        min-height: 30em;
+        min-height: 25em;
         width: -webkit-fill-available;
         overflow: hidden;
 
@@ -728,8 +743,10 @@
         </div>
     </div>
     <div id="dropBuilder">
-        <div id="duplicatesNftDisplay">
+        <div id="duplicatesManager">
+            <div id="duplicatesNftDisplay" hidden>
 
+            </div>
         </div>
 
     </div>
