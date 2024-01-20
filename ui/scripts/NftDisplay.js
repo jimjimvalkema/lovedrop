@@ -40,7 +40,7 @@ export class NftDisplay {
      */
     constructor(
         {collectionAddress,provider, displayElementId="", ids=[], ipfsGateway = "https://ipfs.io", 
-        landscapeOrientation = {["rowSize"]:6,["amountRows"]:2}, 
+        landscapeOrientation = {["rowSize"]:8,["amountRows"]:2}, 
         portraitOrientation = {["rowSize"]:4,["amountRows"]:3},
         nftMetaData}
     ) {
@@ -477,7 +477,7 @@ export class NftDisplay {
         for (const [index, id] of idsCurrentPage.entries()) {
             const img = document.createElement("img")
             img.id = `img-${id}-${this.collectionAddress}`
-            img.style = `width: 100%; height: 100%; object-fit: scale-down; vertical-align: center;`
+            img.style = `width: 100%; height: 100%; object-fit: scale-down; vertical-align: bottom;`
             img.className = "nftDisplayImageElement"
         
 
@@ -485,12 +485,12 @@ export class NftDisplay {
             
             let imgRootDiv =  document.createElement("div")
             imgRootDiv.id = `rootDiv-${id}-${this.collectionAddress}`
-            imgRootDiv.style = `background-color: canvas; overflow: hidden; height:100%`//`width: ${imageWidth}%; position: relative; display: inline-block;`
+            imgRootDiv.style = `background-color: canvas; overflow: hidden; height:100%; position: relative;`//`width: ${imageWidth}%; position: relative; display: inline-block;`
             imgRootDiv.className = "nftImagesDiv" 
 
             let imageDiv = document.createElement("div")
             imageDiv.id = `imageDiv-${id}-${this.collectionAddress}`
-            imageDiv.style = `overflow: hidden; height:100%; align-items: center`
+            imageDiv.style = `overflow: hidden; height:100%; vertical-align: bottom;`
             
             imageDiv.append(img)
             //imgBorderDiv.append(imageDiv)
@@ -510,8 +510,8 @@ export class NftDisplay {
                 const emptyDiv = document.createElement("div")
                 emptyDiv.style = `
                 position: relative; 
-                width: 103%; 
-                height: 105%;
+                width: calc(100% + 0.5vi); 
+                height: calc(100% + 0.5vi);
                 background-color: canvas; 
                 z-index:2;
                 `
@@ -679,7 +679,7 @@ export class NftDisplay {
         const imgElements = [...this.currentAllImagesDiv.querySelectorAll(".nftDisplayImageElement")]
         const nftNameElement = [...this.currentAllImagesDiv.querySelectorAll(".nftName")][0]
         console.log(nftNameElement)
-        const nftNameSize = getComputedStyle(nftNameElement).height
+        const nftNameSize = getComputedStyle(nftNameElement).height //TODO throws error when spam clicking
         for (const img of imgElements) {
             img.style.height = `calc(100% - ${nftNameSize})`
         }

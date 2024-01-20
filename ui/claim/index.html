@@ -6,16 +6,18 @@
     }
 
     .tokenDisplay {
-        position: absolute; 
-        float: top-right; 
-        top: 0.1rem; 
-        right: 0.12rem; 
-        font-size: 1.7rem; 
+        position: absolute;
+        float: right;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        /* white-space: nowrap; */
+        font-size: 1.7rem;
+        text-align: right;
         font-weight: bold; 
         -webkit-text-fill-color: #ffffff; 
         -webkit-text-stroke-width: 0.1rem; 
         -webkit-text-stroke-color: #000000;
-        z-index: 3;
+        z-index: 2;
     }
 
     .nftdisplayInfo {
@@ -23,13 +25,19 @@
     }
 
     .nftDisplaySelectionStatus {
+        position: absolute;
+        float: left;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        /* white-space: nowrap; */
+        text-align: center;
+        z-index: 2;
+
         display: flex;
         align-items:center;
         font-size: 1.4rem;
 
         width: 100%; 
-        position: absolute; 
-        float: left; 
         bottom: 0px; 
         left: 0px; 
         color: white; 

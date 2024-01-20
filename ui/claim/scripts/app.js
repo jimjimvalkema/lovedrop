@@ -561,7 +561,7 @@ async function loadAllContracts() {
     window.selectedIds = {}
     
     //window.allEligibleIds = window.ipfsIndex.getIdsPerCollection()
-    window.allNftDisplays = allNftAddresses.map((nftAddr) => new NftDisplay(nftAddr, window.provider, `nftDisplay-${nftAddr}`, [], window.ipfsGateway))
+    window.allNftDisplays = allNftAddresses.map((nftAddr) => new NftDisplay({collectionAddress:nftAddr, provider:window.provider, displayElementId:`nftDisplay-${nftAddr}`, ids:[], ipfsGateway:window.ipfsGateway}))
 
 
 
