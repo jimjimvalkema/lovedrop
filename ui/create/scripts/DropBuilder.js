@@ -121,25 +121,79 @@ export class DropBuilder {
 
     }
 
-    selectLargestAmount() {
-        let onlyLargestCriteria = structuredClone(this.criteriaPerIds)
-        for (const collection in this.criteriaPerIds) {
-            for (const id in this.criteriaPerIds[collection]) {
-                const initialCiteria = this.criteriaPerIds[collection][id][0]
-                const largestCriteria = this.criteriaPerIds[collection][id].reduce(
-                    (selectedCriteria, currentCriteria) => {
-                        if(currentCriteria.amountPerItem > selectedCriteria.amountPerItem ) {
-                            selectedCriteria = currentCriteria
-                        } 
-                        return selectedCriteria
-                    },initialCiteria
-                );
-                onlyLargestCriteria[collection][id] = largestCriteria
-            }
-
-        }
-        return onlyLargestCriteria
-
+    #selectAmountLargestCriterion(criteria) {
+        const largestCriterion = criteria.reduce(
+            (selectedCriterion, currentCriterion) => {
+                if(Number(selectedCriterion.amountPerItem) > Number(currentCriterion.amountPerItem) ) {
+                    return selectedCriterion
+                }  else {
+                    return currentCriterion
+                }
+            }, criteria[0]
+        );
+        return largestCriterion
     }
 
+    #selectAmountSmallestCriterion(criteria) {
+        const smallestCriterion = criteria.reduce(
+            (selectedCriterion, currentCriterion) => {
+                if(Number(selectedCriterion.amountPerItem) < Number(currentCriterion.amountPerItem) ) {
+                    return selectedCriterion
+                }  else {
+                    return currentCriterion
+                }
+            }, criteria[0]
+        );
+        return smallestCriterion
+    }
+
+    /**
+     * 
+     * @param {String} type 
+     * @param {Object} criteriaPerIds 
+     * @returns 
+     */
+    removeConflictingCriteria(type="largest", criteriaPerIds=this.criteriaPerIds) {
+        const validTypes = ["smallest", "largest", "last", "first", "remove"]
+        if (validTypes.indexOf(type)===-1) {
+            throw Error(`type: ${type} unkown. try "smallest", "largest", "last", "first" or "remove"`)
+        }
+
+        let filteredCriteria = structuredClone(criteriaPerIds)
+        for (const collection in criteriaPerIds) {
+            for (const id in criteriaPerIds[collection]) {
+                const criteriaArr = criteriaPerIds[collection][id]
+                if(criteriaArr.length === 1) {
+                    filteredCriteria[collection][id] = criteriaArr[0]
+                } else {
+                    if (type === "remove") {
+                        delete filteredCriteria[collection][id]
+                    } else {
+                        filteredCriteria[collection][id] = this.#selectCriterion(criteriaArr, type)
+                    }
+                }
+            }
+        }
+        return filteredCriteria
+    }
+
+    #selectCriterion(criterionArr, selectionType) {
+        switch (selectionType) {
+            case "largest":
+                return this.#selectAmountLargestCriterion(criterionArr)
+
+            case "smallest":
+                return this.#selectAmountSmallestCriterion(criterionArr)
+            
+            case "last":    
+                return criterionArr[criterionArr.length-1]
+
+            case "first":
+                return criterionArr[0]
+
+            default:
+                throw Error(`type: ${type} unkown. try "smallest", "largest", "last" or "first"`)
+        }
+
+    }
 }
