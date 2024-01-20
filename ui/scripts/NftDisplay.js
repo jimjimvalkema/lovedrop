@@ -443,6 +443,7 @@ export class NftDisplay {
         const realAmountRows = Math.ceil(idsCurrentPage.length/rowSize)
         const imageWidth = Math.floor(100/(rowSize))
         const minTotalWidth = `${9.4*rowSize}ch`
+        const imagesBorderWidth = "max(2px, 0.5vi)"
         
 
         let allImagesDiv = document.createElement("div")
@@ -455,17 +456,17 @@ export class NftDisplay {
         grid-template-rows: repeat(${realAmountRows}, 1fr);
         
         background-color: #101010;
-        grid-gap: max(2px, 0.5vi);
+        grid-gap: ${imagesBorderWidth};
 
         border: black;
         border-style: solid;
-        border-width: max(2px, 0.5vi);
+        border-width: ${imagesBorderWidth};
         
         min-width: ${minTotalWidth};
 
         position: relative;
         min-height: 0;
-        max-height: calc(100% - 0.5vi *2 - 0.4em); 
+        max-height: calc(100% - ${imagesBorderWidth} * 2 - 0.4em); 
         height: fit-content;
         
        
@@ -510,14 +511,14 @@ export class NftDisplay {
                 const emptyDiv = document.createElement("div")
                 emptyDiv.style = `
                 position: relative; 
-                width: calc(100% + 0.5vi); 
-                height: calc(100% + 0.5vi);
+                width: calc(100% + ${imagesBorderWidth}); 
+                height: calc(100% + ${imagesBorderWidth} * 1);
                 background-color: canvas; 
                 z-index:2;
                 `
                 if (realAmountRows===1) {
-                    emptyDiv.style.top = "min(-2px, -0.25vi)"
-
+                    emptyDiv.style.marginTop = `calc(${imagesBorderWidth} * -1)`
+                    emptyDiv.style.height = `calc(100% + ${imagesBorderWidth}*2)`
                 }
                 allImagesDiv.append(emptyDiv)
             }
