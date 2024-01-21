@@ -8,7 +8,7 @@ export class CriteriaBuilder {
     filterBuilder
 
     criteria = []
-    criterionFormat = {"name":"", "amountPerItem":"", "ids":[], "selectedFilter":{}, "collectionAddress":"0x0"}       
+    criterionFormat = {"name":"", "amountPerItem":"", "ids":[],"excludedIds":[], "selectedFilter":{}, "collectionAddress":"0x0"}       
     currentCriterionIndex = 0
 
     contractInput = "nftContractAddressInput"

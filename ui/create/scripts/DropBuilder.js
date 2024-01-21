@@ -121,42 +121,43 @@ export class DropBuilder {
 
     }
 
-    #selectAmountLargestCriterion(criteria) {
-        const largestCriterion = criteria.reduce(
-            (selectedCriterion, currentCriterion) => {
-                if(Number(selectedCriterion.amountPerItem) > Number(currentCriterion.amountPerItem) ) {
-                    return selectedCriterion
+    #getLargestAmountCriterionIndex(criteria) {
+        const largestCriterionIndex = criteria.reduce(
+            (selectedIndex, currentCriterion, index) => {
+                if(Number(criteria[selectedIndex].amountPerItem) > Number(currentCriterion.amountPerItem) ) {
+                    return selectedIndex
                 }  else {
-                    return currentCriterion
+                    return index
                 }
-            }, criteria[0]
+            }, 0
         );
-        return largestCriterion
+        return largestCriterionIndex
     }
 
-    #selectAmountSmallestCriterion(criteria) {
-        const smallestCriterion = criteria.reduce(
-            (selectedCriterion, currentCriterion) => {
-                if(Number(selectedCriterion.amountPerItem) < Number(currentCriterion.amountPerItem) ) {
-                    return selectedCriterion
+
+    #getSmallestAmountCriterionIndex(criteria) {
+        const smallestCriterionIndex = criteria.reduce(
+            (selectedIndex, currentCriterion, index) => {
+                if(Number(criteria[selectedIndex].amountPerItem) < Number(currentCriterion.amountPerItem) ) {
+                    return selectedIndex
                 }  else {
-                    return currentCriterion
+                    return index
                 }
-            }, criteria[0]
+            }, 0
         );
-        return smallestCriterion
+        return smallestCriterionIndex
     }
 
     /**
      * 
-     * @param {String} type 
-     * @param {Object} criteriaPerIds 
+     * @param {String} mode "smallest", "largest", "last", "first" or "remove"
+     * @param {Object} criteriaPerIds  {"0x5Af0D9827E0c53E4799BB226655A1de152A425a5": {1: [criterionObj, criterionObj], 2: [criterionObj]}}
      * @returns 
      */
-    removeConflictingCriteria(type="largest", criteriaPerIds=this.criteriaPerIds) {
-        const validTypes = ["smallest", "largest", "last", "first", "remove"]
-        if (validTypes.indexOf(type)===-1) {
-            throw Error(`type: ${type} unkown. try "smallest", "largest", "last", "first" or "remove"`)
+    removeConflictingCriteria(mode="largest", criteriaPerIds=this.criteriaPerIds) {
+        const validModes = ["smallest", "largest", "last", "first", "remove"]
+        if (validModes.indexOf(mode)===-1) {
+            throw Error(`type: ${mode} unkown. try "smallest", "largest", "last", "first" or "remove"`)
         }
 
         let filteredCriteria = structuredClone(criteriaPerIds)
@@ -166,10 +167,18 @@ export class DropBuilder {
                 if(criteriaArr.length === 1) {
                     filteredCriteria[collection][id] = criteriaArr[0]
                 } else {
-                    if (type === "remove") {
+                    if (mode === "remove") {
                         delete filteredCriteria[collection][id]
                     } else {
-                        filteredCriteria[collection][id] = this.#selectCriterion(criteriaArr, type)
+                        //set selected criterion
+                        const index = this.#selectCriterion(criteriaArr, mode)
+                        filteredCriteria[collection][id] = criteriaArr[index]
+
+                        //track ids removed
+                        const removedCriteria = criteriaArr.toSpliced(index,1)
+                        removedCriteria.forEach(criterion => {
+                            criterion.excludedIds.push(id)
+                        });
                     }
                 }
             }
@@ -180,16 +189,16 @@ export class DropBuilder {
     #selectCriterion(criterionArr, selectionType) {
         switch (selectionType) {
             case "largest":
-                return this.#selectAmountLargestCriterion(criterionArr)
+                return this.#getLargestAmountCriterionIndex(criterionArr)
 
             case "smallest":
-                return this.#selectAmountSmallestCriterion(criterionArr)
+                return this.#getSmallestAmountCriterionIndex(criterionArr)
             
             case "last":    
-                return criterionArr[criterionArr.length-1]
+                return criterionArr.length-1
 
             case "first":
-                return criterionArr[0]
+                return 0
 
             default:
                 throw Error(`type: ${type} unkown. try "smallest", "largest", "last" or "first"`)
