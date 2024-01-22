@@ -7,9 +7,12 @@ export class DropBuilder {
     criteriaBuilder
 
     duplicatesNftDisplayId = "duplicatesNftDisplay"
+    conflictResolutionMethodSelector = document.getElementById("criteriaConflictsResolutionSelection")
     finalizeDropButton = document.getElementById("finalizeDropButton")
     dropBuilderElement = document.getElementById("dropBuilder")
     criteriaBuilderElement = document.getElementById("criteriaBuilder")
+    dropBuilderConflictsElement = document.getElementById("dropBuilderConflicts")
+
     originalElementDisplayStyle = {
         [this.criteriaBuilderElement.id]: getComputedStyle(this.criteriaBuilderElement).display,
         [this.dropBuilderElement.id]: getComputedStyle(this.dropBuilderElement).display
@@ -99,8 +102,8 @@ export class DropBuilder {
             const collectionAddress =ethers.utils.getAddress(collection)
             const ids = Object.keys(this.duplicates[collection])
 
-            const duplicatesDisplayElement = document.getElementById(this.duplicatesNftDisplayId)
-            duplicatesDisplayElement.hidden= false
+            //const duplicatesDisplayElement = document.getElementById(this.duplicatesNftDisplayId)
+            this.dropBuilderConflictsElement.hidden= false
 
             //nftDisplay setup
             this.nftMetaData = new NftMetaDataCollector(collectionAddress, this.provider, this.ipfsGateway)
@@ -116,9 +119,14 @@ export class DropBuilder {
             })
             await this.NftDisplay.createDisplay()
             this.NftDisplay.displayNames({ redirect: true })
-            this.NftDisplay.showAttributes()
+            this.NftDisplay.addImageDivsFunction((id, nftDisplay)=>this.#showCriteriaNftDisplay(id, nftDisplay))
+            //this.NftDisplay.showAttributes()
         }
 
+    }
+
+    getTicker() {
+        return "TODO"
     }
 
     #getLargestAmountCriterionIndex(criteria) {
@@ -132,6 +140,42 @@ export class DropBuilder {
             }, 0
         );
         return largestCriterionIndex
+    }
+
+
+    #showCriteriaNftDisplay(id, nftDisplay) {
+        const rootElement = document.createElement("div")
+        const contentElement = document.createElement("div")
+
+        const criteria = this.criteriaPerIds[nftDisplay.collectionAddress][id]
+        
+        criteria.forEach((criterion)=>{
+            const criterionElement = document.createElement("div")
+
+            //TODO better class names
+            const criterionNameEl = document.createElement("div")
+            criterionNameEl.innerHTML = `<span class="attributeType">criterion:</span> <span class="attributeValue">${criterion.name}</span>`
+            const criterionAmountEl = document.createElement("div")
+            criterionAmountEl.innerHTML = `<span class="attributeType">amount:</span> <span class="attributeValue">${criterion.amountPerItem}</span>`
+            
+            const lineBreak = document.createElement("br")
+            criterionElement.append(criterionNameEl,criterionAmountEl,lineBreak)
+            
+            criterionElement.className = "attributesNftDisplayItems"
+            contentElement.append(criterionElement)
+
+        })
+
+
+        //TODO make toggle to always show
+        rootElement.className = "attributesNftDisplayContainer"
+        rootElement.id = `attributes-${id}-${this.collectionAddress}`
+        rootElement.addEventListener("mouseover", () => {rootElement.style.opacity=1});
+        rootElement.addEventListener("mouseout", () => {rootElement.style.opacity=0});
+        contentElement.className = "attributesNftDisplayContent"
+        rootElement.append(contentElement)
+
+        return rootElement
     }
 
 
@@ -169,12 +213,17 @@ export class DropBuilder {
                 } else {
                     if (mode === "remove") {
                         delete filteredCriteria[collection][id]
+
+                        //track ids who are removed
+                        criteriaArr.forEach(criterion => {
+                            criterion.excludedIds.push(id)
+                        });
                     } else {
                         //set selected criterion
                         const index = this.#selectCriterion(criteriaArr, mode)
                         filteredCriteria[collection][id] = criteriaArr[index]
 
-                        //track ids removed
+                        //track ids who are removed
                         const removedCriteria = criteriaArr.toSpliced(index,1)
                         removedCriteria.forEach(criterion => {
                             criterion.excludedIds.push(id)
