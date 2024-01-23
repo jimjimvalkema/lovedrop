@@ -1,6 +1,8 @@
 import { ethers } from "../../scripts/ethers-5.2.esm.min.js"
 import { FilterBuilder } from "./FilterBuilder.js"
 
+export const criterionFormat = {"name":"", "amountPerItem":"", "ids":[],"excludedIds":[], "selectedFilter":{}, "collectionAddress":"0x0"}       
+
 export class CriteriaBuilder {
     ipfsGateway
     provider
@@ -302,6 +304,8 @@ export class CriteriaBuilder {
         this.changeCurrentCriterion(newCriterionIndex)
 
         this.setCollectionAddress(collectionAddress)
+
+        return newCriterion
     }
 
     changeCurrentCriterion(index) {

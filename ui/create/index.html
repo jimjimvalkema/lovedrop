@@ -39,8 +39,9 @@
 
 
     .bold {
-        font-weight: bold;
+        font-weight: bolder;
         text-align: left;
+        font-size: 1.2em;
     }
 
     * {
@@ -462,18 +463,18 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        flex-direction: column;
     }
 
     #duplicatesNftDisplay{
 
         grid-area: nftDisplay;
-        border: solid;
         position: relative;
 
         display: grid;
         grid-gap: 0.01em;
         grid-template-rows: max-content max-content 1fr;
-        max-height: 35vh;
+        max-height: 100%;
         max-width: 80vw;
         width: -webkit-fill-available;
         overflow: hidden;
@@ -482,6 +483,24 @@
 
     }
 
+    .emoji{
+        font-weight: normal;
+    }
+
+    #dropBuilderConflictsMessage {
+        border-style: solid;
+        margin: 1em;
+    }
+
+    #dropBuilderConflicts {
+        border-style: solid;
+        max-height: 60vh;
+    }
+
+    #duplicatesManager {
+        margin: 1em;
+        border-style: solid;
+    }
 
 
 
@@ -502,7 +521,7 @@
         <div id="walletInfo">
             <span id="userAddress">0x23bc95F84BD43C1FCc2bc285fDa4Cb12f9AEE2df</span>
             <br>
-            <span id="userTokens">1.000.000</span> <span id="ticker">TICKER</span>
+            <span id="userTokens">1.000.000</span> <span class="ticker">TICKER</span>
 
         </div>
     </div>
@@ -513,9 +532,9 @@
             <label>Set airdrop token: <input class="addressInput" id="airdropTokenContractAddressInput" type="text"
                 value="0x3AEC26bf9FEDba55a55e970504f439101AbD7327" placeholder="contract address"></input></label>
             <div id="airdropTokenInfo" class="airdropTokenInfo">
-                TokenName: <span id="tokenName" class="airdropTokenInfo">TOKENNAME</span>
+                TokenName: <span class="tokenName" class="airdropTokenInfo">TOKENNAME</span>
                 <br>
-                Ticker: <span id="ticker">TICKER</span>
+                Ticker: <span class="ticker">TICKER</span>
                 <br>
                 <!-- Token contract: <a id="tokenContractHref" class="address"
                     href="https://etherscan.io/address/0x3AEC26bf9FEDba55a55e970504f439101AbD7327">0x3AEC26bf9FEDba55a55e970504f439101AbD7327</a> -->
@@ -526,9 +545,9 @@
 
         <div id="totalsDisplay">
             <div class="bold">Supply</div>
-            Total airdrop: <span id="totalAirdrop">100.000</span> <span id="ticker">TICKER</span>
+            Total airdrop: <span class="totalAirdrop">100.000</span> <span class="ticker">TICKER</span>
             <br>
-            Totalsupply: <span id="totalsupply">69,690,690</span> <span id="ticker">TICKER</span>
+            Totalsupply: <span class="totalsupply">69,690,690</span> <span class="ticker">TICKER</span>
 
         </div>
 
@@ -563,7 +582,7 @@
                 <br>
 
 
-                <label for="amountPerNftInput"> amount <span id="ticker">TICKER</span>:  <span class="floatRightBlock">
+                <label for="amountPerNftInput"> amount <span class="ticker">TICKER</span>:  <span class="floatRightBlock">
                         <input id="amountPerNftInput"
                             type="number" value="" placeholder="amount per nft"></input>
                         <button id="submitAmountPerNft">set</button>
@@ -587,7 +606,7 @@
         </div>
 
         <div id="totalscriteria">
-            <div class="bold">Distubution <span id="selectedcriteriaName">criteria#1</span> </div>
+            <div class="bold">Distubution <span class="selectedcriteriaName bold">criteria#1</span> </div>
             <div class="alignTextRight">
                 Amount NFT: <span class="floatRightBlock">
                     <span id="amountItemsCurrentFilter"  class="alignLeft" > 100</span> <span id="nftSymbol" class="floatRightTicker" >MIL</span>
@@ -595,12 +614,12 @@
                 <br>
 
                 Tokens per NFT:  <span class="floatRightBlock">
-                    <span id="currentcriteriaAmountPerItem" class="alignLeft"  >1.000</span> <span id="ticker" class="floatRightTicker">TICKER</span>
+                    <span id="currentcriteriaAmountPerItem" class="alignLeft"  >1.000</span> <span class="ticker" class="floatRightTicker">TICKER</span>
                 </span>
                 <br>
 
                 Total tokens: <span class="floatRightBlock">
-                    <span id="selectedcriteriaTotal" class="alignLeft" >1.000.000 <span id="ticker" class="floatRightTicker" >TICKER</span>
+                    <span id="selectedcriteriaTotal" class="alignLeft" >1.000.000 <span class="ticker" class="floatRightTicker" >TICKER</span>
                 </span>
                 <br>
             </div>
@@ -743,9 +762,26 @@
         </div>
     </div>
     <div id="dropBuilder">
-        <div id="duplicatesManager">
-            <div id="duplicatesNftDisplay" hidden>
+        <div id="dropBuilderConflicts" hidden>
+            <div id="dropBuilderConflictsMessage">
+                <span class="emoji">&#10071;</span>Some nfts have multiple criteria. Choose a method to select what amount the recieve. <span class="emoji">&#10071;</span>
+                <br>
+                <label for="criteriaConflictsResolutionSelection">choose a method:</label>
+                <select name="criteria conflicts resolution options" id="criteriaConflictsResolutionSelection">
+                    <option value="largest">largest amount</option>
+                    <option value="smallest">smallest amount</option>
+                    <option value="first">first criterion made</option>
+                    <option value="last">last criterion made</option>
+                    <option value="TODO">add together</option>
+                    <option value="remove">set to zero</option>
+                </select>
+            </div>
 
+            <div id="duplicatesManager">
+                <div class="bold">nfts with conflicting criteria:</div>
+                <div id="duplicatesNftDisplay">
+
+                </div>
             </div>
         </div>
 

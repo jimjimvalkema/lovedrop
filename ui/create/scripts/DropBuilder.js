@@ -1,7 +1,8 @@
 import { ethers } from "../../scripts/ethers-5.2.esm.min.js"
 import { NftDisplay } from "../../scripts/NftDisplay.js"
-import { CriteriaBuilder } from "./CriteriaBuilder.js"
+import { CriteriaBuilder, criterionFormat } from "./CriteriaBuilder.js"
 import { NftMetaDataCollector } from "../../scripts/NftMetaDataCollector.js"
+import { FilterBuilder, filterTemplate } from "./FilterBuilder.js"
 
 export class DropBuilder {
     criteriaBuilder
@@ -12,6 +13,7 @@ export class DropBuilder {
     dropBuilderElement = document.getElementById("dropBuilder")
     criteriaBuilderElement = document.getElementById("criteriaBuilder")
     dropBuilderConflictsElement = document.getElementById("dropBuilderConflicts")
+
 
     originalElementDisplayStyle = {
         [this.criteriaBuilderElement.id]: getComputedStyle(this.criteriaBuilderElement).display,
@@ -99,11 +101,11 @@ export class DropBuilder {
     async displayDuplicates() {
         //display
         for (const collection in this.duplicates) {
-            const collectionAddress =ethers.utils.getAddress(collection)
+            const collectionAddress = ethers.utils.getAddress(collection)
             const ids = Object.keys(this.duplicates[collection])
 
             //const duplicatesDisplayElement = document.getElementById(this.duplicatesNftDisplayId)
-            this.dropBuilderConflictsElement.hidden= false
+            this.dropBuilderConflictsElement.hidden = false
 
             //nftDisplay setup
             this.nftMetaData = new NftMetaDataCollector(collectionAddress, this.provider, this.ipfsGateway)
@@ -114,12 +116,12 @@ export class DropBuilder {
                 displayElementId: this.duplicatesNftDisplayId,
                 ipfsGateway: this.ipfsGateway,
                 nftMetaData: this.nftMetaData,
-                landscapeOrientation: {["rowSize"]:7,["amountRows"]:1}
+                landscapeOrientation: { ["rowSize"]: 7, ["amountRows"]: 1 }
 
             })
             await this.NftDisplay.createDisplay()
             this.NftDisplay.displayNames({ redirect: true })
-            this.NftDisplay.addImageDivsFunction((id, nftDisplay)=>this.#showCriteriaNftDisplay(id, nftDisplay))
+            this.NftDisplay.addImageDivsFunction((id, nftDisplay) => this.#showCriteriaNftDisplay(id, nftDisplay))
             //this.NftDisplay.showAttributes()
         }
 
@@ -132,9 +134,9 @@ export class DropBuilder {
     #getLargestAmountCriterionIndex(criteria) {
         const largestCriterionIndex = criteria.reduce(
             (selectedIndex, currentCriterion, index) => {
-                if(Number(criteria[selectedIndex].amountPerItem) > Number(currentCriterion.amountPerItem) ) {
+                if (Number(criteria[selectedIndex].amountPerItem) > Number(currentCriterion.amountPerItem)) {
                     return selectedIndex
-                }  else {
+                } else {
                     return index
                 }
             }, 0
@@ -148,8 +150,8 @@ export class DropBuilder {
         const contentElement = document.createElement("div")
 
         const criteria = this.criteriaPerIds[nftDisplay.collectionAddress][id]
-        
-        criteria.forEach((criterion)=>{
+
+        criteria.forEach((criterion) => {
             const criterionElement = document.createElement("div")
 
             //TODO better class names
@@ -157,10 +159,10 @@ export class DropBuilder {
             criterionNameEl.innerHTML = `<span class="attributeType">criterion:</span> <span class="attributeValue">${criterion.name}</span>`
             const criterionAmountEl = document.createElement("div")
             criterionAmountEl.innerHTML = `<span class="attributeType">amount:</span> <span class="attributeValue">${criterion.amountPerItem}</span>`
-            
+
             const lineBreak = document.createElement("br")
-            criterionElement.append(criterionNameEl,criterionAmountEl,lineBreak)
-            
+            criterionElement.append(criterionNameEl, criterionAmountEl, lineBreak)
+
             criterionElement.className = "attributesNftDisplayItems"
             contentElement.append(criterionElement)
 
@@ -170,8 +172,8 @@ export class DropBuilder {
         //TODO make toggle to always show
         rootElement.className = "attributesNftDisplayContainer"
         rootElement.id = `attributes-${id}-${this.collectionAddress}`
-        rootElement.addEventListener("mouseover", () => {rootElement.style.opacity=1});
-        rootElement.addEventListener("mouseout", () => {rootElement.style.opacity=0});
+        rootElement.addEventListener("mouseover", () => { rootElement.style.opacity = 1 });
+        rootElement.addEventListener("mouseout", () => { rootElement.style.opacity = 0 });
         contentElement.className = "attributesNftDisplayContent"
         rootElement.append(contentElement)
 
@@ -182,14 +184,64 @@ export class DropBuilder {
     #getSmallestAmountCriterionIndex(criteria) {
         const smallestCriterionIndex = criteria.reduce(
             (selectedIndex, currentCriterion, index) => {
-                if(Number(criteria[selectedIndex].amountPerItem) < Number(currentCriterion.amountPerItem) ) {
+                if (Number(criteria[selectedIndex].amountPerItem) < Number(currentCriterion.amountPerItem)) {
                     return selectedIndex
-                }  else {
+                } else {
                     return index
                 }
             }, 0
         );
         return smallestCriterionIndex
+    }
+
+    async createCriterionWithIds(collectionAddress, ids) {
+        const newCriterion = await this.criteriaBuilder.createCriterion(collectionAddress)
+        newCriterion.selectedFilter = structuredClone(filterTemplate)
+        newCriterion.ids = ids
+        newCriterion.selectedFilter.inputs.idList = ids
+        return newCriterion
+    }
+
+    getTotalsOfIds(criteriaPerIds) {
+        const ids = Object.keys(criteriaPerIds)
+        const totalsPerIdEntries = ids.map(
+            (id) => {
+                const total = criteriaPerIds[id].reduce(
+                    //TODO!!!! do this with bigInt because this is dangerous!!!
+                    (partialSum, criteria) => partialSum + Number(criteria.amountPerItem), 0
+                )
+                return [id, total]
+            }
+        )
+        const totalsPerId = Object.fromEntries(totalsPerIdEntries)
+        return totalsPerId
+    }
+
+    trackIdsPerAmount(idsWithAmount) {
+        //mabye more efficient to initialize arrays in one loop with if statement
+        const amountPerId = Object.fromEntries(Object.keys(idsWithAmount).map((id)=>[idsWithAmount[id],[]]))
+        for (const id in idsWithAmount) {
+            const amount = idsWithAmount[id]
+            amountPerId[amount].push(id)
+        }
+        return amountPerId
+    }
+
+    addAmountsTogether(criteriaPerIdsPerCollection = this.criteriaPerIds) {
+        const totalsIdsPerCollection = {}
+
+        for (const collection in criteriaPerIdsPerCollection) {
+            const criteriaPerIds = criteriaPerIdsPerCollection[collection]
+            totalsIdsPerCollection[collection] = this.getTotalsOfIds(criteriaPerIds)
+        }
+
+        const amountsPerIdPerCollection = {}
+        for (const collection in totalsIdsPerCollection) {
+            const idsWithAmount = totalsIdsPerCollection[collection]
+            amountsPerIdPerCollection[collection] = this.trackIdsPerAmount(idsWithAmount)
+        }
+        return amountsPerIdPerCollection
+
     }
 
     /**
@@ -198,42 +250,76 @@ export class DropBuilder {
      * @param {Object} criteriaPerIds  {"0x5Af0D9827E0c53E4799BB226655A1de152A425a5": {1: [criterionObj, criterionObj], 2: [criterionObj]}}
      * @returns 
      */
-    removeConflictingCriteria(mode="largest", criteriaPerIds=this.criteriaPerIds) {
-        const validModes = ["smallest", "largest", "last", "first", "remove"]
-        if (validModes.indexOf(mode)===-1) {
-            throw Error(`type: ${mode} unkown. try "smallest", "largest", "last", "first" or "remove"`)
+    async removeConflictingCriteria(mode = "largest", criteriaPerIds = this.criteriaPerIds) {
+        //TODO do per id this doesnt work
+        // const summedCriterionConflicts = structuredClone(criterionFormat)
+        // summedCriterionConflicts.name = "summedCriterionConflicts"
+        // summedCriterionConflicts.selectedFilter = structuredClone(filterTemplate)
+        let filteredCriteria = structuredClone(criteriaPerIds)
+        const validModes = ["smallest", "largest", "last", "first", "remove", "add"]
+        if (validModes.indexOf(mode) === -1) {
+            throw Error(`type: ${mode} unkown. try "smallest", "largest", "last", "first", "add" or "remove"`)
         }
 
-        let filteredCriteria = structuredClone(criteriaPerIds)
-        for (const collection in criteriaPerIds) {
-            for (const id in criteriaPerIds[collection]) {
-                const criteriaArr = criteriaPerIds[collection][id]
-                if(criteriaArr.length === 1) {
-                    filteredCriteria[collection][id] = criteriaArr[0]
-                } else {
-                    if (mode === "remove") {
-                        delete filteredCriteria[collection][id]
+        //TODO make function
+        if(mode==="add") {
+            const criteriaPerIdsOnlyDuplicates = this.getIdsWithDuplicateCriteria(criteriaPerIds)
+            const idsPerAmountsPerCollection = this.addAmountsTogether(criteriaPerIdsOnlyDuplicates)
 
-                        //track ids who are removed
-                        criteriaArr.forEach(criterion => {
-                            criterion.excludedIds.push(id)
-                        });
-                    } else {
-                        //set selected criterion
-                        const index = this.#selectCriterion(criteriaArr, mode)
-                        filteredCriteria[collection][id] = criteriaArr[index]
+            for (const collection in idsPerAmountsPerCollection) {
+                for (const amount in idsPerAmountsPerCollection[collection]) {
+                    const ids = idsPerAmountsPerCollection[collection][amount]
+                    const newCriterion = await this.createCriterionWithIds(collection, ids)
+                    newCriterion.name = `summedConflictionCriterion-${collection}-${amount}`
+                    newCriterion.amountPerItem = amount
+                    ids.forEach((id)=>filteredCriteria[collection][id]=newCriterion)
+                }
 
-                        //track ids who are removed
-                        const removedCriteria = criteriaArr.toSpliced(index,1)
-                        removedCriteria.forEach(criterion => {
-                            criterion.excludedIds.push(id)
-                        });
+                for(const id  in criteriaPerIds[collection]) {
+                    if(criteriaPerIds[collection][id].length === 1) {
+                        filteredCriteria[collection][id] = filteredCriteria[collection][id][0]
+
                     }
                 }
             }
+            return filteredCriteria
+
+        } else {
+            for (const collection in criteriaPerIds) {
+                for (const id in criteriaPerIds[collection]) {
+                    const criteriaArr = criteriaPerIds[collection][id]
+                    if (criteriaArr.length === 1) {
+                        filteredCriteria[collection][id] = criteriaArr[0]
+                    } else {
+                        if (mode === "remove") {
+                            delete filteredCriteria[collection][id]
+    
+                            //track ids who are removed
+                            criteriaArr.forEach(criterion => {
+                                criterion.excludedIds.push(id)
+                            });
+                        } else {
+                            //set selected criterion
+                            const index = this.#selectCriterion(criteriaArr, mode)
+                            filteredCriteria[collection][id] = criteriaArr[index]
+    
+                            //track ids who are removed
+                            const removedCriteria = criteriaArr.toSpliced(index, 1)
+                            removedCriteria.forEach(criterion => {
+                                criterion.excludedIds.push(id)
+                            });
+                        }
+                    }
+                }
+            }
+
         }
+
+
         return filteredCriteria
     }
+
+
 
     #selectCriterion(criterionArr, selectionType) {
         switch (selectionType) {
@@ -242,9 +328,9 @@ export class DropBuilder {
 
             case "smallest":
                 return this.#getSmallestAmountCriterionIndex(criterionArr)
-            
-            case "last":    
-                return criterionArr.length-1
+
+            case "last":
+                return criterionArr.length - 1
 
             case "first":
                 return 0

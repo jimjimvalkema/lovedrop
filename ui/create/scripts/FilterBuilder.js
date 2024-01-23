@@ -2,9 +2,11 @@ import { NftDisplay } from "../../scripts/NftDisplay.js"
 import { NftMetaDataCollector } from "../../scripts/NftMetaDataCollector.js"
 import { ethers } from "../../scripts/ethers-5.2.esm.min.js"
 
+export const filterTemplate = { "type": "OR", "inputs": { "idList": [], "conditions": [], "attributes": [] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }
+
 export class FilterBuilder {
     validFilterTypes = ["RANGE", "AND", "OR"]
-    filterTemplate = { "type": "OR", "inputs": { "idList": [], "conditions": [], "attributes": [] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }
+    filterTemplate = filterTemplate
 
     filtersMadePerCollectionCount = {}
     nftMetaData;
