@@ -25,6 +25,8 @@ export class NftDisplay {
 
     ipfsGateway;
 
+    imageRasterElement;
+
 
     collectionInfoCssClass = "nftdisplayInfo"
     //TODO maybe make a function that calculates a rowsize based on the widht of the images loaded to maximize screen realestate
@@ -268,7 +270,8 @@ export class NftDisplay {
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
         let allResults = []
         for (const [index, id] of idsCurrentPage.entries()) {
-            let imageDiv = document.getElementById(`rootDiv-${id}-${this.collectionAddress}`)
+            
+            const imageDiv = this.currentAllImagesDiv.querySelectorAll(`.rootDiv-${id}-${this.collectionAddress}`)[0]
             let results = divFunctions.map((x)=>x(id, this))
             for (const result of results) {
                 allResults.push(result)
@@ -383,17 +386,12 @@ export class NftDisplay {
 
 
         this.currentPage = page;
-    
-        
-        
 
-    
-        const existingImageRaster = document.getElementById(`imagesRaster-${this.collectionAddress}`)
-
-        const newRasterDiv = await this.createImagesRaster(page)
-        if(existingImageRaster){
-            existingImageRaster.replaceWith(newRasterDiv)
-        }
+        //const newRasterDiv = 
+        await this.createImagesRaster(page)
+        // if(this.imageRasterElement){
+        //     this.imageRasterElement.replaceWith(newRasterDiv)
+        // }
         
         const existingPageSelector = document.getElementById(`pageSelector-${this.collectionAddress}`)
         if (existingPageSelector) {
@@ -443,11 +441,17 @@ export class NftDisplay {
         const realAmountRows = Math.ceil(idsCurrentPage.length/rowSize)
         const imageWidth = Math.floor(100/(rowSize))
         const minTotalWidth = `${9.4*rowSize}ch`
-        const imagesBorderWidth = "max(2px, 0.5vi)"
+        const imagesBorderWidth = "max(2px, 0.35vi)"
         
-
-        let allImagesDiv = document.createElement("div")
-        allImagesDiv.style= `
+        let newImageRaster = document.createElement("div")
+        if (this.imageRasterElement) {
+            this.imageRasterElement.replaceWith(newImageRaster)
+            this.imageRasterElement = newImageRaster
+        } else {
+            this.imageRasterElement = newImageRaster
+        }
+        this.imageRasterElement.id = `imagesRaster-${this.collectionAddress}`
+        this.imageRasterElement.style= `
         display: grid;
         margin: 0.2em;
     
@@ -485,9 +489,8 @@ export class NftDisplay {
             imgElements.push(img)
             
             let imgRootDiv =  document.createElement("div")
-            imgRootDiv.id = `rootDiv-${id}-${this.collectionAddress}`
+            imgRootDiv.className = `nftImagesDiv rootDiv-${id}-${this.collectionAddress}`
             imgRootDiv.style = `background-color: canvas; overflow: hidden; height:100%; position: relative;`//`width: ${imageWidth}%; position: relative; display: inline-block;`
-            imgRootDiv.className = "nftImagesDiv" 
 
             let imageDiv = document.createElement("div")
             imageDiv.id = `imageDiv-${id}-${this.collectionAddress}`
@@ -496,7 +499,7 @@ export class NftDisplay {
             imageDiv.append(img)
             //imgBorderDiv.append(imageDiv)
             imgRootDiv.append(imageDiv)
-            allImagesDiv.append(imgRootDiv)
+            this.imageRasterElement.append(imgRootDiv)
         }
 
         const remainder = idsCurrentPage.length%rowSize
@@ -520,13 +523,11 @@ export class NftDisplay {
                     emptyDiv.style.marginTop = `calc(${imagesBorderWidth} * -1)`
                     emptyDiv.style.height = `calc(100% + ${imagesBorderWidth}*2)`
                 }
-                allImagesDiv.append(emptyDiv)
+                this.imageRasterElement.append(emptyDiv)
             }
             
 
         }
-
-        allImagesDiv.id = `imagesRaster-${this.collectionAddress}`
 
 
         Promise.all(idsCurrentPage.map((id)=>this.nftMetaData.getImage(id))).then((imageUrls)=>{
@@ -538,8 +539,8 @@ export class NftDisplay {
             });
             
         })
-        this.currentAllImagesDiv = allImagesDiv
-        return allImagesDiv
+        this.currentAllImagesDiv = this.imageRasterElement
+        return this.imageRasterElement
     }
 
     /**

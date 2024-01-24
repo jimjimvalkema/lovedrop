@@ -103,9 +103,6 @@ export class DropBuilder {
 
     async displayDuplicates(duplicates=this.duplicates) {
         //display
-        //TODO this is a messy fix. instead have bettter way of tracking wich element is which nftdisplay (it usses contractaddres as id instead of passing element)
-        this.criteriaBuilder.filterBuilder.NftDisplay.clear()
-        document.getElementById(this.criteriaBuilder.nftDisplayElementId).innerHTML = ""
         for (const collection in duplicates) {
             const collectionAddress = ethers.utils.getAddress(collection)
             const ids = Object.keys(duplicates[collection])
@@ -114,6 +111,12 @@ export class DropBuilder {
             this.dropBuilderConflictsElement.hidden = false
 
             //nftDisplay setup
+            if (this.NftDisplay) {
+                console.log(this.NftDisplay)
+                this.NftDisplay.clear()
+                document.getElementById(this.duplicatesNftDisplayId).innerHTML = ""
+            }
+
             this.nftMetaData = new NftMetaDataCollector(collectionAddress, this.provider, this.ipfsGateway)
             this.NftDisplay = new NftDisplay({
                 ids: ids,
@@ -125,10 +128,11 @@ export class DropBuilder {
                 landscapeOrientation: { ["rowSize"]: 7, ["amountRows"]: 1 }
 
             })
-            
+
+            await this.NftDisplay.createDisplay()
             await this.NftDisplay.displayNames({ redirect: true })
             await this.NftDisplay.addImageDivsFunction((id, nftDisplay) => this.#showCriteriaNftDisplay(id, nftDisplay))
-            await this.NftDisplay.createDisplay()
+            
             //this.NftDisplay.showAttributes()
         }
 
@@ -264,7 +268,7 @@ export class DropBuilder {
     /**
      * undo effects from removeConflictingCriteria
      */
-    resetCriteria() {
+    removeConflictResolutionCriteria() {
         for (const collection in this.criteriaForConflictResolution) {
             for(const currentCriterion of this.criteriaForConflictResolution[collection] ) {
                 this.criteriaBuilder.filterBuilder.removeFilterByIndex(currentCriterion.selectedFilter.index)
@@ -285,7 +289,7 @@ export class DropBuilder {
      * @returns 
      */
     async removeConflictingCriteria(mode = "largest", criteriaPerIds) {
-        this.resetCriteria() 
+        this.removeConflictResolutionCriteria() 
         let filteredCriteria = structuredClone(criteriaPerIds)
         const validModes = ["smallest", "largest", "last", "first", "remove", "add"]
         if (validModes.indexOf(mode) === -1) {
