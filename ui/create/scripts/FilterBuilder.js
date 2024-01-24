@@ -91,7 +91,7 @@ export class FilterBuilder {
     }
 
     #deleteFilterHandler() {
-        this.removeFilter(this.currentFilterIndex)
+        this.removeFilterByIndex(this.currentFilterIndex)
         const currentFiltersList = this.getFiltersOfCollection()
         console.log("len",currentFiltersList.length)
 
@@ -666,7 +666,7 @@ export class FilterBuilder {
         this.filterSelectors = this.filterSelectors.filter((x)=>x===elementId)
     }
 
-    removeFilter(filterIndex) {
+    removeFilterByIndex(filterIndex) {
         let currentFilters = this.getFiltersOfCollection()
         currentFilters.splice(filterIndex,1)
         //const optionsToBeShifted = this.filtes.filter((x)=>x.index>=filterIndex)
@@ -730,9 +730,8 @@ export class FilterBuilder {
             //name cant be empty
             name = this.getFilter(index).filterName
             document.getElementById("filterNameInput").value =this.getFilter(index).filterName
-
         }
-        
+       
     }
 
     #filterTypeHandler(event) {

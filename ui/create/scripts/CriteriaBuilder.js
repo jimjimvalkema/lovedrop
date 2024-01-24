@@ -76,7 +76,7 @@ export class CriteriaBuilder {
 
         //collection address is inside the criterion that is being deleted
         const currentCollection = this.getCurrentCollectionAddress()
-        this.removeCriterion(indexToRemove)
+        this.removeCriterionByIndex(indexToRemove)
         
         //prevent no criterion being left / selected
         if(this.criteria.length===0) {
@@ -105,6 +105,7 @@ export class CriteriaBuilder {
         if(filterIndex>=0) {
             const filter = this.filterBuilder.getFiltersOfCollection()[filterIndex]
             criterion.selectedFilter = filter
+            document.getElementById(this.filterSelectorId).value = filterIndex
             console.log(criterion)
             console.log(filter)
         } else {
@@ -138,7 +139,7 @@ export class CriteriaBuilder {
     #setCriterionNameHandler(event, inputId) {
         const value =  this.#isValidSubmitEvent(event, inputId)
         if (value) {
-            this.#updateCriterionName(this.currentCriterionIndex, value)
+            this.updateCriterionName(this.currentCriterionIndex, value)
         } else {
             return false
         }
@@ -177,7 +178,7 @@ export class CriteriaBuilder {
         console.log(collectionAddress)
     
         criterion.collectionAddress = collectionAddress
-        this.#updateCriterionName()
+        this.updateCriterionName()
         document.getElementById(this.contractInput).value = collectionAddress
         const filterSelector = document.getElementById(this.filterSelectorId)
         filterSelector.value = "-1"
@@ -243,6 +244,7 @@ export class CriteriaBuilder {
     setAmountPerItem(amount, criterionIndex=this.getCurrentCriterion()) {
         const criterion = this.criteria[criterionIndex]
         criterion.amountPerItem = amount
+        document.getElementById(this.amountInputId).value = amount
     }
 
 
@@ -264,7 +266,7 @@ export class CriteriaBuilder {
         return  `${criterion.name}-${collectionName}` 
     }
 
-    async #updateCriterionName(criterionIndex=this.currentCriterionIndex, newName=undefined) {
+    async updateCriterionName(criterionIndex=this.currentCriterionIndex, newName=undefined) {
         const criterion = this.criteria[criterionIndex]
         
         if (newName) {
@@ -284,6 +286,7 @@ export class CriteriaBuilder {
         //create new criterion
         const newCriterion = structuredClone(this.criterionFormat)
         const newCriterionIndex = this.criteria.length
+        newCriterion.index = newCriterionIndex
         this.currentCriterionIndex = newCriterionIndex
         this.criteriaMade += 1
         
@@ -311,6 +314,7 @@ export class CriteriaBuilder {
     changeCurrentCriterion(index) {
         this.currentCriterionIndex = index
         const currentCollection = this.getCurrentCollectionAddress()
+        console.log(this.criteria, index)
         const currentCriterion = this.criteria[index]
         if (currentCollection) {
             document.getElementById(this.contractInput).value = currentCollection
@@ -320,15 +324,17 @@ export class CriteriaBuilder {
 
 
         const criteriaNameInput = document.getElementById(this.criteriaNameInputId)
+        console.log(currentCriterion.name)
         criteriaNameInput.value = currentCriterion.name
         const criteriaSelector = document.getElementById(this.criteriaSelectorId)
         criteriaSelector.value = index
         console.log(currentCriterion)
         const amountInput = document.getElementById(this.amountInputId)
         amountInput.value = currentCriterion.amountPerItem
+        console.log("aaaaaaddddddddddd", currentCriterion.amountPerItem)
 
         const filterSelector = document.getElementById(this.filterSelectorId)
-
+        console.log(currentCriterion)
         if ("index" in currentCriterion.selectedFilter) {
             filterSelector.value = currentCriterion.selectedFilter.index
 
@@ -339,12 +345,20 @@ export class CriteriaBuilder {
         
     }
 
-    removeCriterion(criterionIndex=this.currentCriterionIndex) {
+    #setCriteriaIndexes(criteria) {
+        console.log(criteria)
+        console.log(criteria.map((criterion, realIndex)=>criterion.index = realIndex))
+        return criteria.map((criterion, realIndex)=>criterion.index = realIndex)
+    }
+
+    removeCriterionByIndex(criterionIndex=this.currentCriterionIndex) {
         this.criteria.splice(criterionIndex, 1)
         this.#removeOptionCriteriaSelector(criterionIndex) 
         if (criterionIndex === this.currentCriterionIndex){
             this.currentCriterionIndex = -1
         } 
+
+        this.#setCriteriaIndexes(this.criteria)
     }
 
     #removeOptionCriteriaSelector(criterionIndex) {

@@ -8,11 +8,14 @@ export class DropBuilder {
     criteriaBuilder
 
     duplicatesNftDisplayId = "duplicatesNftDisplay"
-    conflictResolutionMethodSelector = document.getElementById("criteriaConflictsResolutionSelection")
+    conflictResolutionSelector = document.getElementById("criteriaConflictsResolutionSelection")
     finalizeDropButton = document.getElementById("finalizeDropButton")
     dropBuilderElement = document.getElementById("dropBuilder")
     criteriaBuilderElement = document.getElementById("criteriaBuilder")
     dropBuilderConflictsElement = document.getElementById("dropBuilderConflicts")
+
+    //or do conflictResolutionSelectorHandler with a submit button but user might decide to go back anyway
+    criteriaForConflictResolution = {} 
 
 
     originalElementDisplayStyle = {
@@ -40,7 +43,8 @@ export class DropBuilder {
         //initialize
         this.dropBuilderElement.style.display = "none"
 
-        finalizeDropButton.addEventListener("click", (event) => this.toggleFinalizeDropView(event))
+        this.finalizeDropButton.addEventListener("click", (event) => this.toggleFinalizeDropView(event))
+        this.conflictResolutionSelector.addEventListener("change", (event) => this.#conflictResolutionSelectorHandler(event, this.criteriaPerIds))
 
     }
 
@@ -58,8 +62,7 @@ export class DropBuilder {
 
         this.criteriaPerIds = this.getCriteriaPerId()
         this.duplicates = this.getIdsWithDuplicateCriteria(this.criteriaPerIds)
-        this.displayDuplicates()
-
+        this.displayDuplicates(this.duplicates)
     }
 
 
@@ -98,13 +101,16 @@ export class DropBuilder {
 
     }
 
-    async displayDuplicates() {
+    async displayDuplicates(duplicates=this.duplicates) {
         //display
-        for (const collection in this.duplicates) {
+        //TODO this is a messy fix. instead have bettter way of tracking wich element is which nftdisplay (it usses contractaddres as id instead of passing element)
+        this.criteriaBuilder.filterBuilder.NftDisplay.clear()
+        document.getElementById(this.criteriaBuilder.nftDisplayElementId).innerHTML = ""
+        for (const collection in duplicates) {
             const collectionAddress = ethers.utils.getAddress(collection)
-            const ids = Object.keys(this.duplicates[collection])
+            const ids = Object.keys(duplicates[collection])
 
-            //const duplicatesDisplayElement = document.getElementById(this.duplicatesNftDisplayId)
+            //const duplicatesDisplayElement = document.getElementById(duplicatesNftDisplayId)
             this.dropBuilderConflictsElement.hidden = false
 
             //nftDisplay setup
@@ -119,9 +125,10 @@ export class DropBuilder {
                 landscapeOrientation: { ["rowSize"]: 7, ["amountRows"]: 1 }
 
             })
+            
+            await this.NftDisplay.displayNames({ redirect: true })
+            await this.NftDisplay.addImageDivsFunction((id, nftDisplay) => this.#showCriteriaNftDisplay(id, nftDisplay))
             await this.NftDisplay.createDisplay()
-            this.NftDisplay.displayNames({ redirect: true })
-            this.NftDisplay.addImageDivsFunction((id, nftDisplay) => this.#showCriteriaNftDisplay(id, nftDisplay))
             //this.NftDisplay.showAttributes()
         }
 
@@ -194,9 +201,20 @@ export class DropBuilder {
         return smallestCriterionIndex
     }
 
-    async createCriterionWithIds(collectionAddress, ids) {
+    async createCriterionWithIds(collectionAddress, ids, name) {
+        console.log("aaaaaa", collectionAddress)
         const newCriterion = await this.criteriaBuilder.createCriterion(collectionAddress)
-        newCriterion.selectedFilter = structuredClone(filterTemplate)
+        await this.criteriaBuilder.updateCriterionName(newCriterion.index, name)
+        this.criteriaBuilder.changeCurrentCriterion(newCriterion.index)
+
+        const filter = this.criteriaBuilder.filterBuilder.createNewFilter("AND")
+        this.criteriaBuilder.selectFilterForCriterion(filter.index, newCriterion)
+        
+        this.criteriaBuilder.filterBuilder.changeFilterName(name, newCriterion.selectedFilter.index)
+        this.criteriaBuilder.filterBuilder.changeCurrentFilter(newCriterion.selectedFilter.index)
+
+
+
         newCriterion.ids = ids
         newCriterion.selectedFilter.inputs.idList = ids
         return newCriterion
@@ -243,6 +261,22 @@ export class DropBuilder {
         return amountsPerIdPerCollection
 
     }
+    /**
+     * undo effects from removeConflictingCriteria
+     */
+    resetCriteria() {
+        for (const collection in this.criteriaForConflictResolution) {
+            for(const currentCriterion of this.criteriaForConflictResolution[collection] ) {
+                this.criteriaBuilder.filterBuilder.removeFilterByIndex(currentCriterion.selectedFilter.index)
+                this.criteriaBuilder.removeCriterionByIndex(currentCriterion.index)
+            }
+            this.criteriaForConflictResolution[collection] = []
+        }
+
+        for (const criterion of this.criteriaBuilder.criteria) {
+            criterion.excludedIds = []
+        }
+    }
 
     /**
      * 
@@ -250,11 +284,8 @@ export class DropBuilder {
      * @param {Object} criteriaPerIds  {"0x5Af0D9827E0c53E4799BB226655A1de152A425a5": {1: [criterionObj, criterionObj], 2: [criterionObj]}}
      * @returns 
      */
-    async removeConflictingCriteria(mode = "largest", criteriaPerIds = this.criteriaPerIds) {
-        //TODO do per id this doesnt work
-        // const summedCriterionConflicts = structuredClone(criterionFormat)
-        // summedCriterionConflicts.name = "summedCriterionConflicts"
-        // summedCriterionConflicts.selectedFilter = structuredClone(filterTemplate)
+    async removeConflictingCriteria(mode = "largest", criteriaPerIds) {
+        this.resetCriteria() 
         let filteredCriteria = structuredClone(criteriaPerIds)
         const validModes = ["smallest", "largest", "last", "first", "remove", "add"]
         if (validModes.indexOf(mode) === -1) {
@@ -269,16 +300,27 @@ export class DropBuilder {
             for (const collection in idsPerAmountsPerCollection) {
                 for (const amount in idsPerAmountsPerCollection[collection]) {
                     const ids = idsPerAmountsPerCollection[collection][amount]
-                    const newCriterion = await this.createCriterionWithIds(collection, ids)
-                    newCriterion.name = `summedConflictionCriterion-${collection}-${amount}`
-                    newCriterion.amountPerItem = amount
+                    
+                    //create criterion to track ids with new summed amount
+                    const criterionName = `summedConflictingCriterion-${collection}-${amount}`
+                    const newCriterion = await this.createCriterionWithIds(collection, ids, criterionName)
+                    this.criteriaBuilder.setAmountPerItem(amount, newCriterion.index)
+
+                    if (this.criteriaForConflictResolution[collection]) {
+                        this.criteriaForConflictResolution[collection].push(newCriterion) 
+                    } else {
+                        this.criteriaForConflictResolution[collection] = [newCriterion]
+                    }
+
+
+                    //assing all ids this criterion
                     ids.forEach((id)=>filteredCriteria[collection][id]=newCriterion)
                 }
 
+                //converst ids with no criterion to a single criterion instead of an array
                 for(const id  in criteriaPerIds[collection]) {
                     if(criteriaPerIds[collection][id].length === 1) {
-                        filteredCriteria[collection][id] = filteredCriteria[collection][id][0]
-
+                        filteredCriteria[collection][id] = criteriaPerIds[collection][id][0]
                     }
                 }
             }
@@ -314,8 +356,6 @@ export class DropBuilder {
             }
 
         }
-
-
         return filteredCriteria
     }
 
@@ -339,5 +379,11 @@ export class DropBuilder {
                 throw Error(`type: ${type} unkown. try "smallest", "largest", "last" or "first"`)
         }
 
+    }
+
+    async #conflictResolutionSelectorHandler(event, criteriaPerIds=this.criteriaPerIds) {
+        const criteriaPerId = await this.removeConflictingCriteria(event.target.value, criteriaPerIds)
+
+        console.log(criteriaPerId)
     }
 }
