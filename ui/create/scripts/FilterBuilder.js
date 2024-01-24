@@ -61,7 +61,7 @@ export class FilterBuilder {
     //every filter add, remove, read
     //setting collectionAddress = add to this.filtersPerCollection
 
-    reinitializeUi() {
+    async reinitializeUi() {
         console.log("initializing")
         if (!(this.collectionAddress in this.filtersPerCollection)) {
             this.filtersPerCollection[this.collectionAddress] = []
@@ -74,13 +74,13 @@ export class FilterBuilder {
         //this.#setInputTypeHandler({"target":{"value":"attributes"}})
 
         if (this.getFiltersOfCollection().length === 0) {
-            const newFilter = this.createNewFilter("AND")
-            this.changeCurrentFilter(newFilter.index)
+            // const newFilter = this.createNewFilter("AND")
+            // await this.changeCurrentFilter(newFilter.index)
         } else {
-            this.changeCurrentFilter(0)
+            await this.changeCurrentFilter(0)
         }
         // } else {
-        //     this.changeCurrentFilter(0)
+        //     await this.changeCurrentFilter(0)
         // }
 
 
@@ -90,17 +90,15 @@ export class FilterBuilder {
         //reset inputs ui
     }
 
-    #deleteFilterHandler() {
+    async #deleteFilterHandler() {
         this.removeFilterByIndex(this.currentFilterIndex)
         const currentFiltersList = this.getFiltersOfCollection()
-        console.log("len",currentFiltersList.length)
-
         if(currentFiltersList.length===0) {
             const type = document.getElementById("filterTypeSelectorInput").value
             const newFilter = this.createNewFilter(type)
-            this.changeCurrentFilter(newFilter.index)
+            await this.changeCurrentFilter(newFilter.index)
         } else {
-            this.changeCurrentFilter(currentFiltersList.length-1)
+            await this.changeCurrentFilter(currentFiltersList.length-1)
         }
     }
     #resetfilterSelectorInputsUi() {
@@ -130,15 +128,15 @@ export class FilterBuilder {
         }
     }
 
-    #setCollectionAddressHandler(event) {
+    async #setCollectionAddressHandler(event) {
         const value = document.getElementById("nftContractAddressInput").value
         if ((event.key!=="Enter" && event.key!==undefined && value!==undefined)) {
             return false
         }
-        this.setCollectionAddress(value)
+        await this.setCollectionAddress(value)
     }
 
-    setCollectionAddress(addres) {
+    async setCollectionAddress(addres) {
         if (!addres) {
             console.warn("collection address not set")
             return
@@ -154,7 +152,7 @@ export class FilterBuilder {
 
         //clear nfts
         if (this.NftDisplay) {
-            this.NftDisplay.clear()
+            await this.NftDisplay.clear()
         }
 
         //reinitialize metaData and display
@@ -169,16 +167,20 @@ export class FilterBuilder {
         this.NftDisplay.displayNames({redirect:true})
         this.NftDisplay.showAttributes()
 
-        this.reinitializeUi()
+        await this.reinitializeUi()
     }
     
     async #onFilterChange() {
-        const ids = await this.runFilter()
-        const currentFilter = this.getCurrentFilter()
+        if(this.collectionAddress) {
+            const ids = await this.runFilter()
+            const currentFilter = this.getCurrentFilter()
+    
+            for (const func of this.onfilterChangeFunc) {
+                func(currentFilter, ids)
+            }
 
-        for (const func of this.onfilterChangeFunc) {
-            func(currentFilter, ids)
         }
+
     }
 
 
@@ -208,9 +210,10 @@ export class FilterBuilder {
 
     async runFilter() {
         
+        console.warn("runnong filter")
         const oldImgElements = [...document.getElementsByClassName("nftImagesDiv")]
         oldImgElements.forEach((img)=> img.style.opacity = 0);
-        this.NftDisplay.clear()
+        await this.NftDisplay.clear()
 
         const currentFilter = this.getCurrentFilter()
         const resultIdSet = await this.nftMetaData.processFilter(currentFilter)
@@ -384,7 +387,7 @@ export class FilterBuilder {
             [...document.getElementsByClassName("attributeCheckbox")].forEach((x)=>x.checked=false)
             await this.#setCheckedStatusAttributes()
         }
-        this.#onFilterChange()
+        await this.#onFilterChange()
 
     }
 
@@ -398,7 +401,7 @@ export class FilterBuilder {
     }
 
 
-    removeItemFromFilter(item,inputTarget=undefined,filterIndex=this.currentFilterIndex) {
+    async removeItemFromFilter(item,inputTarget=undefined,filterIndex=this.currentFilterIndex) {
         if (!inputTarget) {
             inputTarget = this.#getCurrentInputTarget()
         } 
@@ -432,10 +435,10 @@ export class FilterBuilder {
                 break;
         }
 
-        this.#onFilterChange()
+        await this.#onFilterChange()
     }
 
-    addItemToFilter(item,inputTarget=undefined,filterIndex=this.currentFilterIndex) {
+    async addItemToFilter(item,inputTarget=undefined,filterIndex=this.currentFilterIndex) {
         if (!inputTarget) {
             inputTarget = this.#getCurrentInputTarget()
         } 
@@ -469,7 +472,7 @@ export class FilterBuilder {
             const filterTotalInputs = document.getElementById(`filterTotalInputs-${inputType}-${dataType}`)
             filterTotalInputs.innerText = Number(filterTotalInputs.innerText ) + 1    
         }
-        this.#onFilterChange()
+        await this.#onFilterChange()
     }
 
 
@@ -602,6 +605,7 @@ export class FilterBuilder {
         this.#addFilterToCollection({"type":type, "filterName": name})
         const newFilter = this.getFiltersOfCollection()[newFiltersIndex]
         this.#addOptionToFilterSelectors(newFilter)
+        console.warn("weeee another filter", newFilter.index, this.collectionAddress)
 
         return newFilter
     } 
@@ -676,8 +680,8 @@ export class FilterBuilder {
     }
 
 
-    changeCurrentFilter(index) {
-        console.log("changing to ", index)
+    async changeCurrentFilter(index) {
+        console.warn("changing to ", index)
         const currentFilter = this.getFiltersOfCollection()[index]
         document.getElementById("filterSelectorInput").value = index
         document.getElementById("filterNameInput").value = currentFilter.filterName
@@ -687,21 +691,21 @@ export class FilterBuilder {
         this.#updateAllFilterTotalsUi()
         this.#updateInputsDropdowns()
         const selectedDataType = document.getElementById("inputTypeSelecterInput").value
-        this.#setInputTypeHandler({"target":{"value":selectedDataType}})
+        await this.#setInputTypeHandler({"target":{"value":selectedDataType}})
 
-        this.#onFilterChange()
+        await this.#onFilterChange()
     }
 
    
-    #filterSelectorHandler(event) {
+    async #filterSelectorHandler(event) {
         const filterterIndex = Number(event.target.value)
         if (filterterIndex === -1) {
             const type = document.getElementById("filterTypeSelectorInput").value
             const newFilter = this.createNewFilter(type)
-            this.changeCurrentFilter(newFilter.index)
+            await this.changeCurrentFilter(newFilter.index)
             
         } else {
-            this.changeCurrentFilter(filterterIndex)
+            await this.changeCurrentFilter(filterterIndex)
         }
     }
 
@@ -734,10 +738,10 @@ export class FilterBuilder {
        
     }
 
-    #filterTypeHandler(event) {
+    async #filterTypeHandler(event) {
         const type =  event.target.value
         this.changeFilterType(type)
-        this.#onFilterChange()
+        await this.#onFilterChange()
     }
 
     #filterNameHandler(event) {
@@ -854,17 +858,16 @@ export class FilterBuilder {
         this.getFilter(filterIndex)[inputType][dataType] = this.getFilter(filterIndex)[inputType][dataType].filter((x)=>x.index===filter.index)
     }
 
-    #attributeCheckBoxHandler(event, traitType, traitValue) {
-        console.log(event.target.checked,traitType, traitValue)
+    async #attributeCheckBoxHandler(event, traitType, traitValue) {
         const inputTarget = this.#getCurrentInputTarget()
         const item = {"trait_type":traitType, "value": traitValue};
         if(event.target.checked === true) { 
             //this.addAttribute(traitType, traitValue, this.currentFilterIndex, this.#getCurrentInputTarget() )
-            this.addItemToFilter(item,inputTarget)
+            await this.addItemToFilter(item,inputTarget)
 
         } else  {
             // this.removeAttribute(traitType, traitValue, this.currentFilterIndex, this.#getCurrentInputTarget() )
-            this.removeItemFromFilter(item,inputTarget)
+           await this.removeItemFromFilter(item,inputTarget)
         }
     }
 
@@ -1067,7 +1070,6 @@ export class FilterBuilder {
 
     #inclusionSelectionHandler(event) {
         const {inputType,dataType} = this.#getCurrentInputTarget()
-        console.log(inputType,dataType)
         switch (dataType) {
             case "attributes":
                 [...document.getElementsByClassName("attributeCheckbox")].forEach((x)=>x.checked=false)
@@ -1088,10 +1090,10 @@ export class FilterBuilder {
         }
     }
 
-    #addFilterButtonHandler(selector) {
+    async #addFilterButtonHandler(selector) {
         const inputTarget = this.#getCurrentInputTarget()
         const {inputType, dataType} =inputTarget
-        this.addItemToFilter( this.getFilter(selector.value), inputTarget, this.currentFilterIndex) //;(this.filters[selector.value], this.currentFilterIndex, {inputType, dataType} )
+        await this.addItemToFilter( this.getFilter(selector.value), inputTarget, this.currentFilterIndex) //;(this.filters[selector.value], this.currentFilterIndex, {inputType, dataType} )
         //this.#updateFilterTotalsUi(inputType, dataType)
     }
 
@@ -1140,7 +1142,7 @@ export class FilterBuilder {
         inputSelecterElement.append(selector, addButton)
     }
 
-    #addIdButtonHandler(id,event=undefined) {
+    async #addIdButtonHandler(id,event=undefined) {
         if (!id) {
             return false
         }
@@ -1151,7 +1153,7 @@ export class FilterBuilder {
 
         const inputTarget = this.#getCurrentInputTarget()
         const {inputType, dataType} =inputTarget
-        this.addItemToFilter( id, inputTarget, this.currentFilterIndex)
+        await this.addItemToFilter( id, inputTarget, this.currentFilterIndex)
     }
 
     async #setIdListInput(elementId) {
@@ -1189,29 +1191,32 @@ export class FilterBuilder {
         //TODO maybe hide element instead of removing them is faster render
 
         const inputType = event.target.value
+        
+        if (this.collectionAddress) {
+            switch (inputType) {
+                case "attributes":
+                    await this.#setAttributeTypeSelector(elementId);
+                    [...document.getElementsByClassName("attributeCheckbox")].forEach((x)=>x.checked=false)
+                    this.#setCheckedStatusAttributes()
+                    break;
+                case "idList":
+                    this.#setIdListInput(elementId)
+                    //document.getElementById(elementId).innerHTML = `<label>add id <input style="width:7em" type="number" /></label><button >add</button> (TODO)`
+                    break
+                case "conditions":
+                    this.#setConditionsSelector(elementId)
+                    // document.getElementById(elementId).innerHTML = `
+                    // <select name="filterInput" id="filterInput">
+                    //     <option value="">--choose filter--</option>
+                    // </select>
+                    // <button>add</button>
+                    // `
+                    break
+                default:
+         
+                    break;
+            }
 
-        switch (inputType) {
-            case "attributes":
-                await this.#setAttributeTypeSelector(elementId);
-                [...document.getElementsByClassName("attributeCheckbox")].forEach((x)=>x.checked=false)
-                this.#setCheckedStatusAttributes()
-                break;
-            case "idList":
-                this.#setIdListInput(elementId)
-                //document.getElementById(elementId).innerHTML = `<label>add id <input style="width:7em" type="number" /></label><button >add</button> (TODO)`
-                break
-            case "conditions":
-                this.#setConditionsSelector(elementId)
-                // document.getElementById(elementId).innerHTML = `
-                // <select name="filterInput" id="filterInput">
-                //     <option value="">--choose filter--</option>
-                // </select>
-                // <button>add</button>
-                // `
-                break
-            default:
-     
-                break;
         }
     }
 

@@ -57,21 +57,19 @@ export class CriteriaBuilder {
 
 
     async initializeUi(collectionAddress=this.collectionAddress) {
+        this.filterBuilder = this.#createNewFilterBuilder(collectionAddress)
         await this.createCriterion(collectionAddress)
     }
 
     #onFilterChange(filter, ids) {
-        console.log(filter)
         for (const criterion of this.criteria) {
-            console.log(criterion)
             if (criterion.selectedFilter === filter) {
-                console.log(ids)
                 criterion.ids = ids
             }
         }
     }
 
-    #deleteCriterionHandler(event) {
+    async #deleteCriterionHandler(event) {
         const indexToRemove = this.currentCriterionIndex
 
         //collection address is inside the criterion that is being deleted
@@ -83,52 +81,51 @@ export class CriteriaBuilder {
             this.createCriterion(currentCollection)
             this.currentCriterionIndex = this.criteria.length
         } else {
-            this.changeCurrentCriterion(this.criteria.length-1)
+            await this.changeCurrentCriterion(this.criteria.length-1)
         }
     
     }
 
     async #filterSelectorHandler(event) {
         const value = Number(event.target.value)
-        console.log(value)
         const currentCriterion = this.getCurrentCriterion()
-        this.selectFilterForCriterion(value, this.getCurrentCriterion())
+        await this.selectFilterForCriterion(value, this.getCurrentCriterion())
         
         //run filter
         const resultIdSet = await this.filterBuilder.nftMetaData.processFilter(currentCriterion.selectedFilter)
         const ids  = [...resultIdSet]
 
         this.#onFilterChange(currentCriterion.selectedFilter, ids)
+        
     }
 
-    selectFilterForCriterion(filterIndex, criterion = this.getCurrentCriterion()) {
+    async selectFilterForCriterion(filterIndex, criterion = this.getCurrentCriterion()) {
         if(filterIndex>=0) {
             const filter = this.filterBuilder.getFiltersOfCollection()[filterIndex]
             criterion.selectedFilter = filter
             document.getElementById(this.filterSelectorId).value = filterIndex
-            console.log(criterion)
-            console.log(filter)
+            await this.filterBuilder.changeCurrentFilter(filterIndex)
         } else {
             criterion.selectedFilter = {}
         }
 
     }
 
-    #criteriaSelectorHandler(event) {
+    async #criteriaSelectorHandler(event) {
+        console.log("slectetib", event.target.value)
         const value = Number(event.target.value)
         if (value === -1) {
             const currentCollection = this.getCurrentCollectionAddress()
             
-            this.createCriterion(currentCollection)
+            await this.createCriterion(currentCollection)
         } else {
-            this.changeCurrentCriterion(value)
+            await this.changeCurrentCriterion(value)
         }
 
     }
 
     #isValidSubmitEvent(event, inputId) {
         const value = document.getElementById(inputId).value
-        console.log(value)
         if ((event.key!=="Enter" && event.key!==undefined && value!==undefined)) {
             return false
         }else {
@@ -159,29 +156,40 @@ export class CriteriaBuilder {
         }
     }
 
-    #setCollectionAddressHandler(event, inputId) {
-        console.log(event)
+    async #setCollectionAddressHandler(event, inputId) {
         const value = this.#isValidSubmitEvent(event, inputId)
-        console.log(value)
-        this.setCollectionAddress(value)
+        await this.setCollectionAddress(value)
     }
 
-    setCollectionAddress(collectionAddress){
+    async setCollectionAddress(collectionAddress){
+        console.warn("new collectiona address", collectionAddress)
         collectionAddress = this.#handleAddressUserInput(collectionAddress)
         const criterion = this.getCurrentCriterion()
+        const oldCollectionAddress = criterion.collectionAddress
+        if (collectionAddress === oldCollectionAddress) {
+            console.info("criterion was set to the same collection address")
+            return false
+        } 
+
+
         if (collectionAddress) {
-            this.#setCollectionFilterBuilder(collectionAddress) 
+            await this.#setCollectionFilterBuilder(collectionAddress) 
             criterion.collectionAddress = collectionAddress
+            document.getElementById(this.contractInput).value = collectionAddress
+
         } else {
             criterion.collectionAddress = ""
+            document.getElementById(this.contractInput).value = ""
         }
-        console.log(collectionAddress)
-    
-        criterion.collectionAddress = collectionAddress
+
+        console.warn((collectionAddress !== oldCollectionAddress) , (!("index" in criterion.selectedFilter)) )
+        if (collectionAddress !== oldCollectionAddress || (!("index" in criterion.selectedFilter)) ) {
+            const newFilter = this.filterBuilder.createNewFilter("AND")
+            await this.selectFilterForCriterion(newFilter.index, criterion)
+        }
+
         this.updateCriterionName()
-        document.getElementById(this.contractInput).value = collectionAddress
-        const filterSelector = document.getElementById(this.filterSelectorId)
-        filterSelector.value = "-1"
+        
     }
 
     getCurrentCollectionAddress() {
@@ -189,11 +197,11 @@ export class CriteriaBuilder {
         
     }
 
-    #setCollectionFilterBuilder(address) {
+    async #setCollectionFilterBuilder(address) {
         
         if (this.filterBuilder) {
             if (this.filterBuilder.collectionAddress !== address) {
-                this.filterBuilder.setCollectionAddress(address)
+                await this.filterBuilder.setCollectionAddress(address)
 
             }
            
@@ -225,7 +233,6 @@ export class CriteriaBuilder {
                 return ethers.utils.getAddress(address) 
             } catch (error) {
                 console.warn(`${address} is not an address TODO warn user"`)
-                console.warn(error)
                 return false    
             }
         } else {
@@ -283,6 +290,11 @@ export class CriteriaBuilder {
     }
 
     async createCriterion(collectionAddress) {
+        console.log("crestohgm criterion")
+        //TODO nftdisplay is recreated 3 times here at: selectFilterForCriterion, changeCurrentCriterion, setCollectionAddress
+        //this somehow needs to be reduced to 1 times
+        //maybe update display at their respective handlers but that might not be optimal
+
         //create new criterion
         const newCriterion = structuredClone(this.criterionFormat)
         const newCriterionIndex = this.criteria.length
@@ -292,8 +304,12 @@ export class CriteriaBuilder {
         
         newCriterion.name =  `NewCriterion#${this.criteriaMade}`
         //newCriterion.collectionAddress = collectionAddress
-        newCriterion.selectedFilter = {}
         this.criteria.push(newCriterion)
+
+        //add Filter
+        // const newFilter = this.filterBuilder.createNewFilter("AND")
+        // await this.selectFilterForCriterion(newFilter.index, newCriterion)
+
 
         
         //add option to selector
@@ -304,50 +320,49 @@ export class CriteriaBuilder {
         newCriterionOption.value = newCriterionIndex
         criteriaSelector.insertBefore(newCriterionOption, addNewOption)
 
-        this.changeCurrentCriterion(newCriterionIndex)
+        await this.setCollectionAddress(collectionAddress)
+        await this.changeCurrentCriterion(newCriterionIndex)
 
-        this.setCollectionAddress(collectionAddress)
+        
 
         return newCriterion
     }
 
-    changeCurrentCriterion(index) {
-        this.currentCriterionIndex = index
-        const currentCollection = this.getCurrentCollectionAddress()
-        console.log(this.criteria, index)
+    async changeCurrentCriterion(index) {
+        const oldCollectionAddress =  this.getCurrentCollectionAddress()
         const currentCriterion = this.criteria[index]
-        if (currentCollection) {
-            document.getElementById(this.contractInput).value = currentCollection
+        this.currentCriterionIndex = index
+        const newCollectionAddress = currentCriterion.collectionAddress
+
+        if (oldCollectionAddress !== newCollectionAddress) {
+            document.getElementById(this.contractInput).value = newCollectionAddress
             document.getElementById(this.criteriaSelectorId).value = index
-            this.setCollectionAddress(currentCollection)
+            await this.setCollectionAddress(newCollectionAddress)
         }
 
 
         const criteriaNameInput = document.getElementById(this.criteriaNameInputId)
-        console.log(currentCriterion.name)
         criteriaNameInput.value = currentCriterion.name
         const criteriaSelector = document.getElementById(this.criteriaSelectorId)
         criteriaSelector.value = index
-        console.log(currentCriterion)
         const amountInput = document.getElementById(this.amountInputId)
         amountInput.value = currentCriterion.amountPerItem
-        console.log("aaaaaaddddddddddd", currentCriterion.amountPerItem)
 
         const filterSelector = document.getElementById(this.filterSelectorId)
-        console.log(currentCriterion)
         if ("index" in currentCriterion.selectedFilter) {
             filterSelector.value = currentCriterion.selectedFilter.index
+            await this.filterBuilder.changeCurrentFilter(currentCriterion.selectedFilter.index)
 
         } else {
             filterSelector.value = "-1"
+            await this.filterBuilder.changeCurrentFilter(0)
+
         }
 
         
     }
 
     #setCriteriaIndexes(criteria) {
-        console.log(criteria)
-        console.log(criteria.map((criterion, realIndex)=>criterion.index = realIndex))
         return criteria.map((criterion, realIndex)=>criterion.index = realIndex)
     }
 
