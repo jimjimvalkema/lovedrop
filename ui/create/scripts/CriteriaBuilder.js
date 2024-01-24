@@ -70,19 +70,15 @@ export class CriteriaBuilder {
     }
 
     async #deleteCriterionHandler(event) {
+
         const indexToRemove = this.currentCriterionIndex
 
         //collection address is inside the criterion that is being deleted
         const currentCollection = this.getCurrentCollectionAddress()
-        this.removeCriterionByIndex(indexToRemove)
-        
-        //prevent no criterion being left / selected
-        if(this.criteria.length===0) {
-            this.createCriterion(currentCollection)
-            this.currentCriterionIndex = this.criteria.length
-        } else {
-            await this.changeCurrentCriterion(this.criteria.length-1)
-        }
+        console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        await this.removeCriterionByIndex(indexToRemove)
+    
+
     
     }
 
@@ -247,6 +243,7 @@ export class CriteriaBuilder {
 
 
     getCurrentCriterion() {
+
         return this.criteria[this.currentCriterionIndex]
     }
 
@@ -330,7 +327,7 @@ export class CriteriaBuilder {
     }
 
     async changeCurrentCriterion(index) {
-        const oldCollectionAddress =  this.getCurrentCollectionAddress()
+        const oldCollectionAddress =  this.criteria[index].collectionAddress
         const currentCriterion = this.criteria[index]
         this.currentCriterionIndex = index
         const newCollectionAddress = currentCriterion.collectionAddress
@@ -367,14 +364,18 @@ export class CriteriaBuilder {
         return criteria.map((criterion, realIndex)=>criterion.index = realIndex)
     }
 
-    removeCriterionByIndex(criterionIndex=this.currentCriterionIndex) {
+    async removeCriterionByIndex(criterionIndex=this.currentCriterionIndex) {
+        //prevent no criterion being left / selected
+        if(this.criteria.length===1) {
+            console.log("kaner",this.currentCriterionIndex)
+            const currentCollection = this.getCurrentCollectionAddress()
+            const newCriterion = await this.createCriterion(currentCollection)
+        }
+
         this.criteria.splice(criterionIndex, 1)
         this.#removeOptionCriteriaSelector(criterionIndex) 
-        if (criterionIndex === this.currentCriterionIndex){
-            this.currentCriterionIndex = -1
-        } 
-
         this.#setCriteriaIndexes(this.criteria)
+        await this.changeCurrentCriterion(this.criteria.length-1)
     }
 
     #removeOptionCriteriaSelector(criterionIndex) {

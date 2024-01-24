@@ -237,13 +237,10 @@ export class DropBuilder {
     async createCriterionWithIds(collectionAddress, ids, name) {
         const newCriterion = await this.criteriaBuilder.createCriterion(collectionAddress)
         await this.criteriaBuilder.updateCriterionName(newCriterion.index, name)
-        this.criteriaBuilder.changeCurrentCriterion(newCriterion.index)
-
-        const filter = this.criteriaBuilder.filterBuilder.createNewFilter("AND")
-        this.criteriaBuilder.selectFilterForCriterion(filter.index, newCriterion)
+        //this.criteriaBuilder.changeCurrentCriterion(newCriterion.index)
         
         this.criteriaBuilder.filterBuilder.changeFilterName(name, newCriterion.selectedFilter.index)
-        this.criteriaBuilder.filterBuilder.changeCurrentFilter(newCriterion.selectedFilter.index)
+        //this.criteriaBuilder.filterBuilder.changeCurrentFilter(newCriterion.selectedFilter.index)
 
 
 
@@ -336,6 +333,7 @@ export class DropBuilder {
                     //create criterion to track ids with new summed amount
                     const criterionName = `summedConflictingCriterion-${collection}-${amount}`
                     const newCriterion = await this.createCriterionWithIds(collection, ids, criterionName)
+                    console.log(`creating criterion for ${amount} ${collection}`)
                     this.criteriaBuilder.setAmountPerItem(amount, newCriterion.index)
 
                     if (this.criteriaForConflictResolution[collection]) {

@@ -91,15 +91,14 @@ export class FilterBuilder {
     }
 
     async #deleteFilterHandler() {
-        this.removeFilterByIndex(this.currentFilterIndex)
         const currentFiltersList = this.getFiltersOfCollection()
-        if(currentFiltersList.length===0) {
+        if(currentFiltersList.length===1) {
             const type = document.getElementById("filterTypeSelectorInput").value
             const newFilter = this.createNewFilter(type)
-            await this.changeCurrentFilter(newFilter.index)
-        } else {
-            await this.changeCurrentFilter(currentFiltersList.length-1)
         }
+        this.removeFilterByIndex(this.currentFilterIndex)
+
+
     }
     #resetfilterSelectorInputsUi() {
         for (const elementId of this.filterSelectors) {
@@ -673,12 +672,14 @@ export class FilterBuilder {
     }
 
     removeFilterByIndex(filterIndex) {
+        //TODO make criteria builder update if filter that is used is removed
         let currentFilters = this.getFiltersOfCollection()
         currentFilters.splice(filterIndex,1)
         //const optionsToBeShifted = this.filtes.filter((x)=>x.index>=filterIndex)
         this.#removeOptionNameFromFilterSelectors(filterIndex)
         let filters = this.getFiltersOfCollection()
         filters = this.#setFilterIndexes(filters)
+        this.changeCurrentFilter(currentFilters.length-1)
     }
 
 
