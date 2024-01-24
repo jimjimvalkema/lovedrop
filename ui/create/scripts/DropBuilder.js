@@ -13,6 +13,7 @@ export class DropBuilder {
     dropBuilderElement = document.getElementById("dropBuilder")
     criteriaBuilderElement = document.getElementById("criteriaBuilder")
     dropBuilderConflictsElement = document.getElementById("dropBuilderConflicts")
+    backButtonElement = document.getElementById("backButtonDropBuilder")
 
     //or do conflictResolutionSelectorHandler with a submit button but user might decide to go back anyway
     criteriaForConflictResolution = {} 
@@ -38,31 +39,57 @@ export class DropBuilder {
         this.ipfsGateway = ipfsGateway
         this.nftDisplayElementId = nftDisplayElementId
 
-        console.log(this.ipfsGateway)
-
         //initialize
         this.dropBuilderElement.style.display = "none"
 
         this.finalizeDropButton.addEventListener("click", (event) => this.toggleFinalizeDropView(event))
+        this.backButtonElement.addEventListener("click", (event) => this.toggleFinalizeDropView(event))
         this.conflictResolutionSelector.addEventListener("change", (event) => this.#conflictResolutionSelectorHandler(event, this.criteriaPerIds))
 
     }
 
+    #isValidCriterion(criterion) {
+        return (criterion.ids.length && criterion.collectionAddress && criterion.amountPerItem)
+    }
+
     toggleFinalizeDropView() {
+
+
         if (this.dropBuilderElement.style.display === "none") {
+            this.removeConflictResolutionCriteria()
+
             const originalDisplayStyle = this.originalElementDisplayStyle[this.dropBuilderElement.id]
             this.dropBuilderElement.style.display = originalDisplayStyle
             this.criteriaBuilderElement.style.display = "none"
+            if(this.criteriaBuilder.filterBuilder.NftDisplay) {
+                this.criteriaBuilder.filterBuilder.NftDisplay.clear()
+            }
+
+            const validCriteria = this.criteriaBuilder.criteria.filter((criterion)=>this.#isValidCriterion(criterion))
+            this.criteriaPerIds = this.getCriteriaPerId(validCriteria)
+
+            //displayduplicates
+            if (validCriteria.length) {
+                this.displayDuplicates(this.criteriaPerIds)
+            }
+        
 
         } else {
+            //TODO still a issue with attribute selector bugging out when switching back
             const originalDisplayStyle = this.originalElementDisplayStyle[this.criteriaBuilderElement.id]
             this.criteriaBuilderElement.style.display = originalDisplayStyle
             this.dropBuilderElement.style.display = "none"
+            if(this.NftDisplay) {
+                this.NftDisplay.clear()
+            }
+            if(this.criteriaBuilder.filterBuilder) {
+                this.criteriaBuilder.filterBuilder.runFilter()   
+            }
+        
+     
         }
 
-        this.criteriaPerIds = this.getCriteriaPerId()
-        this.duplicates = this.getIdsWithDuplicateCriteria(this.criteriaPerIds)
-        this.displayDuplicates(this.duplicates)
+
     }
 
 
@@ -72,9 +99,9 @@ export class DropBuilder {
      * ex: {"0x5Af0D9827E0c53E4799BB226655A1de152A425a5": {1: [criterionObj, criterionObj], 2: [criterionObj]}}
      * @returns {number[]} allocations
      */
-    getCriteriaPerId() {
+    getCriteriaPerId(criteria=this.criteriaBuilder.criteria) {
         let criteriaPerIds = {}
-        for (const criterion of this.criteriaBuilder.criteria) {
+        for (const criterion of criteria) {
             const collectionAddress = criterion.collectionAddress
             //const amount = criterion.amountPerItem
             if (!(collectionAddress in criteriaPerIds)) {
@@ -101,7 +128,10 @@ export class DropBuilder {
 
     }
 
-    async displayDuplicates(duplicates=this.duplicates) {
+    async displayDuplicates(criteriaPerIds) {
+        const duplicates = this.getIdsWithDuplicateCriteria(criteriaPerIds)
+
+
         //display
         for (const collection in duplicates) {
             const collectionAddress = ethers.utils.getAddress(collection)
@@ -112,7 +142,6 @@ export class DropBuilder {
 
             //nftDisplay setup
             if (this.NftDisplay) {
-                console.log(this.NftDisplay)
                 this.NftDisplay.clear()
                 document.getElementById(this.duplicatesNftDisplayId).innerHTML = ""
             }
@@ -206,7 +235,6 @@ export class DropBuilder {
     }
 
     async createCriterionWithIds(collectionAddress, ids, name) {
-        console.log("aaaaaa", collectionAddress)
         const newCriterion = await this.criteriaBuilder.createCriterion(collectionAddress)
         await this.criteriaBuilder.updateCriterionName(newCriterion.index, name)
         this.criteriaBuilder.changeCurrentCriterion(newCriterion.index)

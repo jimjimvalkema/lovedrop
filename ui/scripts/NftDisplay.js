@@ -65,8 +65,8 @@ export class NftDisplay {
         
     }
 
-    setCollectionAddress(collectionAddress) {
-        this.clear()
+    async setCollectionAddress(collectionAddress) {
+        await this.clear()
         if (!collectionAddress) {
             console.warn(`collection address is not set`)
             return
@@ -77,9 +77,9 @@ export class NftDisplay {
         
     }
 
-    setNftMetaDataCollector(nftMetaData) {
+    async setNftMetaDataCollector(nftMetaData) {
         this.nftMetaData = nftMetaData
-        this.clear()
+        await this.clear()
     }
 
     setImageRasterOrientation(landscape=this.landscapeOrientation ,portrait=this.portraitOrientation ) {
@@ -508,7 +508,6 @@ export class NftDisplay {
             emptyItems = rowSize - remainder
             
         } 
-        console.log(emptyItems)
         if (emptyItems) {
             for (let index = 0; index < emptyItems; index++) {
                 const emptyDiv = document.createElement("div")
@@ -587,11 +586,11 @@ export class NftDisplay {
     
     }
 
-    clear(){
+    async clear(){
         const displayElement = document.getElementById(this.displayElementId)
         if(displayElement && displayElement.innerHTML) {
-            this.#removeAllDivImageFromRootElement()
-            this.#cancelLoadingImages()
+            await this.#removeAllDivImageFromRootElement()
+            await this.#cancelLoadingImages()
             document.getElementById(this.displayElementId).innerHTML = ""
         }
     }
@@ -680,7 +679,6 @@ export class NftDisplay {
         const attributeElements = [...this.currentAllImagesDiv.querySelectorAll(".attributesNftDisplayContent")]
         const imgElements = [...this.currentAllImagesDiv.querySelectorAll(".nftDisplayImageElement")]
         const nftNameElement = [...this.currentAllImagesDiv.querySelectorAll(".nftName")][0]
-        console.log(nftNameElement)
         const nftNameSize = getComputedStyle(nftNameElement).height //TODO throws error when spam clicking
         for (const img of imgElements) {
             img.style.height = `calc(100% - ${nftNameSize})`

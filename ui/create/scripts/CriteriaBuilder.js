@@ -112,7 +112,6 @@ export class CriteriaBuilder {
     }
 
     async #criteriaSelectorHandler(event) {
-        console.log("slectetib", event.target.value)
         const value = Number(event.target.value)
         if (value === -1) {
             const currentCollection = this.getCurrentCollectionAddress()
@@ -126,6 +125,7 @@ export class CriteriaBuilder {
 
     #isValidSubmitEvent(event, inputId) {
         const value = document.getElementById(inputId).value
+        //if ((event.key!=="Enter" && event.key!==undefined && value!==undefined)) {
         if ((event.key!=="Enter" && event.key!==undefined && value!==undefined)) {
             return false
         }else {
@@ -144,13 +144,17 @@ export class CriteriaBuilder {
 
     #setAmountPerItemHandler(event ,inputId) {
         const value =  this.#isValidSubmitEvent(event, inputId)
+        const criterion = this.getCurrentCriterion()
+        if (value==="0") {
+            document.getElementById(this.amountInputId).value = criterion.amountPerItem
+            return false
+        }
         if (value) {
-            const criterion = this.getCurrentCriterion()
             // value stays as string for accuracy
             criterion.amountPerItem = value
 
-
         } else {
+            //document.getElementById(this.amountInputId).value = criterion.amountPerItem
             return false
 
         }
@@ -162,7 +166,6 @@ export class CriteriaBuilder {
     }
 
     async setCollectionAddress(collectionAddress){
-        console.warn("new collectiona address", collectionAddress)
         collectionAddress = this.#handleAddressUserInput(collectionAddress)
         const criterion = this.getCurrentCriterion()
         const oldCollectionAddress = criterion.collectionAddress
@@ -182,7 +185,6 @@ export class CriteriaBuilder {
             document.getElementById(this.contractInput).value = ""
         }
 
-        console.warn((collectionAddress !== oldCollectionAddress) , (!("index" in criterion.selectedFilter)) )
         if (collectionAddress !== oldCollectionAddress || (!("index" in criterion.selectedFilter)) ) {
             const newFilter = this.filterBuilder.createNewFilter("AND")
             await this.selectFilterForCriterion(newFilter.index, criterion)
@@ -290,7 +292,6 @@ export class CriteriaBuilder {
     }
 
     async createCriterion(collectionAddress) {
-        console.log("crestohgm criterion")
         //TODO nftdisplay is recreated 3 times here at: selectFilterForCriterion, changeCurrentCriterion, setCollectionAddress
         //this somehow needs to be reduced to 1 times
         //maybe update display at their respective handlers but that might not be optimal

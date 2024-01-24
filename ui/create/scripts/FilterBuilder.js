@@ -209,8 +209,11 @@ export class FilterBuilder {
     }
 
     async runFilter() {
-        
-        console.warn("runnong filter")
+        if (!this.collectionAddress) {
+            console.warn("couldn't run filter. collection address not set")
+            return false
+        }
+
         const oldImgElements = [...document.getElementsByClassName("nftImagesDiv")]
         oldImgElements.forEach((img)=> img.style.opacity = 0);
         await this.NftDisplay.clear()
@@ -605,7 +608,6 @@ export class FilterBuilder {
         this.#addFilterToCollection({"type":type, "filterName": name})
         const newFilter = this.getFiltersOfCollection()[newFiltersIndex]
         this.#addOptionToFilterSelectors(newFilter)
-        console.warn("weeee another filter", newFilter.index, this.collectionAddress)
 
         return newFilter
     } 
@@ -681,7 +683,6 @@ export class FilterBuilder {
 
 
     async changeCurrentFilter(index) {
-        console.warn("changing to ", index)
         const currentFilter = this.getFiltersOfCollection()[index]
         document.getElementById("filterSelectorInput").value = index
         document.getElementById("filterNameInput").value = currentFilter.filterName

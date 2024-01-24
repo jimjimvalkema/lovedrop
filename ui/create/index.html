@@ -464,6 +464,7 @@
         align-items: center;
         justify-content: center;
         flex-direction: column;
+        position: relative;
     }
 
     #duplicatesNftDisplay{
@@ -505,6 +506,16 @@
     #filterSelectorInput{
         width: 6em;
 
+    }
+
+    #backButtonDropBuilderDiv {
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
+
+    #backButtonDropBuilderDiv button {
+        font-size: larger;
     }
 
 
@@ -766,6 +777,9 @@
         </div>
     </div>
     <div id="dropBuilder">
+        <div id="backButtonDropBuilderDiv"> 
+            <button id="backButtonDropBuilder">go back</button>
+        </div>
         <div id="dropBuilderConflicts" hidden>
             <div id="dropBuilderConflictsMessage">
                 <span class="emoji">&#10071;</span>Some nfts have multiple criteria. Choose a method to select what amount the recieve. <span class="emoji">&#10071;</span>
