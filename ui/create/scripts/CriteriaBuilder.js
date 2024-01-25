@@ -68,11 +68,15 @@ export class CriteriaBuilder {
                     criterion.ids = ids
                     criterion.selectedFilter.index
                 } else {
-                    const allFilters = this.filterBuilder.getFiltersOfCollection()
+                    const allFilters = this.filterBuilder.filtersPerCollection[criterion.collectionAddress]
                     if (allFilters.indexOf(criterion.selectedFilter)===-1) {
                         //if the filter isnt in there then we know it's removed
                         criterion.selectedFilter = {}
-                        document.getElementById(this.filterSelectorId).value = "-1"
+                        console.log("my filter isn there :(")
+                        if(this.currentCriterionIndex === criterion.index) {
+                            document.getElementById(this.filterSelectorId).value = "-1"
+                        }
+                        
                     }
     
                 }
@@ -102,7 +106,7 @@ export class CriteriaBuilder {
         const resultIdSet = await this.filterBuilder.nftMetaData.processFilter(currentCriterion.selectedFilter)
         const ids  = [...resultIdSet]
 
-        this.#onFilterChange(currentCriterion.selectedFilter, ids)
+        await this.#onFilterChange(currentCriterion.selectedFilter, ids)
         
     }
 
@@ -172,18 +176,20 @@ export class CriteriaBuilder {
         await this.setCollectionAddress(value)
     }
 
-    async setCollectionAddress(collectionAddress){
+    async setCollectionAddress(collectionAddress,criterionIndex=this.currentCriterionIndex){
         collectionAddress = this.#handleAddressUserInput(collectionAddress)
-        const criterion = this.getCurrentCriterion()
+        const criterion = this.criteria[criterionIndex]
         const oldCollectionAddress = criterion.collectionAddress
-        if (collectionAddress === oldCollectionAddress) {
-            console.info("criterion was set to the same collection address")
-            return false
-        } 
 
-
-        if (collectionAddress) {
+        //check if filterbuilder needs to be updated
+        if (collectionAddress === this.filterBuilder.currentCollection) {
+            console.info("filterBuilder was set to the same collection address")
+        } else {
             await this.#setCollectionFilterBuilder(collectionAddress) 
+        }
+
+        //check if collection is being set to none / input wrong
+        if (collectionAddress) {
             criterion.collectionAddress = collectionAddress
             document.getElementById(this.contractInput).value = collectionAddress
 
@@ -192,6 +198,7 @@ export class CriteriaBuilder {
             document.getElementById(this.contractInput).value = ""
         }
 
+        //check if a new filter need to be created
         if (collectionAddress !== oldCollectionAddress || (!("index" in criterion.selectedFilter)) ) {
             const newFilter = this.filterBuilder.createNewFilter("AND")
             await this.selectFilterForCriterion(newFilter.index, criterion)
@@ -338,16 +345,19 @@ export class CriteriaBuilder {
     }
 
     async changeCurrentCriterion(index) {
-        const oldCollectionAddress =  this.criteria[index].collectionAddress
+        const oldCollectionAddress =  this.criteria[this.currentCriterionIndex].collectionAddress
+        const newCollectionAddress = this.criteria[index].collectionAddress
         const currentCriterion = this.criteria[index]
         this.currentCriterionIndex = index
-        const newCollectionAddress = currentCriterion.collectionAddress
+
+   
 
         if (oldCollectionAddress !== newCollectionAddress) {
             document.getElementById(this.contractInput).value = newCollectionAddress
             document.getElementById(this.criteriaSelectorId).value = index
             await this.setCollectionAddress(newCollectionAddress)
         }
+
 
 
         const criteriaNameInput = document.getElementById(this.criteriaNameInputId)
@@ -367,6 +377,7 @@ export class CriteriaBuilder {
             await this.filterBuilder.changeCurrentFilter(0)
 
         }
+
 
         
     }

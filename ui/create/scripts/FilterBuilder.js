@@ -96,7 +96,7 @@ export class FilterBuilder {
             const type = document.getElementById("filterTypeSelectorInput").value
             const newFilter = this.createNewFilter(type)
         }
-        await this.removeFilterByIndex(this.currentFilterIndex)
+        this.removeFilterByIndex(this.currentFilterIndex)
 
 
     }
@@ -132,7 +132,7 @@ export class FilterBuilder {
         if ((event.key!=="Enter" && event.key!==undefined && value!==undefined)) {
             return false
         }
-        await this.setCollectionAddress(value)
+        this.setCollectionAddress(value)
     }
 
     async setCollectionAddress(addres) {
@@ -221,7 +221,8 @@ export class FilterBuilder {
         const resultIdSet = await this.nftMetaData.processFilter(currentFilter)
         const ids  = [...resultIdSet]
         this.NftDisplay.ids = ids
-        await this.NftDisplay.createDisplay()
+        //await this.NftDisplay.createDisplay()
+        this.NftDisplay.createDisplay()
 
         // imgeElements.forEach((img)=> img.style.opacity = 0)
         // setTimeout(() => {
