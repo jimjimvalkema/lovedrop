@@ -293,10 +293,10 @@ export class DropBuilder {
     /**
      * undo effects from removeConflictingCriteria
      */
-    removeConflictResolutionCriteria() {
+    async removeConflictResolutionCriteria() {
         for (const collection in this.criteriaForConflictResolution) {
             for(const currentCriterion of this.criteriaForConflictResolution[collection] ) {
-                this.criteriaBuilder.filterBuilder.removeFilterByIndex(currentCriterion.selectedFilter.index)
+                await this.criteriaBuilder.filterBuilder.removeFilterByIndex(currentCriterion.selectedFilter.index)
                 this.criteriaBuilder.removeCriterionByIndex(currentCriterion.index)
             }
             this.criteriaForConflictResolution[collection] = []
@@ -314,7 +314,7 @@ export class DropBuilder {
      * @returns 
      */
     async removeConflictingCriteria(mode = "largest", criteriaPerIds) {
-        this.removeConflictResolutionCriteria() 
+        await this.removeConflictResolutionCriteria() 
         let filteredCriteria = structuredClone(criteriaPerIds)
         const validModes = ["smallest", "largest", "last", "first", "remove", "add"]
         if (validModes.indexOf(mode) === -1) {

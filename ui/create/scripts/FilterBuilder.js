@@ -96,7 +96,7 @@ export class FilterBuilder {
             const type = document.getElementById("filterTypeSelectorInput").value
             const newFilter = this.createNewFilter(type)
         }
-        this.removeFilterByIndex(this.currentFilterIndex)
+        await this.removeFilterByIndex(this.currentFilterIndex)
 
 
     }
@@ -671,7 +671,7 @@ export class FilterBuilder {
         this.filterSelectors = this.filterSelectors.filter((x)=>x===elementId)
     }
 
-    removeFilterByIndex(filterIndex) {
+    async removeFilterByIndex(filterIndex) {
         //TODO make criteria builder update if filter that is used is removed
         let currentFilters = this.getFiltersOfCollection()
         currentFilters.splice(filterIndex,1)
@@ -680,6 +680,8 @@ export class FilterBuilder {
         let filters = this.getFiltersOfCollection()
         filters = this.#setFilterIndexes(filters)
         this.changeCurrentFilter(currentFilters.length-1)
+
+        await this.#onFilterChange()
     }
 
 
@@ -694,7 +696,6 @@ export class FilterBuilder {
         this.#updateInputsDropdowns()
         const selectedDataType = document.getElementById("inputTypeSelecterInput").value
         await this.#setInputTypeHandler({"target":{"value":selectedDataType}})
-
         await this.#onFilterChange()
     }
 

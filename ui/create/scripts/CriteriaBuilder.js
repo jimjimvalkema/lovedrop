@@ -63,9 +63,20 @@ export class CriteriaBuilder {
 
     #onFilterChange(filter, ids) {
         for (const criterion of this.criteria) {
-            if (criterion.selectedFilter === filter) {
-                criterion.ids = ids
-            }
+            if ("index" in criterion) {
+                if (criterion.selectedFilter === filter) {
+                    criterion.ids = ids
+                    criterion.selectedFilter.index
+                } else {
+                    const allFilters = this.filterBuilder.getFiltersOfCollection()
+                    if (allFilters.indexOf(criterion.selectedFilter)===-1) {
+                        //if the filter isnt in there then we know it's removed
+                        criterion.selectedFilter = {}
+                        document.getElementById(this.filterSelectorId).value = "-1"
+                    }
+    
+                }
+            }    
         }
     }
 
