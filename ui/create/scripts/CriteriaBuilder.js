@@ -201,7 +201,7 @@ export class CriteriaBuilder {
         //check if a new filter need to be created
         if (collectionAddress !== oldCollectionAddress || (!("index" in criterion.selectedFilter)) ) {
             const newFilter = this.filterBuilder.createNewFilter("AND")
-            await this.selectFilterForCriterion(newFilter.index, criterion)
+            await this.selectFilterForCriterion(newFilter.index, criterion) //creates display
         }
 
         this.updateCriterionName()
@@ -218,7 +218,6 @@ export class CriteriaBuilder {
         if (this.filterBuilder) {
             if (this.filterBuilder.collectionAddress !== address) {
                 await this.filterBuilder.setCollectionAddress(address)
-
             }
            
         } else {
@@ -376,10 +375,7 @@ export class CriteriaBuilder {
             filterSelector.value = "-1"
             await this.filterBuilder.changeCurrentFilter(0)
 
-        }
-
-
-        
+        }   
     }
 
     #setCriteriaIndexes(criteria) {

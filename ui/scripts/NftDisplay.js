@@ -47,22 +47,32 @@ export class NftDisplay {
         nftMetaData}
     ) {
         this.ipfsGateway = ipfsGateway
-        this.setCollectionAddress(collectionAddress)
-        if (!nftMetaData) {
-            this.nftMetaData = new NftMetaDataCollector(collectionAddress,provider,this.ipfsGateway)
-        } else {
-            this.nftMetaData = nftMetaData
-        }
-        
+        this.provider =provider
         this.ids = ids
         this.displayElementId = displayElementId
 
         this.landscapeOrientation = landscapeOrientation
         this.portraitOrientation = portraitOrientation
+
+        this.initialize(collectionAddress, nftMetaData)
+
+        
+    }
+
+    async initialize(collectionAddress, nftMetaData) {
+        if (!nftMetaData) {
+            this.nftMetaData = new NftMetaDataCollector(collectionAddress,this.provider,this.ipfsGateway)
+        } else {
+            this.nftMetaData = nftMetaData
+        }
+
+        await this.setCollectionAddress(collectionAddress)
+
+        
+
         this.setImageRasterOrientation()
         this.changeOnRotate()
 
-        
     }
 
     async setCollectionAddress(collectionAddress) {
@@ -72,7 +82,8 @@ export class NftDisplay {
             return
         } else {
             this.collectionAddress = ethers.utils.getAddress(collectionAddress)
-            this.nftMetaData = new NftMetaDataCollector(this.collectionAddress,provider,this.ipfsGateway)
+            //TODO recreating nftMetaData is inefecient if it used somewhere else
+            this.nftMetaData = new NftMetaDataCollector(this.collectionAddress,this.provider,this.ipfsGateway)
         }
         
     }
@@ -212,12 +223,12 @@ export class NftDisplay {
      *
      * @param {function} func
      */
-    addImageDivsFunction(func) {
+    async addImageDivsFunction(func) {
         this.divFunctions.push(func)
         if (document.getElementById(this.displayElementId).innerHTML) {
             //TODO remove only the div created by that function that needs to be removed
             this.#removeAllDivImageFromRootElement();
-            this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
+            await this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
 
         }
     }
@@ -553,6 +564,7 @@ export class NftDisplay {
      * @param {string} borderColor 
      */
     async createDisplay(currentPage=this.currentPage, targetElementId=this.displayElementId, rowSize=this.rowSize, amountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor) {
+        console.warn("aaaaaaaa am warning youu")
         //TODO apply divFunctions and get image urls in 1 go
         //this.setImageRasterOrientation()
         this.currentPage =  this.#getValidPage(currentPage,this.ids.length, rowSize,amountRows)
@@ -593,6 +605,8 @@ export class NftDisplay {
             await this.#cancelLoadingImages()
             document.getElementById(this.displayElementId).innerHTML = ""
         }
+
+        displayElement.innerHTML = ""
     }
 
     #toggleSelect(id) {
@@ -827,9 +841,9 @@ export class NftDisplay {
         return rootElement
     }
 
-    showAttributes() {
+    async showAttributes() {
         const showAttributesFunc = (id)=>this.#showAttributesElement(id)
-        this.addImageDivsFunction(showAttributesFunc)
+        await this.addImageDivsFunction(showAttributesFunc)
     }
 
 }

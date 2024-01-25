@@ -132,7 +132,7 @@ export class FilterBuilder {
         if ((event.key!=="Enter" && event.key!==undefined && value!==undefined)) {
             return false
         }
-        this.setCollectionAddress(value)
+        await this.setCollectionAddress(value)
     }
 
     async setCollectionAddress(addres) {
@@ -164,7 +164,7 @@ export class FilterBuilder {
             nftMetaData: this.nftMetaData
         })
         this.NftDisplay.displayNames({redirect:true})
-        this.NftDisplay.showAttributes()
+        await this.NftDisplay.showAttributes()
 
         await this.reinitializeUi()
     }
@@ -222,7 +222,7 @@ export class FilterBuilder {
         const ids  = [...resultIdSet]
         this.NftDisplay.ids = ids
         //await this.NftDisplay.createDisplay()
-        this.NftDisplay.createDisplay()
+        await this.NftDisplay.createDisplay()
 
         // imgeElements.forEach((img)=> img.style.opacity = 0)
         // setTimeout(() => {
