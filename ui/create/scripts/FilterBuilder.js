@@ -207,30 +207,42 @@ export class FilterBuilder {
         this.onfilterChangeFunc.splice(index,1);
     }
 
-    async runFilter() {
+    async runFilter(updateIU=true) {
+
         if (!this.collectionAddress) {
             console.warn("couldn't run filter. collection address not set")
             return false
         }
 
-        const oldImgElements = [...document.getElementsByClassName("nftImagesDiv")]
-        oldImgElements.forEach((img)=> img.style.opacity = 0);
-        await this.NftDisplay.clear()
-
         const currentFilter = this.getCurrentFilter()
         const resultIdSet = await this.nftMetaData.processFilter(currentFilter)
         const ids  = [...resultIdSet]
-        this.NftDisplay.ids = ids
-        //await this.NftDisplay.createDisplay()
-        await this.NftDisplay.createDisplay()
 
-        // imgeElements.forEach((img)=> img.style.opacity = 0)
-        // setTimeout(() => {
-        //    imgeElements.forEach((img)=> img.style.opacity = 1)
-        //   }, 250);
-        const imgElements = [...document.getElementsByClassName("nftImagesDiv")]
-        imgElements.forEach((img)=> img.style.opacity = 0);
-        setTimeout(() => {imgElements.forEach((img)=> img.style.opacity = 1)}, 50)
+        if (updateIU) {
+            if (this.NftDisplay.currentAllImagesDiv) {
+                const oldImgElements = [...this.NftDisplay.currentAllImagesDiv.querySelectorAll(".nftImagesDiv")]
+                oldImgElements.forEach((img)=> img.style.opacity = 0);
+                await this.NftDisplay.clear()
+            }
+           
+            this.NftDisplay.ids = ids
+            //await this.NftDisplay.createDisplay()
+            await this.NftDisplay.createDisplay()
+                    // imgeElements.forEach((img)=> img.style.opacity = 0)
+            // setTimeout(() => {
+            //    imgeElements.forEach((img)=> img.style.opacity = 1)
+            //   }, 250);
+            const imgElements = [...this.NftDisplay.currentAllImagesDiv.querySelectorAll(".nftImagesDiv")]
+            imgElements.forEach((img)=> img.style.opacity = 0);
+            setTimeout(() => {imgElements.forEach((img)=> img.style.opacity = 1)}, 50)
+        
+            
+        }
+
+        
+
+
+
         return ids
         
    
