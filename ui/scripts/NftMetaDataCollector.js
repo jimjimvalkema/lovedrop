@@ -3,8 +3,8 @@
 
 //import assertion are not supported in firefox :((
 import { ethers } from "./ethers-5.2.esm.min.js"
-import { allExtraMetaData }  from "./extraMetaData.js"
-import { ERC721ABI }  from "../abi/ERC721ABI.js"
+import { allExtraMetaData } from "./extraMetaData.js"
+import { ERC721ABI } from "../abi/ERC721ABI.js"
 
 /**
  * This function allow you to modify a JS Promise by adding some status properties.
@@ -81,10 +81,8 @@ export class NftMetaDataCollector {
         _provider,
         _ipfsGateway = "https://ipfs.io",
         _customCompressedImages = true
-    )
-        
-    {
-        
+    ) {
+
         this.ipfsGateway = _ipfsGateway;
         this.useCustomCompressedImages = _customCompressedImages;
         this.provider = _provider
@@ -94,7 +92,7 @@ export class NftMetaDataCollector {
 
     createContractObj(_contractAddr) {
         if (!_contractAddr) {
-            return 
+            return
         } else {
             _contractAddr = ethers.utils.getAddress(_contractAddr)
             const newContract = new ethers.Contract(_contractAddr, ERC721ABI, this.provider);
@@ -120,8 +118,8 @@ export class NftMetaDataCollector {
         img.src = await this.getImage(id)
 
         if (img.src.startsWith(this.ipfsGateway)) {
-            img.crossOrigin='anonymous'
-        } 
+            img.crossOrigin = 'anonymous'
+        }
         return img
     }
 
@@ -144,7 +142,7 @@ export class NftMetaDataCollector {
     }
 
     async getCompressedImages() {
-        return await this.getUrlByProtocol(( this.extraMetaData.compressedImages), true);
+        return await this.getUrlByProtocol((this.extraMetaData.compressedImages), true);
 
     }
 
@@ -162,7 +160,7 @@ export class NftMetaDataCollector {
         } else if (buildMissingData) {
             await this.getIdsPerAttribute();
             if ("idStartsAt" in this.extraMetaData && Number.isInteger(this.extraMetaData.idStartsAt)) {
-                this.idStartsAt =  this.extraMetaData.idStartsAt
+                this.idStartsAt = this.extraMetaData.idStartsAt
             }
             if ("type" in this.extraMetaData) {
                 switch (this.extraMetaData.type) {
@@ -217,18 +215,18 @@ export class NftMetaDataCollector {
     /**
      * assumes ids are minted incrementally
      */
-    async #getLastIdFromChain(startingPointId=10000, maxAmountChecks=5000, chunkSize=50) {
+    async #getLastIdFromChain(startingPointId = 10000, maxAmountChecks = 5000, chunkSize = 50) {
         const messageProgressElement = document.getElementById("messageProgress")
         messageProgressElement.hidden = false
 
         this.lastId = 0
-        let pendingIsLastIdRes=[]
-        const maxChecksHalf = Math.round(maxAmountChecks/2)
+        let pendingIsLastIdRes = []
+        const maxChecksHalf = Math.round(maxAmountChecks / 2)
 
 
         for (let checkCount = 0; checkCount < maxChecksHalf; checkCount++) {
-            const higherId = startingPointId+checkCount
-            const lowerId = startingPointId-checkCount
+            const higherId = startingPointId + checkCount
+            const lowerId = startingPointId - checkCount
 
             //change maxAmountChecks to maxFailedChecksStreak 
             //to make sure it only stops checking if it failed to check a existing id for n times in a row
@@ -237,7 +235,7 @@ export class NftMetaDataCollector {
 
             if (pendingIsLastIdRes.length >= chunkSize) {
                 pendingIsLastIdRes = await Promise.all(pendingIsLastIdRes)
-                this.lastId = Math.max(this.lastId,...pendingIsLastIdRes)
+                this.lastId = Math.max(this.lastId, ...pendingIsLastIdRes)
                 pendingIsLastIdRes = []
             }
 
@@ -261,7 +259,7 @@ export class NftMetaDataCollector {
         if (id <= this.lastId) {
             return 0
         } else {
-            if(await this.idExist(id)) {
+            if (await this.idExist(id)) {
                 return id
             } else {
                 return 0
@@ -273,7 +271,7 @@ export class NftMetaDataCollector {
 
     async idExist(id) {
         try {
-            const res  = await this.contractObj.ownerOf(id)
+            const res = await this.contractObj.ownerOf(id)
             return true
 
             // if (res === "0x0000000000000000000000000000000000000000") {
@@ -281,14 +279,14 @@ export class NftMetaDataCollector {
             // } else {
             //     return true
             // } 
-            
+
         } catch (error) {
-            return false   
+            return false
         }
     }
 
-    async getLastId(maxAmountChecks=100) {
-        if(this.lastId) {
+    async getLastId(maxAmountChecks = 100) {
+        if (this.lastId) {
             return this.lastId
         }
 
@@ -296,13 +294,13 @@ export class NftMetaDataCollector {
         if (!totalSupply) {
             totalSupply = this.defaultTotalSupply
             maxAmountChecks = 2000
-            console.warn(`couldnt get totalsupply from contract checking a ${maxAmountChecks/2} ids above and below id ${totalSupply}`)
+            console.warn(`couldnt get totalsupply from contract checking a ${maxAmountChecks / 2} ids above and below id ${totalSupply}`)
             console.warn(`this is very cringe btw`)
         }
 
-        if (await this.getFirstId() ===0) {
+        if (await this.getFirstId() === 0) {
             totalSupply += 1
-        } 
+        }
 
         await this.#getLastIdFromChain(totalSupply, maxAmountChecks)
         return this.lastId
@@ -343,29 +341,29 @@ export class NftMetaDataCollector {
     }
 
     async getContractName() {
-        if(this.contractName) {
+        if (this.contractName) {
             return this.contractName
 
         } else {
             this.contractName = await this.contractObj.name()
             return this.contractName
         }
-    
+
     }
 
     async getContractSymbol() {
-        if(this.contractSymbol) {
+        if (this.contractSymbol) {
             return this.contractSymbol
 
         } else {
             this.contractSymbol = await this.contractObj.symbol()
             return this.contractSymbol
         }
-    
+
     }
 
 
-    async getTokenName(id, timeout=90000) {
+    async getTokenName(id, timeout = 90000) {
 
         const tokenUri = await this.getTokenMetaData(id, timeout)
 
@@ -374,8 +372,8 @@ export class NftMetaDataCollector {
         } else {
             console.warn(`name for id ${id} not found in tokenUri using "contractName + id" instead`)
             let name = (await this.getContractName())
-            if (name.length >10) {
-                name=name.slice(0,9)+"-"
+            if (name.length > 10) {
+                name = name.slice(0, 9) + "-"
             }
             return `${name} ${id}`
         }
@@ -387,7 +385,7 @@ export class NftMetaDataCollector {
         //TODO IPFS
         //TODO get base uri by striping result .getTokenUri() becuase scatter doesnt have baseURI exposed :(
         if (this.baseURICache == null) {
-            if ("type" in  this.extraMetaData && ( this.extraMetaData.type === "milady")) {
+            if ("type" in this.extraMetaData && (this.extraMetaData.type === "milady")) {
                 baseUri = this.getUrlByProtocol("ipfs://bafybeiawqw7zaoliz2rjgiqwzyykwzjsmr24i3a6paazalmqijsldtfg7i/", true)
 
             } else {
@@ -471,7 +469,7 @@ export class NftMetaDataCollector {
 
             }
 
-            console.log("syncing from till",startId, endId)
+            console.log("syncing from till", startId, endId)
             for (let id = startId; id < endId; id++) {
 
 
@@ -527,7 +525,7 @@ export class NftMetaDataCollector {
         return allUris
     }
 
-    async getUrlByProtocol(urlString, returnOnlyUrl = false, timeout=null) {
+    async getUrlByProtocol(urlString, returnOnlyUrl = false, timeout = null) {
         //console.log(urlString)
         let reqObj = {
             method: 'POST',
@@ -561,8 +559,8 @@ export class NftMetaDataCollector {
             if (timeout) {
                 const controller = new AbortController();
                 const id = setTimeout(() => controller.abort(), 5000);
-              
-                const response = await fetch(newUrlString, {signal: controller.signal });
+
+                const response = await fetch(newUrlString, { signal: controller.signal });
                 clearTimeout(id);
                 return response;
 
@@ -575,8 +573,8 @@ export class NftMetaDataCollector {
     async syncUriCache(startId = 0, endId = null, chunkSize = 100) {
         // const traitTypeKey = this.attributeFormat.traitTypeKey
         // const valueKey = this.attributeFormat.valueKey
-        if ( this.extraMetaData.metaDataArray) {
-            this.uriCache = await (await this.getUrlByProtocol( this.extraMetaData.metaDataArray)).json()
+        if (this.extraMetaData.metaDataArray) {
+            this.uriCache = await (await this.getUrlByProtocol(this.extraMetaData.metaDataArray)).json()
         } else {
             console.log(`no premade metadata found for ntf contract: ${await this.contractObj.address} :( collecting attribute manually!`)
             //syncUriCacheByScraping already
@@ -599,7 +597,7 @@ export class NftMetaDataCollector {
         return this.uriCache
     }
 
-    async getTokenMetaDataNoCache(id, timeout=null) {
+    async getTokenMetaDataNoCache(id, timeout = null) {
         if (id < this.startId) {
             throw Error(`id: ${id} doenst exist`)
         }
@@ -642,15 +640,15 @@ export class NftMetaDataCollector {
             }
             retries += 1;
 
-            if (retries>3) {
+            if (retries > 3) {
                 console.warn(`couldn't get id: ${id} please double check to make sure it indeed doesnt exist!`)
             }
-        } 
-            
-    
+        }
+
+
     }
 
-    async getTokenMetaData(id, timeout=null) {
+    async getTokenMetaData(id, timeout = null) {
         if (this.uriCache[id]) {
             return await this.uriCache[id]
         } else {
@@ -850,7 +848,7 @@ export class NftMetaDataCollector {
             ((this.amountOfItemsInInputs(condition.NOT) === 0) && (this.amountOfItemsInInputs(condition.inputs) === 0))) {
             const firstId = await this.getFirstId()
             const lastId = await this.getLastId()
-            return new Set([...Array((lastId+1) - firstId).keys()].map(i => i + firstId))
+            return new Set([...Array((lastId + 1) - firstId).keys()].map(i => i + firstId))
 
         }
 
@@ -900,14 +898,14 @@ export class NftMetaDataCollector {
             console.log(resolvedNewIdSets)
             if (resolvedNewIdSets.length) {
                 for (const newIdSet of resolvedNewIdSets) {
-                    if (idSet.size){
+                    if (idSet.size) {
                         idSet = this.setIntersection(await idSet, await newIdSet)
 
                     } else {
                         idSet = newIdSet
                     }
                     console.log(idSet)
-                    
+
                 }
 
             }
@@ -933,7 +931,7 @@ export class NftMetaDataCollector {
             ((this.amountOfItemsInInputs(condition.NOT) === 0) && (this.amountOfItemsInInputs(condition.inputs) === 0))) {
             const firstId = await this.getFirstId()
             const lastId = await this.getLastId()
-            return new Set([...Array((lastId+1) - firstId).keys()].map(i => i + firstId))
+            return new Set([...Array((lastId + 1) - firstId).keys()].map(i => i + firstId))
 
         }
 
@@ -1182,10 +1180,10 @@ export class NftMetaDataCollector {
 
         //TODO make format global var
 
-        if (!forceResync &&  this.extraMetaData.idsPerAttributeCbor) {
-            if ( this.extraMetaData.idsPerAttributeCbor) {
-                console.log(`found preprossed data for contract: ${this.contractObj.address}, at  ${ this.extraMetaData.idsPerAttributeCbor}`)
-                const r = await this.getUrlByProtocol( this.extraMetaData.idsPerAttributeCbor)
+        if (!forceResync && this.extraMetaData.idsPerAttributeCbor) {
+            if (this.extraMetaData.idsPerAttributeCbor) {
+                console.log(`found preprossed data for contract: ${this.contractObj.address}, at  ${this.extraMetaData.idsPerAttributeCbor}`)
+                const r = await this.getUrlByProtocol(this.extraMetaData.idsPerAttributeCbor)
                 this.idsPerAttribute = CBOR.decode(await r.arrayBuffer())
             }
 
@@ -1253,8 +1251,8 @@ export class NftMetaDataCollector {
         let toOwnerEvents
         let fromOwnerEvents
         let tries = 0;
-        toOwnerEvents =  this.eventScanInChunks(nftContrObj, toOwnerEventFilter, startBlockEventScan, endBlock)
-        fromOwnerEvents =  this.eventScanInChunks(nftContrObj, fromOwnerEventFilter, startBlockEventScan, endBlock)
+        toOwnerEvents = this.eventScanInChunks(nftContrObj, toOwnerEventFilter, startBlockEventScan, endBlock)
+        fromOwnerEvents = this.eventScanInChunks(nftContrObj, fromOwnerEventFilter, startBlockEventScan, endBlock)
         // while (tries < 3) {
         //     try {
         //         toOwnerEvents = await nftContrObj.queryFilter(toOwnerEventFilter, startBlockEventScan, endBlock)

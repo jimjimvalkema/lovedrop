@@ -289,7 +289,12 @@ export class NftDisplay {
             for (const result of results) {
                 allResults.push(result)
                 Promise.resolve(result).then((r) => {
-                    imageDiv.prepend(r)
+                    try {
+                        imageDiv.prepend(r)
+                    } catch (error) {
+                        console.warn(`couldn't apply element to nftdisplay with function ${r.id} ${r.className} ${imageDiv} TODO fix this.`)
+                    }
+                    
         
                 })
 
@@ -590,11 +595,11 @@ export class NftDisplay {
         }
 
     
-
-        this.#applyDivFuntionsOnCurrentIds()
         if(this.imgOnclickFunction) {
             this.#addOnclickFunctionToCurrentImages()
         }
+
+        await this.#applyDivFuntionsOnCurrentIds()
 
     
     
@@ -692,20 +697,27 @@ export class NftDisplay {
 
     #resizeImagesWidthNameHeight() {
         //TODO do this separate function
-        const attributeElements = [...this.currentAllImagesDiv.querySelectorAll(".attributesNftDisplayContent")]
-        const imgElements = [...this.currentAllImagesDiv.querySelectorAll(".nftDisplayImageElement")]
+        //TODO doesnt re-size if spam clicking (nftNameElement will be undefined)
+
         const nftNameElement = [...this.currentAllImagesDiv.querySelectorAll(".nftName")][0]
-        const nftNameSize = getComputedStyle(nftNameElement).height //TODO throws error when spam clicking
-        for (const img of imgElements) {
-            img.style.height = `calc(100% - ${nftNameSize})`
+        if (nftNameElement) {
+            const attributeElements = [...this.currentAllImagesDiv.querySelectorAll(".attributesNftDisplayContent")]
+            const imgElements = [...this.currentAllImagesDiv.querySelectorAll(".nftDisplayImageElement")]
+
+            const nftNameSize = getComputedStyle(nftNameElement).height 
+            for (const img of imgElements) {
+                img.style.height = `calc(100% - ${nftNameSize})`
+            }
+    
+            if(attributeElements.length) {
+                for (const attribute of attributeElements) {
+                    attribute.style.marginTop = `calc(${nftNameSize}*1.1)`
+                    attribute.style.marginBottom = `calc(${nftNameSize}*1.1)`
+                }
+            }
+
         }
 
-        if(attributeElements.length) {
-            for (const attribute of attributeElements) {
-                attribute.style.marginTop = `calc(${nftNameSize}*1.1)`
-                attribute.style.marginBottom = `calc(${nftNameSize}*1.1)`
-            }
-        }
     }
 
     

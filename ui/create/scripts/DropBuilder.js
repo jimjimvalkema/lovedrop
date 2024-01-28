@@ -10,20 +10,19 @@ export class DropBuilder {
     duplicatesNftDisplayId = "duplicatesNftDisplay"
     conflictResolutionSelector = document.getElementById("criteriaConflictsResolutionSelection")
     finalizeDropButton = document.getElementById("finalizeDropButton")
-    dropBuilderElement = document.getElementById("dropBuilder")
-    criteriaBuilderElement = document.getElementById("criteriaBuilder")
-    dropBuilderConflictsElement = document.getElementById("dropBuilderConflicts")
-    backButtonElement = document.getElementById("backButtonDropBuilder")
+    dropBuilderEl = document.getElementById("dropBuilder")
+    criteriaBuilderEl = document.getElementById("criteriaBuilder")
+    dropBuilderConflictsEl = document.getElementById("dropBuilderConflicts")
+    backButtonEl = document.getElementById("backButtonDropBuilder")
+    confirmConflictResolutionButtonEl = document.getElementById("confirmConflictResolutionButton")
+    distrobutionOverViewEl = document.getElementById("distrobutionOverView")
 
     //or do conflictResolutionSelectorHandler with a submit button but user might decide to go back anyway
     criteriaForConflictResolution = {} 
     duplicatesNftDisplays = {}
 
 
-    originalElementDisplayStyle = {
-        [this.criteriaBuilderElement.id]: getComputedStyle(this.criteriaBuilderElement).display,
-        [this.dropBuilderElement.id]: getComputedStyle(this.dropBuilderElement).display
-    }
+    originalElementDisplayValues = this.getDisplayStylesFromElements([this.dropBuilderEl, this.criteriaBuilderEl, this.distrobutionOverViewEl])
 
 
 
@@ -41,40 +40,52 @@ export class DropBuilder {
         this.nftDisplayElementIdCriteriaBuilder = nftDisplayElementIdCriteriaBuilder
 
         //initialize
-        this.dropBuilderElement.style.display = "none"
+        this.dropBuilderEl.style.display = "none"
 
         this.finalizeDropButton.addEventListener("click", (event) => this.toggleFinalizeDropView(event))
-        this.backButtonElement.addEventListener("click", (event) => this.toggleFinalizeDropView(event))
+        this.backButtonEl.addEventListener("click", (event) => this.toggleFinalizeDropView(event))
         this.conflictResolutionSelector.addEventListener("change", (event) => this.#conflictResolutionSelectorHandler(event, this.criteriaPerIds))
+        this.confirmConflictResolutionButtonEl.addEventListener("click", (event) => this.#confirmConflictResolutionHandler(event))
 
+    }
+    /**
+     * 
+     * @param {HTMLElement[]} elements 
+     */
+    getDisplayStylesFromElements(elements) {
+        let displayStyles = {}
+        for (const element of elements) {
+            displayStyles[element.id] = getComputedStyle(element).display
+        }
+        return displayStyles
     }
 
     #isValidCriterion(criterion) {
         return (criterion.ids.length && criterion.collectionAddress && criterion.amountPerItem)
     }
 
+    #confirmConflictResolutionHandler() {
+
+    }
+
     toggleFinalizeDropView() {
+        if (this.dropBuilderEl.style.display === "none") {
+            //toggle display
+            const originalDisplayStyle = this.originalElementDisplayValues[this.dropBuilderEl.id]
+            this.dropBuilderEl.style.display = originalDisplayStyle
+            this.criteriaBuilderEl.style.display = "none"
 
-
-        if (this.dropBuilderElement.style.display === "none") {
+            //remove data created when users goes back and returns
             this.removeConflictResolutionCriteria()
 
-            const originalDisplayStyle = this.originalElementDisplayStyle[this.dropBuilderElement.id]
-            this.dropBuilderElement.style.display = originalDisplayStyle
-            this.criteriaBuilderElement.style.display = "none"
-            if(this.criteriaBuilder.filterBuilder.NftDisplay) {
-                this.criteriaBuilder.filterBuilder.NftDisplay.clear()
-            }
-
+            //process data
             const validCriteria = this.criteriaBuilder.criteria.filter((criterion)=>this.#isValidCriterion(criterion))
             this.criteriaPerIds = this.getCriteriaPerId(validCriteria)
 
             //displayduplicates
             if (validCriteria.length) {
                 const duplicates = this.getIdsWithDuplicateCriteria(this.criteriaPerIds)
-                console.log(duplicates)
                 const amountOfDuplicates =  Object.keys(duplicates).reduce((total, collection)=>total+=Object.keys(duplicates[collection]).length, 0)
-                console.log(amountOfDuplicates)
                 if(amountOfDuplicates > 0 ) {
 
                     this.displayDuplicates(duplicates)
@@ -85,13 +96,12 @@ export class DropBuilder {
         
 
         } else {
-            //TODO still a issue with attribute selector bugging out when switching back
-            const originalDisplayStyle = this.originalElementDisplayStyle[this.criteriaBuilderElement.id]
-            this.criteriaBuilderElement.style.display = originalDisplayStyle
-            this.dropBuilderElement.style.display = "none"
-            if(this.NftDisplay) {
-                this.NftDisplay.clear()
-            }
+            //toggle display
+            const originalDisplayStyle = this.originalElementDisplayValues[this.criteriaBuilderEl.id]
+            this.criteriaBuilderEl.style.display = originalDisplayStyle
+            this.dropBuilderEl.style.display = "none"
+
+            //rerun filter
             if(this.criteriaBuilder.filterBuilder) {
                 this.criteriaBuilder.filterBuilder.runFilter()   
             }
@@ -139,7 +149,7 @@ export class DropBuilder {
     }
 
     async displayDuplicates(duplicates) {
-        this.dropBuilderConflictsElement.hidden = false
+        this.dropBuilderConflictsEl.hidden = false
 
 
 
@@ -149,7 +159,7 @@ export class DropBuilder {
             const ids = Object.keys(duplicates[collectionAddress])
 
             //nftDisplay setup
-            console.log(this.duplicatesNftDisplays)
+            //console.log(this.duplicatesNftDisplays)
             if (rawCollectionAddress in this.duplicatesNftDisplays) {
                 await this.duplicatesNftDisplays[collectionAddress].clear()
                 this.duplicatesNftDisplays[collectionAddress].setId(ids) 
@@ -186,7 +196,7 @@ export class DropBuilder {
 
         })
         //TODO am setting collection addres twice becuase initializing is async
-        console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        //console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaa")
         await nftDisplay.createDisplay() //TODO fix this lol
         await nftDisplay.setCollectionAddress(collectionAddress)
         await nftDisplay.displayNames({ redirect: true })
@@ -216,11 +226,11 @@ export class DropBuilder {
 
 
     #showCriteriaNftDisplay(id, nftDisplay) {
-        console.log(nftDisplay)
+        //console.log(nftDisplay)
         const rootElement = document.createElement("div")
         const contentElement = document.createElement("div")
 
-        console.log(nftDisplay.collectionAddress)
+        //console.log(nftDisplay.collectionAddress)
         const criteria = this.criteriaPerIds[nftDisplay.collectionAddress][id]
 
         criteria.forEach((criterion) => {
@@ -328,6 +338,8 @@ export class DropBuilder {
     async removeConflictResolutionCriteria() {
         for (const collection in this.criteriaForConflictResolution) {
             for(const currentCriterion of this.criteriaForConflictResolution[collection] ) {
+                await this.criteriaBuilder.setCollectionAddress(currentCriterion.collectionAddress, currentCriterion.index)
+                //console.log(collection, currentCriterion)
                 await this.criteriaBuilder.filterBuilder.removeFilterByIndex(currentCriterion.selectedFilter.index)
                 this.criteriaBuilder.removeCriterionByIndex(currentCriterion.index)
             }
@@ -354,6 +366,7 @@ export class DropBuilder {
         }
 
         //TODO make function
+        //TODO this breaks on multi collections
         if(mode==="add") {
             const criteriaPerIdsOnlyDuplicates = this.getIdsWithDuplicateCriteria(criteriaPerIds)
             const idsPerAmountsPerCollection = this.addAmountsTogether(criteriaPerIdsOnlyDuplicates)

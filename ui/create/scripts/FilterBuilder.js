@@ -653,10 +653,15 @@ export class FilterBuilder {
             const filterSelector = document.getElementById(selectorId)
             const optionElements = [...filterSelector.children]
             const optionElement = optionElements.find((element)=>Number(element.value) === filterIndex)
-            optionElement.outerHTML = ""
+            if(optionElement) {
+                optionElement.outerHTML = ""
+            }
 
             const optionsToBeShifted = optionElements.filter((x)=>x.value>filterIndex)
-            optionsToBeShifted.forEach((x)=>x.value-=1)
+            if(optionsToBeShifted.length) {
+                optionsToBeShifted.forEach((x)=>x.value-=1)
+            }
+
         }
     }
 
@@ -953,6 +958,7 @@ export class FilterBuilder {
         dropDownDiv.style = "border: solid; border-right: none; margin: 1px; margin-left: 0.5em;"
         dropDownDiv.className = "attributeDropdown"
 
+        //console.warn(idsPerAttribute, traitType, this.collectionAddress)
         const dataType = idsPerAttribute[traitType].dataType
         if (dataType === "number") {
             const numberInput = document.createElement("input")
@@ -1201,10 +1207,10 @@ export class FilterBuilder {
                 case "attributes":
                     await this.#setAttributeTypeSelector(elementId);
                     [...document.getElementsByClassName("attributeCheckbox")].forEach((x)=>x.checked=false)
-                    this.#setCheckedStatusAttributes()
+                    await this.#setCheckedStatusAttributes()
                     break;
                 case "idList":
-                    this.#setIdListInput(elementId)
+                    await this.#setIdListInput(elementId)
                     //document.getElementById(elementId).innerHTML = `<label>add id <input style="width:7em" type="number" /></label><button >add</button> (TODO)`
                     break
                 case "conditions":

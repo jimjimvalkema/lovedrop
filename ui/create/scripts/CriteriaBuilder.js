@@ -1,7 +1,7 @@
 import { ethers } from "../../scripts/ethers-5.2.esm.min.js"
 import { FilterBuilder } from "./FilterBuilder.js"
 
-export const criterionFormat = {"name":"", "amountPerItem":"", "ids":[],"excludedIds":[], "selectedFilter":{}, "collectionAddress":"0x0"}       
+export const criterionFormat = {"name":"", "amountPerItem":"", "ids":[],"excludedIds":[], "selectedFilter":{}, "collectionAddress":undefined}       
 
 export class CriteriaBuilder {
     ipfsGateway
@@ -10,7 +10,7 @@ export class CriteriaBuilder {
     filterBuilder
 
     criteria = []
-    criterionFormat = {"name":"", "amountPerItem":"", "ids":[],"excludedIds":[], "selectedFilter":{}, "collectionAddress":"0x0"}       
+    criterionFormat = {"name":"", "amountPerItem":"", "ids":[],"excludedIds":[], "selectedFilter":{}, "collectionAddress":undefined}       
     currentCriterionIndex = 0
 
     contractInput = "nftContractAddressInput"
@@ -39,6 +39,7 @@ export class CriteriaBuilder {
         document.getElementById(this.contractInput).addEventListener("keypress", (event)=>this.#setCollectionAddressHandler(event ,this.contractInput))
         document.getElementById(this.submitContractId).addEventListener(("click"), (event)=>this.#setCollectionAddressHandler(event, this.contractInput))
 
+        //TODO set this to set on everychange instead of only on enter press
         document.getElementById(this.amountInputId).addEventListener("keypress", (event)=>this.#setAmountPerItemHandler(event, this.amountInputId))
         document.getElementById(this.submitAmountId).addEventListener(("click"), (event)=>this.#setAmountPerItemHandler(event, this.amountInputId))
 
@@ -69,10 +70,12 @@ export class CriteriaBuilder {
                     criterion.selectedFilter.index
                 } else {
                     const allFilters = this.filterBuilder.filtersPerCollection[criterion.collectionAddress]
+                    //console.log(criterion.collectionAddress, criterion)
+                    //console.log(Object.keys(this.filterBuilder.filtersPerCollection))
                     if (allFilters.indexOf(criterion.selectedFilter)===-1) {
                         //if the filter isnt in there then we know it's removed
                         criterion.selectedFilter = {}
-                        console.log("my filter isn there :(")
+                        //console.log("my filter isn there :(")
                         if(this.currentCriterionIndex === criterion.index) {
                             document.getElementById(this.filterSelectorId).value = "-1"
                         }
@@ -90,7 +93,7 @@ export class CriteriaBuilder {
 
         //collection address is inside the criterion that is being deleted
         const currentCollection = this.getCurrentCollectionAddress()
-        console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        //console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
         await this.removeCriterionByIndex(indexToRemove)
     
 
@@ -177,6 +180,7 @@ export class CriteriaBuilder {
     }
 
     async setCollectionAddress(collectionAddress,criterionIndex=this.currentCriterionIndex){
+        //console.log("setting collection to ", collectionAddress, criterionIndex)
         collectionAddress = this.#handleAddressUserInput(collectionAddress)
         const criterion = this.criteria[criterionIndex]
         const oldCollectionAddress = criterion.collectionAddress
@@ -194,7 +198,7 @@ export class CriteriaBuilder {
             document.getElementById(this.contractInput).value = collectionAddress
 
         } else {
-            criterion.collectionAddress = ""
+            criterion.collectionAddress = undefined
             document.getElementById(this.contractInput).value = ""
         }
 
@@ -204,7 +208,7 @@ export class CriteriaBuilder {
             await this.selectFilterForCriterion(newFilter.index, criterion) //creates display
         }
 
-        this.updateCriterionName()
+        await this.updateCriterionName()
         
     }
 
@@ -344,8 +348,6 @@ export class CriteriaBuilder {
     }
 
     async changeCurrentCriterion(index) {
-        console.log("prev", this.criteria[this.currentCriterionIndex], this.currentCriterionIndex)
-        console.log("new",this.criteria[index],index )
         let oldCollectionAddress
         if (this.criteria[this.currentCriterionIndex]) {
             oldCollectionAddress =  this.criteria[this.currentCriterionIndex].collectionAddress
@@ -394,7 +396,7 @@ export class CriteriaBuilder {
     async removeCriterionByIndex(criterionIndex=this.currentCriterionIndex) {
         //prevent no criterion being left / selected
         if(this.criteria.length===1) {
-            console.log("kaner",this.currentCriterionIndex)
+            //console.log("kaner",this.currentCriterionIndex)
             const currentCollection = this.getCurrentCollectionAddress()
             const newCriterion = await this.createCriterion(currentCollection)
         }
@@ -403,7 +405,7 @@ export class CriteriaBuilder {
         this.#removeOptionCriteriaSelector(criterionIndex) 
         this.#setCriteriaIndexes(this.criteria)
         const newIndex = this.criteria.length-1
-        console.log(newIndex, "newIndex")
+        //console.log(newIndex, "newIndex")
         await this.changeCurrentCriterion(newIndex)
     }
 
