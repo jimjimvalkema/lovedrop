@@ -17,6 +17,7 @@ export class DropBuilder {
 
     //or do conflictResolutionSelectorHandler with a submit button but user might decide to go back anyway
     criteriaForConflictResolution = {} 
+    duplicatesNftDisplays = {}
 
 
     originalElementDisplayStyle = {
@@ -26,18 +27,18 @@ export class DropBuilder {
 
 
 
-    constructor({ collectionAddress, provider, ipfsGateway, nftDisplayElementId } = { collectionAddress: undefined, provider, ipfsGateway, nftDisplayElementId }) {
+    constructor({ collectionAddress, provider, ipfsGateway, nftDisplayElementIdCriteriaBuilder: nftDisplayElementIdCriteriaBuilder } = { collectionAddress: undefined, provider, ipfsGateway, nftDisplayElementIdCriteriaBuilder: nftDisplayElementIdCriteriaBuilder }) {
         this.criteriaBuilder = new CriteriaBuilder({
             collectionAddress: collectionAddress,
             provider: provider,
             ipfsGateway: ipfsGateway,
-            nftDisplayElementId: nftDisplayElementId
+            nftDisplayElementId: nftDisplayElementIdCriteriaBuilder
         });
 
         this.collectionAddress = collectionAddress
         this.provider = provider
         this.ipfsGateway = ipfsGateway
-        this.nftDisplayElementId = nftDisplayElementId
+        this.nftDisplayElementIdCriteriaBuilder = nftDisplayElementIdCriteriaBuilder
 
         //initialize
         this.dropBuilderElement.style.display = "none"
@@ -70,7 +71,16 @@ export class DropBuilder {
 
             //displayduplicates
             if (validCriteria.length) {
-                this.displayDuplicates(this.criteriaPerIds)
+                const duplicates = this.getIdsWithDuplicateCriteria(this.criteriaPerIds)
+                console.log(duplicates)
+                const amountOfDuplicates =  Object.keys(duplicates).reduce((total, collection)=>total+=Object.keys(duplicates[collection]).length, 0)
+                console.log(amountOfDuplicates)
+                if(amountOfDuplicates > 0 ) {
+
+                    this.displayDuplicates(duplicates)
+                   
+                }
+                
             }
         
 
@@ -128,42 +138,62 @@ export class DropBuilder {
 
     }
 
-    async displayDuplicates(criteriaPerIds) {
-        const duplicates = this.getIdsWithDuplicateCriteria(criteriaPerIds)
+    async displayDuplicates(duplicates) {
+        this.dropBuilderConflictsElement.hidden = false
+
 
 
         //display
-        for (const collection in duplicates) {
-            const collectionAddress = ethers.utils.getAddress(collection)
-            const ids = Object.keys(duplicates[collection])
-
-            //const duplicatesDisplayElement = document.getElementById(duplicatesNftDisplayId)
-            this.dropBuilderConflictsElement.hidden = false
+        for (const rawCollectionAddress in duplicates) {
+            const collectionAddress = ethers.utils.getAddress(rawCollectionAddress)
+            const ids = Object.keys(duplicates[collectionAddress])
 
             //nftDisplay setup
-            if (this.NftDisplay) {
-                this.NftDisplay.clear()
-                document.getElementById(this.duplicatesNftDisplayId).innerHTML = ""
+            console.log(this.duplicatesNftDisplays)
+            if (rawCollectionAddress in this.duplicatesNftDisplays) {
+                await this.duplicatesNftDisplays[collectionAddress].clear()
+                this.duplicatesNftDisplays[collectionAddress].setId(ids) 
+                await this.duplicatesNftDisplays[collectionAddress].createDisplay()
+            } else {
+
+                //element id setup
+                const elementId = `duplicateDisplay-${collectionAddress}`
+                const element = document.createElement("div")
+                element.id = elementId
+                element.className = "duplicateDisplay"
+    
+                document.getElementById(this.duplicatesNftDisplayId).append(element)
+
+                //create display
+                this.duplicatesNftDisplays[collectionAddress] = await this.createNftDisplay(collectionAddress, ids, elementId)
+
             }
 
-            this.nftMetaData = new NftMetaDataCollector(collectionAddress, this.provider, this.ipfsGateway)
-            this.NftDisplay = new NftDisplay({
-                ids: ids,
-                collectionAddress: collectionAddress,
-                provider: this.provider,
-                displayElementId: this.duplicatesNftDisplayId,
-                ipfsGateway: this.ipfsGateway,
-                nftMetaData: this.nftMetaData,
-                landscapeOrientation: { ["rowSize"]: 7, ["amountRows"]: 1 }
-
-            })
-
-            await this.NftDisplay.createDisplay()
-            await this.NftDisplay.displayNames({ redirect: true })
-            await this.NftDisplay.addImageDivsFunction((id, nftDisplay) => this.#showCriteriaNftDisplay(id, nftDisplay))
-            
-            //this.NftDisplay.showAttributes()
         }
+
+    }
+
+    async createNftDisplay(collectionAddress, ids, elementId) {
+        this.nftMetaData = new NftMetaDataCollector(collectionAddress, this.provider, this.ipfsGateway)
+        let nftDisplay = new NftDisplay({
+            ids: ids,
+            collectionAddress: collectionAddress,
+            provider: this.provider,
+            displayElementId: elementId,
+            ipfsGateway: this.ipfsGateway,
+            nftMetaData: this.nftMetaData,
+            landscapeOrientation: { ["rowSize"]: 7, ["amountRows"]: 1 }
+
+        })
+        //TODO am setting collection addres twice becuase initializing is async
+        console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        await nftDisplay.createDisplay() //TODO fix this lol
+        await nftDisplay.setCollectionAddress(collectionAddress)
+        await nftDisplay.displayNames({ redirect: true })
+        await nftDisplay.addImageDivsFunction((id, nftDisplay) => this.#showCriteriaNftDisplay(id, nftDisplay))
+        await nftDisplay.createDisplay()
+
+        return nftDisplay
 
     }
 
@@ -186,9 +216,11 @@ export class DropBuilder {
 
 
     #showCriteriaNftDisplay(id, nftDisplay) {
+        console.log(nftDisplay)
         const rootElement = document.createElement("div")
         const contentElement = document.createElement("div")
 
+        console.log(nftDisplay.collectionAddress)
         const criteria = this.criteriaPerIds[nftDisplay.collectionAddress][id]
 
         criteria.forEach((criterion) => {

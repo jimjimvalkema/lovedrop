@@ -75,7 +75,7 @@ async function test() {
         collectionAddress : undefined,
         provider : window.provider,
         ipfsGateway : window.ipfsGateway,
-        nftDisplayElementId : "nftDisplay"
+        duplicatesNftDisplayElementId : "nftDisplay"
     });
     
     //copy paste filters

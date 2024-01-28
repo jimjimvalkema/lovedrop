@@ -50,6 +50,8 @@ export class NftDisplay {
         this.provider =provider
         this.ids = ids
         this.displayElementId = displayElementId
+        //TODO change all this.displayElementId to use the whole element and pass whole element in constructor instead of id
+        this.displayElement = document.getElementById(this.displayElementId)
 
         this.landscapeOrientation = landscapeOrientation
         this.portraitOrientation = portraitOrientation
@@ -479,7 +481,6 @@ export class NftDisplay {
         
         min-width: ${minTotalWidth};
 
-        position: relative;
         min-height: 0;
         max-height: calc(100% - ${imagesBorderWidth} * 2 - 0.4em); 
         height: fit-content;
@@ -564,7 +565,8 @@ export class NftDisplay {
      * @param {string} borderColor 
      */
     async createDisplay(currentPage=this.currentPage, targetElementId=this.displayElementId, rowSize=this.rowSize, amountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor) {
-        console.warn("aaaaaaaa am warning youu")
+        //TODO fix this by being more deliberate when and where the display is rerendered
+        console.warn("if you see this more then twice in a row it means the dev is retarded")
         //TODO apply divFunctions and get image urls in 1 go
         //this.setImageRasterOrientation()
         this.currentPage =  this.#getValidPage(currentPage,this.ids.length, rowSize,amountRows)

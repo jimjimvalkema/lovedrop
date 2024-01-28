@@ -344,7 +344,16 @@ export class CriteriaBuilder {
     }
 
     async changeCurrentCriterion(index) {
-        const oldCollectionAddress =  this.criteria[this.currentCriterionIndex].collectionAddress
+        console.log("prev", this.criteria[this.currentCriterionIndex], this.currentCriterionIndex)
+        console.log("new",this.criteria[index],index )
+        let oldCollectionAddress
+        if (this.criteria[this.currentCriterionIndex]) {
+            oldCollectionAddress =  this.criteria[this.currentCriterionIndex].collectionAddress
+
+        } else {
+            oldCollectionAddress = ""
+        }
+        
         const newCollectionAddress = this.criteria[index].collectionAddress
         const currentCriterion = this.criteria[index]
         this.currentCriterionIndex = index
@@ -393,7 +402,9 @@ export class CriteriaBuilder {
         this.criteria.splice(criterionIndex, 1)
         this.#removeOptionCriteriaSelector(criterionIndex) 
         this.#setCriteriaIndexes(this.criteria)
-        await this.changeCurrentCriterion(this.criteria.length-1)
+        const newIndex = this.criteria.length-1
+        console.log(newIndex, "newIndex")
+        await this.changeCurrentCriterion(newIndex)
     }
 
     #removeOptionCriteriaSelector(criterionIndex) {

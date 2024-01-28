@@ -444,7 +444,7 @@
 
     .attributeType, .attributeValue {
         font-size: 1.1em;
-        line-height: 1.2em;
+        line-height: 1em;
 
         color: white;
         font-weight: bolder; 
@@ -460,27 +460,26 @@
     }
 
     #dropBuilder {
-        display: flex;
+        display: grid;
         align-items: center;
         justify-content: center;
-        flex-direction: column;
         position: relative;
     }
 
     #duplicatesNftDisplay{
-
-        grid-area: nftDisplay;
-        position: relative;
-
         display: grid;
-        grid-gap: 0.01em;
-        grid-template-rows: max-content max-content 1fr;
-        max-height: 100%;
-        max-width: 80vw;
-        width: -webkit-fill-available;
-        overflow: hidden;
+        grid-gap: 1em;
+        bottom: 1em;
+        
+         /*TODO figure out how to do height:100%*/
+        height: 38vh;
+        overflow-y: scroll;
 
-        transition: opacity 1s;
+        /* TODO fix this
+        width: 98%; */
+/* 
+        grid-template-rows: auto max-content max-content;
+        grid-template-columns: 14em 1fr 1fr 1fr; */
 
     }
 
@@ -491,16 +490,26 @@
     #dropBuilderConflictsMessage {
         border-style: solid;
         margin: 1em;
+        text-align: center;
+        font-weight: bolder;
+        font-size: 1.2em;
     }
 
     #dropBuilderConflicts {
         border-style: solid;
-        max-height: 60vh;
+        max-height: 70vh;
+        width: fit-content;
+        max-width: 88em;
+        margin: 1vw;
+        margin-left: 6em;
+        margin-right: 6em;
+
     }
 
     #duplicatesManager {
         margin: 1em;
         border-style: solid;
+        position: relative;
     }
 
     #filterSelectorInput{
@@ -517,6 +526,17 @@
     #backButtonDropBuilderDiv button {
         font-size: larger;
     }
+
+    .duplicateDisplay{
+        height: fit-content;
+        display: grid;
+        grid-gap: 1em;
+        bottom: 1em;
+
+        grid-auto-rows: max-content;
+
+    }
+
 
 
 
@@ -782,7 +802,7 @@
         </div>
         <div id="dropBuilderConflicts" hidden>
             <div id="dropBuilderConflictsMessage">
-                <span class="emoji">&#10071;</span>Some nfts have multiple criteria. Choose a method to select what amount the recieve. <span class="emoji">&#10071;</span>
+                <span class="emoji">&#10071;</span>Some nfts have multiple criteria. Choose a method to select what amount they recieve. <span class="emoji">&#10071;</span>
                 <br>
                 <label for="criteriaConflictsResolutionSelection">choose a method:</label>
                 <select name="criteria conflicts resolution options" id="criteriaConflictsResolutionSelection">
@@ -798,7 +818,10 @@
 
             <div id="duplicatesManager">
                 <div class="bold">nfts with conflicting criteria:</div>
+
                 <div id="duplicatesNftDisplay">
+
+               
 
                 </div>
             </div>
