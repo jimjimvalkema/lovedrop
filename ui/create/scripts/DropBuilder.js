@@ -87,12 +87,6 @@ export class DropBuilder {
         elements.forEach((el)=>el.style.display = this.originalElementDisplayValues[el.id])
     }
 
-    #confirmConflictResolutionHandler() {
-        this.#resetDisplayStyleOfElements([this.distrobutionOverViewEl])
-        this.#setDisplayStyleOfElements([this.dropBuilderConflictsEl],"none")
-
-    }
-
     toggleFinalizeDropView() {
         if (this.dropBuilderEl.style.display === "none") {
             //toggle display
@@ -111,11 +105,13 @@ export class DropBuilder {
                 const duplicates = this.getIdsWithDuplicateCriteria(this.criteriaPerIds)
                 const amountOfDuplicates =  Object.keys(duplicates).reduce((total, collection)=>total+=Object.keys(duplicates[collection]).length, 0)
                 if(amountOfDuplicates > 0 ) {
-
-                    this.displayDuplicates(duplicates)
-                   
+                    this.displayDuplicates(duplicates)  
                 }
-                
+            } else {
+                //go to next step
+                this.criteriaPerIdNoConflicts = this.criteriaPerIds
+                this.#confirmConflictResolutionHandler()
+
             }
         
 
@@ -480,8 +476,18 @@ export class DropBuilder {
     }
 
     async #conflictResolutionSelectorHandler(event, criteriaPerIds=this.criteriaPerIds) {
+        this.confirmConflictResolutionButtonEl.disabled = false
         const criteriaPerId = await this.removeConflictingCriteria(event.target.value, criteriaPerIds)
-
-        console.log(criteriaPerId)
+        this.criteriaPerIdNoConflicts = criteriaPerId
     }
+
+    #confirmConflictResolutionHandler() {
+        if (this.criteriaPerIdNoConflicts) {
+            this.#resetDisplayStyleOfElements([this.distrobutionOverViewEl])
+            this.#setDisplayStyleOfElements([this.dropBuilderConflictsEl],"none")
+        } else {
+            throw new Error(`whoops tried to go to the next step but this.criteriaPerIdNoConflicts was set to: ${this.criteriaPerIdNoConflicts}`)
+        }
+    }
+
 }
