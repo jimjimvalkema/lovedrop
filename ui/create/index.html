@@ -75,7 +75,7 @@
 
     .nftdisplayInfo {
         font-size: 1.7rem;
-        
+
     }
 
 
@@ -125,7 +125,7 @@
         text-align: right;
         grid-area: totalsDisplay;
         border: solid;
-        
+
     }
 
     #filterEditor {
@@ -206,8 +206,10 @@
         min-height: 25em;
         height: 62vh;
 
-        scrollbar-width: none; /* Firefox */
-        -ms-overflow-style: none;  /* Internet Explorer 10+ */
+        scrollbar-width: none;
+        /* Firefox */
+        -ms-overflow-style: none;
+        /* Internet Explorer 10+ */
         scrollbar-width: none;
         /* margin-bottom: 5em; */
 
@@ -241,7 +243,7 @@
 
 
     #nftDisplay {
-        
+
         grid-area: nftDisplay;
         border: solid;
 
@@ -337,28 +339,29 @@
         text-align: right;
         align-items: right;
     }
+
     #criteriaManager {
         line-height: 1.5em;
     }
 
     #criteriaManager input {
-        width:  7.05em;
+        width: 7.05em;
         text-overflow: ellipsis;
         overflow: hidden;
     }
 
     #criteriaManager select {
-        width:  7.45em;
+        width: 7.45em;
         text-overflow: ellipsis;
         overflow: hidden;
     }
 
     #criteriaSelectorInput {
-        width: -webkit-fill-available; 
+        width: -webkit-fill-available;
     }
 
     .criteriaManagerInput select:not(#criteriaSelectorInput) {
-        width:13em;
+        width: 13em;
         width: min-content;
         text-overflow: ellipsis;
         overflow: hidden;
@@ -370,11 +373,12 @@
         width: fit-content;
 
     }
-    
+
     .idList-selector {
         width: 3em;
     }
-/* 
+
+    /* 
     .floatRight input {
         height: 0.9em;
     }
@@ -390,11 +394,12 @@
         width: 4em;
     }
 
-    #finalizeDrop{
+    #finalizeDrop {
         display: grid;
         border-style: solid;
     }
-    #finalizeDropButton{
+
+    #finalizeDropButton {
         font-size: 1.5em;
         place-self: center;
 
@@ -409,7 +414,7 @@
     }
 
     .attributesNftDisplayContainer {
-        transition: opacity 0.2s;  
+        transition: opacity 0.2s;
         opacity: 0;
         position: absolute;
         background-color: rgba(0, 0, 0, 0.5);
@@ -420,13 +425,16 @@
         overflow-x: hidden;
         overflow-y: scroll;
 
-        scrollbar-width: none; /* Firefox */
-        -ms-overflow-style: none;  /* Internet Explorer 10+ */
+        scrollbar-width: none;
+        /* Firefox */
+        -ms-overflow-style: none;
+        /* Internet Explorer 10+ */
         scrollbar-width: none;
 
     }
 
-    .attributesNftDisplayContainer::-webkit-scrollbar { /* WebKit */
+    .attributesNftDisplayContainer::-webkit-scrollbar {
+        /* WebKit */
         width: 0;
         height: 0;
     }
@@ -442,14 +450,15 @@
 
     }
 
-    .attributeType, .attributeValue {
+    .attributeType,
+    .attributeValue {
         font-size: 1.1em;
         line-height: 1em;
 
         color: white;
-        font-weight: bolder; 
-        -webkit-text-fill-color: #ffffff; 
-        -webkit-text-stroke-width: 0.3px; 
+        font-weight: bolder;
+        -webkit-text-fill-color: #ffffff;
+        -webkit-text-stroke-width: 0.3px;
         -webkit-text-stroke-color: #000000;
     }
 
@@ -460,30 +469,31 @@
     }
 
     #dropBuilder {
-        display: grid;
+        display: flex;
         align-items: center;
         justify-content: center;
         position: relative;
+        width: 100%;
     }
 
-    #duplicatesNftDisplay{
+    #duplicatesNftDisplay {
         display: grid;
         grid-gap: 1em;
         bottom: 1em;
-        
-         /*TODO figure out how to do height:100%*/
+
+        /*TODO figure out how to do height:100%*/
         height: 38vh;
         overflow-y: scroll;
 
         /* TODO fix this
         width: 98%; */
-/* 
+        /* 
         grid-template-rows: auto max-content max-content;
         grid-template-columns: 14em 1fr 1fr 1fr; */
 
     }
 
-    .emoji{
+    .emoji {
         font-weight: normal;
     }
 
@@ -498,6 +508,7 @@
     #dropBuilderConflicts {
         border-style: solid;
         max-height: 70vh;
+
         width: fit-content;
         max-width: 88em;
         margin: 1vw;
@@ -512,7 +523,7 @@
         position: relative;
     }
 
-    #filterSelectorInput{
+    #filterSelectorInput {
         width: 6em;
 
     }
@@ -527,7 +538,7 @@
         font-size: larger;
     }
 
-    .duplicateDisplay{
+    .duplicateDisplay {
         height: fit-content;
         display: grid;
         grid-gap: 1em;
@@ -539,10 +550,40 @@
 
     #distrobutionOverView {
         display: block;
+        position: relative;
+
+        width: min(88em, 100%);
+        margin: 1vw;
+        margin-left: 6em;
+        margin-right: 6em;
+
+        border-style: solid;
+    }
+
+    #criteriaOverviewTable {
+        display: grid;
+        grid-template-columns: max-content max-content max-content 1fr;
+
+        border-style: solid;
+        background-color: #000000;
+        gap: max(2px, 0.35em);
+        margin: 1em;
     }
 
 
+    .criteriaTableItem {
+        display: flex;
+        align-items: center;
 
+        padding: 0.1em;
+        background-color: canvas;
+    }
+
+
+    .criteriaTableHeader {
+        font-weight: bold;
+        font-size: 1.3em;
+    }
 </style>
 
 <body>
@@ -568,7 +609,7 @@
         <div id="aidropToken">
             <div class="bold">Set token</div>
             <label>Set airdrop token: <input class="addressInput" id="airdropTokenContractAddressInput" type="text"
-                value="0x3AEC26bf9FEDba55a55e970504f439101AbD7327" placeholder="contract address"></input></label>
+                    value="0x3AEC26bf9FEDba55a55e970504f439101AbD7327" placeholder="contract address"></input></label>
             <div id="airdropTokenInfo" class="airdropTokenInfo">
                 TokenName: <span class="tokenName" class="airdropTokenInfo">TOKENNAME</span>
                 <br>
@@ -578,7 +619,7 @@
                     href="https://etherscan.io/address/0x3AEC26bf9FEDba55a55e970504f439101AbD7327">0x3AEC26bf9FEDba55a55e970504f439101AbD7327</a> -->
                 <br>
             </div>
-           
+
         </div>
 
         <div id="totalsDisplay">
@@ -593,7 +634,7 @@
             <!-- TODO make this into grids instead of whacky floats -->
             <span class="bold">set criteria</span><br>
             <div class="alignTextRight">
-                
+
 
                 <label for="criteriaSelectorInput">select:</label>
                 <span class="floatRightBlock">
@@ -606,23 +647,23 @@
 
                 <label for="criteriaNameInput">name:</label>
                 <span class="floatRightBlock">
-                        <input id="criteriaNameInput"  type="text" placeholder="criterion name"></input>
-                        <button id="submitCriterionName">set</button>
+                    <input id="criteriaNameInput" type="text" placeholder="criterion name"></input>
+                    <button id="submitCriterionName">set</button>
                 </span>
                 <br>
 
                 <label for="nftContractAddressInput">NFT:</label> <span class="floatRightBlock">
-                    <input  id="nftContractAddressInput" type="text"
-                        value="0x5af0d9827e0c53e4799bb226655a1de152a425a5" placeholder="contract address"></input>
-                        <button id="submitNftContract">set</button>
+                    <input id="nftContractAddressInput" type="text" value="0x5af0d9827e0c53e4799bb226655a1de152a425a5"
+                        placeholder="contract address"></input>
+                    <button id="submitNftContract">set</button>
                 </span>
-                
+
                 <br>
 
 
-                <label for="amountPerNftInput"> amount <span class="ticker">TICKER</span>:  <span class="floatRightBlock">
-                        <input id="amountPerNftInput"
-                            type="number" value="" placeholder="amount per nft"></input>
+                <label for="amountPerNftInput"> amount <span class="ticker">TICKER</span>: <span
+                        class="floatRightBlock">
+                        <input id="amountPerNftInput" type="number" value="" placeholder="amount per nft"></input>
                         <button id="submitAmountPerNft">set</button>
                     </span>
                 </label>
@@ -630,7 +671,7 @@
 
                 <label for="criteriaFilterSelectorInput">filter: </label>
                 <span class="floatRightBlock">
-                    <select name="criteriaFilterSelectorInput"  id="criteriaFilterSelectorInput">
+                    <select name="criteriaFilterSelectorInput" id="criteriaFilterSelectorInput">
                         <option value="-1">--choose filter--</option>
                     </select>
                     <button>edit</button>
@@ -638,8 +679,8 @@
                 <br>
             </div>
 
-            
-                    
+
+
 
         </div>
 
@@ -647,19 +688,22 @@
             <div class="bold">Distubution <span class="selectedcriteriaName bold">criteria#1</span> </div>
             <div class="alignTextRight">
                 Amount NFT: <span class="floatRightBlock">
-                    <span id="amountItemsCurrentFilter"  class="alignLeft" > 100</span> <span id="nftSymbol" class="floatRightTicker" >MIL</span>
+                    <span id="amountItemsCurrentFilter" class="alignLeft"> 100</span> <span id="nftSymbol"
+                        class="floatRightTicker">MIL</span>
                 </span>
                 <br>
 
-                Tokens per NFT:  <span class="floatRightBlock">
-                    <span id="currentcriteriaAmountPerItem" class="alignLeft"  >1.000</span> <span class="ticker" class="floatRightTicker">TICKER</span>
+                Tokens per NFT: <span class="floatRightBlock">
+                    <span id="currentcriteriaAmountPerItem" class="alignLeft">1.000</span> <span class="ticker"
+                        class="floatRightTicker">TICKER</span>
                 </span>
                 <br>
 
                 Total tokens: <span class="floatRightBlock">
-                    <span id="selectedcriteriaTotal" class="alignLeft" >1.000.000 <span class="ticker" class="floatRightTicker" >TICKER</span>
-                </span>
-                <br>
+                    <span id="selectedcriteriaTotal" class="alignLeft">1.000.000 <span class="ticker"
+                            class="floatRightTicker">TICKER</span>
+                    </span>
+                    <br>
             </div>
         </div>
 
@@ -697,7 +741,7 @@
                 <br>
 
                 <label for="filterSelectorInput">select:</label>
-                <select name="filterSelectorInput" id="filterSelectorInput" >
+                <select name="filterSelectorInput" id="filterSelectorInput">
                     <option value="-1">add new</option>
                 </select>
                 <button id="deleteFilter">delete</button>
@@ -794,18 +838,19 @@
             <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
             <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
                 -->
-        
+
             </div>
 
         </div>
     </div>
     <div id="dropBuilder">
-        <div id="backButtonDropBuilderDiv"> 
+        <div id="backButtonDropBuilderDiv">
             <button id="backButtonDropBuilder">go back</button>
         </div>
-        <div id="dropBuilderConflicts" >
+        <div id="dropBuilderConflicts">
             <div id="dropBuilderConflictsMessage">
-                <span class="emoji">&#10071;</span>Some nfts have multiple criteria. Choose a method to select what amount they recieve. <span class="emoji">&#10071;</span>
+                <span class="emoji">&#10071;</span>Some nfts have multiple criteria. Choose a method to select what
+                amount they recieve. <span class="emoji">&#10071;</span>
                 <br>
                 <label for="criteriaConflictsResolutionSelection">choose a method:</label>
                 <select name="criteria conflicts resolution options" id="criteriaConflictsResolutionSelection">
@@ -818,26 +863,62 @@
                     <option value="remove">set to zero</option>
                 </select>
 
-                <button id="confirmConflictResolutionButton">confirm</button>
+                <button id="confirmConflictResolutionButton" disabled>confirm</button>
             </div>
 
             <div id="duplicatesManager">
                 <div class="bold">nfts with conflicting criteria:</div>
 
-                <div id="duplicatesNftDisplay">
-
-               
-
-                </div>
+                <div id="duplicatesNftDisplay"></div>
             </div>
         </div>
 
-        <div id="distrobutionOverView" >
-            erhmmm hiiii :D!
+        <div id="distrobutionOverView">
+            <div class="bold">final distrobution </div>
+            <div id="criteriaOverviewTable">
+                <div class="criteriaTableHeader criteriaTableItem">
+                    <div>criteria</div>
+                </div>
+                <div class="criteriaTableHeader criteriaTableItem">
+                    <div>total amount criterion</div>
+                </div>
+                <div class="criteriaTableHeader criteriaTableItem">
+                    <div>amount per nft</div>
+                </div>
+                <div class="criteriaTableHeader criteriaTableItem">
+                    <div>nfts</div>
+                </div>
+                <div class="test criteriaTableItem">
+                    <div>criteria</div>
+                </div>
+                <div class="test criteriaTableItem">
+                    <div>100,000</div>
+                </div>
+                <div class="test criteriaTableItem">
+                    <div>10,000</div>
+                </div>
+                <div class="test criteriaTableItem">
+                    <div>nfts</div>
+                </div>
+                <div class="test criteriaTableItem">
+                    <div>criteria</div>
+                </div>
+                <div class="test criteriaTableItem">
+                    <div>100,0000000</div>
+                </div>
+                <div class="test criteriaTableItem">
+                    <div>10,0000</div>
+                </div>
+                <div class="test criteriaTableItem">
+                    <div>nfts<br>more nft<br> hahah moreee</div>
+                </div>
+            </div>
+
+            <button>confirm</button><button disabled>deploy</button>
 
         </div>
 
-        </div>
+    </div>
 
     </div>
 
