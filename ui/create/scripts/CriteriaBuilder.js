@@ -70,12 +70,9 @@ export class CriteriaBuilder {
                     criterion.selectedFilter.index
                 } else {
                     const allFilters = this.filterBuilder.filtersPerCollection[criterion.collectionAddress]
-                    //console.log(criterion.collectionAddress, criterion)
-                    //console.log(Object.keys(this.filterBuilder.filtersPerCollection))
                     if (allFilters.indexOf(criterion.selectedFilter)===-1) {
                         //if the filter isnt in there then we know it's removed
                         criterion.selectedFilter = {}
-                        //console.log("my filter isn there :(")
                         if(this.currentCriterionIndex === criterion.index) {
                             document.getElementById(this.filterSelectorId).value = "-1"
                         }
@@ -93,7 +90,6 @@ export class CriteriaBuilder {
 
         //collection address is inside the criterion that is being deleted
         const currentCollection = this.getCurrentCollectionAddress()
-        //console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
         await this.removeCriterionByIndex(indexToRemove)
     
 
@@ -106,7 +102,7 @@ export class CriteriaBuilder {
         await this.selectFilterForCriterion(value, this.getCurrentCriterion())
         
         //run filter
-        const resultIdSet = await this.filterBuilder.nftMetaData.processFilter(currentCriterion.selectedFilter)
+        const resultIdSet = await this.filterBuilder.getNftMetaData(currentCriterion.collectionAddress).processFilter(currentCriterion.selectedFilter)
         const ids  = [...resultIdSet]
 
         await this.#onFilterChange(currentCriterion.selectedFilter, ids)
@@ -180,7 +176,6 @@ export class CriteriaBuilder {
     }
 
     async setCollectionAddress(collectionAddress,criterionIndex=this.currentCriterionIndex){
-        //console.log("setting collection to ", collectionAddress, criterionIndex)
         collectionAddress = this.#handleAddressUserInput(collectionAddress)
         const criterion = this.criteria[criterionIndex]
         const oldCollectionAddress = criterion.collectionAddress
@@ -279,7 +274,7 @@ export class CriteriaBuilder {
         let collectionName
         if (criterion.collectionAddress) {
             try {
-                collectionName = await this.filterBuilder.nftMetaData.getContractName()
+                collectionName = await this.filterBuilder.getNftMetaData(criterion.collectionAddress).getContractName()
                 
             } catch (error) {
                 collectionName = "ErrNoCollectionName"
@@ -341,6 +336,7 @@ export class CriteriaBuilder {
 
         await this.setCollectionAddress(collectionAddress)
         await this.changeCurrentCriterion(newCriterionIndex)
+        
 
         
 
@@ -393,20 +389,28 @@ export class CriteriaBuilder {
         return criteria.map((criterion, realIndex)=>criterion.index = realIndex)
     }
 
-    async removeCriterionByIndex(criterionIndex=this.currentCriterionIndex) {
+    async removeCriterionByIndex(criterionIndex=this.currentCriterionIndex ,collectionAddress=this.getCurrentCollectionAddress()) {
+        const currentCollectionAddress = this.getCurrentCollectionAddress()
         //prevent no criterion being left / selected
         if(this.criteria.length===1) {
-            //console.log("kaner",this.currentCriterionIndex)
-            const currentCollection = this.getCurrentCollectionAddress()
-            const newCriterion = await this.createCriterion(currentCollection)
+            const newCriterion = await this.createCriterion(collectionAddress)
         }
 
         this.criteria.splice(criterionIndex, 1)
-        this.#removeOptionCriteriaSelector(criterionIndex) 
         this.#setCriteriaIndexes(this.criteria)
+        this.#removeOptionCriteriaSelector(criterionIndex) 
+        // //only update ui if collection address is selected
+        // if (collectionAddress===currentCollectionAddress) {
+        //     this.#removeOptionCriteriaSelector(criterionIndex) 
+        
+           
+        // }
+
         const newIndex = this.criteria.length-1
-        //console.log(newIndex, "newIndex")
         await this.changeCurrentCriterion(newIndex)
+
+
+
     }
 
     #removeOptionCriteriaSelector(criterionIndex) {

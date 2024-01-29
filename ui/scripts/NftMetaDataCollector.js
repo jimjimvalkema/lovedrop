@@ -341,12 +341,14 @@ export class NftMetaDataCollector {
     }
 
     async getContractName() {
+    
         if (this.contractName) {
-            return this.contractName
+            return structuredClone(this.contractName)
 
         } else {
+            
             this.contractName = await this.contractObj.name()
-            return this.contractName
+            return structuredClone(this.contractName)
         }
 
     }
@@ -1336,8 +1338,6 @@ export class NftMetaDataCollector {
         if (idsOfownerWithTokensOfOwnerFailed) {
             const endBlock = (await this.provider.getBlock("latest")).number
             const cacheLocalStorage = JSON.parse(localStorage.getItem(`balancesOf-${await this.contractObj.address}`))
-            // console.log(cacheLocalStorage.endBlock,(endBlock-4000*10),cacheLocalStorage.endBlock>(endBlock-4000*10) )
-            // console.log(Boolean(cacheLocalStorage))
             if (cacheLocalStorage && ownerAddres in cacheLocalStorage && cacheLocalStorage[ownerAddres].endBlock > (endBlock - 4000 * 4)) {
                 const cacheLocalStorage = JSON.parse(localStorage.getItem(`balancesOf-${await this.contractObj.address}`))
                 this.idsOfOwnerCache = cacheLocalStorage

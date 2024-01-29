@@ -9,7 +9,7 @@ export class FilterBuilder {
     filterTemplate = filterTemplate
 
     filtersMadePerCollectionCount = {}
-    nftMetaData;
+    nftMetaDataPerCollection = {};
     filtersPerCollection = {};
     currentFilterIndex=0;
     onfilterChangeFunc = []
@@ -71,7 +71,6 @@ export class FilterBuilder {
 
 
 
-        //this.#setInputTypeHandler({"target":{"value":"attributes"}})
 
         if (this.getFiltersOfCollection().length === 0) {
             // const newFilter = this.createNewFilter("AND")
@@ -89,6 +88,8 @@ export class FilterBuilder {
         //fix select filter
         //reset inputs ui
     }
+
+
 
     async #deleteFilterHandler() {
         const currentFiltersList = this.getFiltersOfCollection()
@@ -142,7 +143,7 @@ export class FilterBuilder {
         }
         //set defaults if not exist
         this.collectionAddress = ethers.utils.getAddress(addres)
-        if ((this.collectionAddress in this.filtersPerCollection) === false) {
+        if (!(this.collectionAddress in this.filtersPerCollection)) {
             this.filtersPerCollection[this.collectionAddress] = []
         }
         if(!(this.collectionAddress in this.filtersMadePerCollectionCount )) {
@@ -155,18 +156,26 @@ export class FilterBuilder {
         }
 
         //reinitialize metaData and display
-        this.nftMetaData = new NftMetaDataCollector(this.collectionAddress, this.provider, this.ipfsGateway)
+        const nftMetaData = this.getNftMetaData(this.collectionAddress)
         this.NftDisplay = new NftDisplay({
             collectionAddress: this.collectionAddress,
             provider: this.provider,
             displayElementId: this.displayElementId,
             ipfsGateway: this.ipfsGateway,
-            nftMetaData: this.nftMetaData
+            nftMetaData: nftMetaData
         })
         this.NftDisplay.displayNames({redirect:true})
         await this.NftDisplay.showAttributes()
 
         await this.reinitializeUi()
+    }
+
+    getNftMetaData(collectionAddress=this.collectionAddress) {
+        collectionAddress = ethers.utils.getAddress(collectionAddress)
+        if (!(collectionAddress in this.nftMetaDataPerCollection)) {
+            this.nftMetaDataPerCollection[collectionAddress] = new NftMetaDataCollector(collectionAddress, this.provider, this.ipfsGateway)
+        }
+        return this.nftMetaDataPerCollection[collectionAddress]
     }
     
     async #onFilterChange() {
@@ -215,7 +224,7 @@ export class FilterBuilder {
         }
 
         const currentFilter = this.getCurrentFilter()
-        const resultIdSet = await this.nftMetaData.processFilter(currentFilter)
+        const resultIdSet = await this.nftMetaDataPerCollection[this.collectionAddress].processFilter(currentFilter)
         const ids  = [...resultIdSet]
 
         if (updateIU) {
@@ -518,14 +527,14 @@ export class FilterBuilder {
     }
 
     async getAllExtraMetaData() {
-        return await this.nftMetaData.fetchAllExtraMetaData()
+        return await this.nftMetaDataPerCollection[this.collectionAddress].fetchAllExtraMetaData()
     }
 
-    async getIdsPerAttribute() {
-        if (!this.nftMetaData.idsPerAttribute) {
-            await this.getAllExtraMetaData()
+    async getIdsPerAttribute(collectionAddress = this.collectionAddress) {
+        if (!this.nftMetaDataPerCollection[collectionAddress].idsPerAttribute) {
+            await this.nftMetaDataPerCollection[collectionAddress].fetchAllExtraMetaData()
         }
-        return this.nftMetaData.idsPerAttribute
+        return this.nftMetaDataPerCollection[collectionAddress].idsPerAttribute
     }
 
     //filter fromatting
@@ -689,17 +698,22 @@ export class FilterBuilder {
         this.filterSelectors = this.filterSelectors.filter((x)=>x===elementId)
     }
 
-    async removeFilterByIndex(filterIndex) {
+    async removeFilterByIndex(filterIndex, collectionAddress=this.collectionAddress) {
         //TODO make criteria builder update if filter that is used is removed
-        let currentFilters = this.getFiltersOfCollection()
+        let currentFilters = this.getFiltersOfCollection(collectionAddress)
         currentFilters.splice(filterIndex,1)
         //const optionsToBeShifted = this.filtes.filter((x)=>x.index>=filterIndex)
-        this.#removeOptionNameFromFilterSelectors(filterIndex)
-        let filters = this.getFiltersOfCollection()
-        filters = this.#setFilterIndexes(filters)
-        this.changeCurrentFilter(currentFilters.length-1)
+        
+        //only update ui if that collection is actually selected
+        if(collectionAddress===this.collectionAddress) {
+            this.#removeOptionNameFromFilterSelectors(filterIndex)
+            let filters = this.getFiltersOfCollection()
+            filters = this.#setFilterIndexes(filters)
+            this.changeCurrentFilter(currentFilters.length-1)
+    
+            await this.#onFilterChange()
 
-        await this.#onFilterChange()
+        }
     }
 
 
@@ -970,8 +984,10 @@ export class FilterBuilder {
         dropDownDiv.style = "border: solid; border-right: none; margin: 1px; margin-left: 0.5em;"
         dropDownDiv.className = "attributeDropdown"
 
-        //console.warn(idsPerAttribute, traitType, this.collectionAddress)
-        const dataType = idsPerAttribute[traitType].dataType
+        let dataType
+
+        dataType = idsPerAttribute[traitType].dataType
+
         if (dataType === "number") {
             const numberInput = document.createElement("input")
             numberInput.type = "number"
@@ -1186,8 +1202,8 @@ export class FilterBuilder {
         input.id = `${inputType}-${dataType}-selector`
         input.className = "idList-selector"
         input.type = "number"
-        input.min = await this.nftMetaData.getFirstId()
-        input.max = await this.nftMetaData.getLastId()
+        input.min = await this.nftMetaDataPerCollection[this.collectionAddress].getFirstId()
+        input.max = await this.nftMetaDataPerCollection[this.collectionAddress].getLastId()
         input.addEventListener("keypress", (event)=> this.#addIdButtonHandler(input.value,event))
 
         const label = document.createElement("label") 

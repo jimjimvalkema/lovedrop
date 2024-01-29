@@ -78,6 +78,8 @@ export class NftDisplay {
     }
 
     async setCollectionAddress(collectionAddress) {
+        collectionAddress = ethers.utils.getAddress(collectionAddress)
+       
         await this.clear()
         if (!collectionAddress) {
             console.warn(`collection address is not set`)
@@ -85,7 +87,12 @@ export class NftDisplay {
         } else {
             this.collectionAddress = ethers.utils.getAddress(collectionAddress)
             //TODO recreating nftMetaData is inefecient if it used somewhere else
-            this.nftMetaData = new NftMetaDataCollector(this.collectionAddress,this.provider,this.ipfsGateway)
+            if (this.nftMetaData.contractObj.address !== collectionAddress) {
+                console.warn("collection address is set by creating a new NftMetaDataCollector object this can break things! ")
+                this.nftMetaData = new NftMetaDataCollector(this.collectionAddress,this.provider,this.ipfsGateway)
+
+            }
+           
         }
         
     }
@@ -453,6 +460,7 @@ export class NftDisplay {
      */
     async createImagesRaster(currentPage=this.currentPage, rowSize=this.rowSize, maxAmountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor) {
         //hacky way to preload the base uri
+        //TOD
         await this.nftMetaData.getBaseURI()
 
         const idsCurrentPage = this.getIdsOfCurrentPage(currentPage, rowSize, maxAmountRows, ids)
