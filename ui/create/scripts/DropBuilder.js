@@ -16,13 +16,14 @@ export class DropBuilder {
     backButtonEl = document.getElementById("backButtonDropBuilder")
     confirmConflictResolutionButtonEl = document.getElementById("confirmConflictResolutionButton")
     distrobutionOverViewEl = document.getElementById("distrobutionOverView")
+    //duplicatesManagerEl = document.getElementById("duplicatesManager")
 
     //or do conflictResolutionSelectorHandler with a submit button but user might decide to go back anyway
     criteriaForConflictResolution = {} 
     duplicatesNftDisplays = {}
 
 
-    originalElementDisplayValues = this.getDisplayStylesFromElements([this.dropBuilderEl, this.criteriaBuilderEl, this.distrobutionOverViewEl])
+    originalElementDisplayValues = this.getDisplayStylesFromElements([this.dropBuilderEl,this.dropBuilderConflictsEl, this.criteriaBuilderEl, this.distrobutionOverViewEl])
 
 
 
@@ -64,16 +65,39 @@ export class DropBuilder {
         return (criterion.ids.length && criterion.collectionAddress && criterion.amountPerItem)
     }
 
+    /**
+     * 
+     * @param {HTMLElement[]} element 
+     * @param {String} displayStyle 
+     */
+    #setDisplayStyleOfElements(elements, displayStyle) {
+        elements.forEach((el)=>{
+            if(!(el.id in this.originalElementDisplayValues)) {
+                this.originalElementDisplayValues[el.id] = getComputedStyle(el).display
+            } 
+            el.style.display = displayStyle;
+        })
+    }
+
+    /**
+     * 
+     * @param {HTMLElement[]} elements 
+     */
+    #resetDisplayStyleOfElements(elements) {
+        elements.forEach((el)=>el.style.display = this.originalElementDisplayValues[el.id])
+    }
+
     #confirmConflictResolutionHandler() {
+        this.#resetDisplayStyleOfElements([this.distrobutionOverViewEl])
+        this.#setDisplayStyleOfElements([this.dropBuilderConflictsEl],"none")
 
     }
 
     toggleFinalizeDropView() {
         if (this.dropBuilderEl.style.display === "none") {
             //toggle display
-            const originalDisplayStyle = this.originalElementDisplayValues[this.dropBuilderEl.id]
-            this.dropBuilderEl.style.display = originalDisplayStyle
-            this.criteriaBuilderEl.style.display = "none"
+            this.#setDisplayStyleOfElements([this.criteriaBuilderEl, this.distrobutionOverViewEl], "none")
+            this.#resetDisplayStyleOfElements([this.dropBuilderEl, this.dropBuilderConflictsEl])
 
             //remove data created when users goes back and returns
             this.removeConflictResolutionCriteria()
@@ -97,9 +121,8 @@ export class DropBuilder {
 
         } else {
             //toggle display
-            const originalDisplayStyle = this.originalElementDisplayValues[this.criteriaBuilderEl.id]
-            this.criteriaBuilderEl.style.display = originalDisplayStyle
-            this.dropBuilderEl.style.display = "none"
+            this.#setDisplayStyleOfElements([this.dropBuilderEl, this.distrobutionOverViewEl, this.dropBuilderConflictsEl], "none")
+            this.#resetDisplayStyleOfElements([this.criteriaBuilderEl])
 
             //rerun filter
             if(this.criteriaBuilder.filterBuilder) {
@@ -149,7 +172,7 @@ export class DropBuilder {
     }
 
     async displayDuplicates(duplicates) {
-        this.dropBuilderConflictsEl.hidden = false
+        this.#resetDisplayStyleOfElements([this.dropBuilderConflictsEl])
 
 
 
