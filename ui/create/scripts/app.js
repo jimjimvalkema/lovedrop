@@ -71,11 +71,12 @@ async function runOnLoad() {
 }
 
 async function test() {
+    const nftDisplayElement = document.getElementById("nftDisplay")
     window.DropBuilderTest = new DropBuilder({
         collectionAddress : undefined,
         provider : window.provider,
         ipfsGateway : window.ipfsGateway,
-        duplicatesNftDisplayElementId : "nftDisplay"
+        nftDisplayElementCriteriaBuilder : nftDisplayElement
     });
     
     //copy paste filters

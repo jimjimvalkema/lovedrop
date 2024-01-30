@@ -25,13 +25,13 @@ export class FilterBuilder {
      * @param {ethers.providers} provider 
      * @param {*} ipfsGateway 
      */
-    constructor({ collectionAddress, provider, ipfsGateway = "https://ipfs.io", displayElementId = "nftDisplay", filterSelectors=[] }) {
+    constructor({ collectionAddress, provider, displayElement ,ipfsGateway = "https://ipfs.io", filterSelectors=[] }) {
         //globals
         
         //this.collectionAddress = ethers.utils.getAddress(collectionAddress)
         this.ipfsGateway = ipfsGateway
         this.provider = provider
-        this.displayElementId = displayElementId
+        this.displayElement = displayElement
         this.filterSelectors = [...this.filterSelectors, ...filterSelectors] //used by addOptionToFilterSelectors removeOptionToFilterSelectors and updateOptionNameFromFilterSelectors
         this.setCollectionAddress(collectionAddress)
 
@@ -160,7 +160,7 @@ export class FilterBuilder {
         this.NftDisplay = new NftDisplay({
             collectionAddress: this.collectionAddress,
             provider: this.provider,
-            displayElementId: this.displayElementId,
+            displayElement: this.displayElement,
             ipfsGateway: this.ipfsGateway,
             nftMetaData: nftMetaData
         })

@@ -6,7 +6,7 @@ export const criterionFormat = {"name":"", "amountPerItem":"", "ids":[],"exclude
 export class CriteriaBuilder {
     ipfsGateway
     provider
-    nftDisplayElementId
+    nftDisplayElement
     filterBuilder
 
     criteria = []
@@ -30,10 +30,10 @@ export class CriteriaBuilder {
 
     criteriaMade = 0
 
-    constructor({ipfsGateway, provider, nftDisplayElementId, collectionAddress=undefined}) {
+    constructor({ipfsGateway, provider, nftDisplayElement, collectionAddress=undefined}) {
         this.ipfsGateway = ipfsGateway
         this.provider = provider
-        this.nftDisplayElementId = nftDisplayElementId
+        this.nftDisplayElement = nftDisplayElement
 
 
         document.getElementById(this.contractInput).addEventListener("keypress", (event)=>this.#setCollectionAddressHandler(event ,this.contractInput))
@@ -230,7 +230,7 @@ export class CriteriaBuilder {
             collectionAddress: collectionAddress,
             provider: this.provider,
             ipfsGateway: this.ipfsGateway,
-            displayElementId: this.nftDisplayElementId,
+            displayElement: this.nftDisplayElement,
             filterSelectors: [this.filterSelectorId]
         })
         const updateCriteriaIds = (filter, ids)=>this.#onFilterChange(filter, ids)

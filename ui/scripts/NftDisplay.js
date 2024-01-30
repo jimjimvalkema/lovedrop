@@ -35,26 +35,26 @@ export class NftDisplay {
      * initializes with the nft collection and ids if given
      * @param {string} collectionAddress 
      * @param {ethers.providers} provider 
-     * @param {string} displayElementId 
+     * @param {HTMLElement} displayElementId 
      * @param {number[]} ids 
      * @param {string} ipfsGateway
      * @param {NftMetaDataCollector} nftMetaData
      */
     constructor(
-        {collectionAddress,provider, displayElementId="", ids=[], ipfsGateway = "https://ipfs.io", 
+        {collectionAddress,provider, displayElement, ids=[], ipfsGateway = "https://ipfs.io", 
         landscapeOrientation = {["rowSize"]:8,["amountRows"]:2}, 
         portraitOrientation = {["rowSize"]:4,["amountRows"]:3},
-        nftMetaData}
+        nftMetaData, displayCollectionInfo = true}
     ) {
         this.ipfsGateway = ipfsGateway
         this.provider =provider
         this.ids = ids
-        this.displayElementId = displayElementId
         //TODO change all this.displayElementId to use the whole element and pass whole element in constructor instead of id
-        this.displayElement = document.getElementById(this.displayElementId)
+        this.displayElement = displayElement
 
         this.landscapeOrientation = landscapeOrientation
         this.portraitOrientation = portraitOrientation
+        this.displayCollectionInfo = displayCollectionInfo
 
         this.initialize(collectionAddress, nftMetaData)
 
@@ -68,12 +68,13 @@ export class NftDisplay {
             this.nftMetaData = nftMetaData
         }
 
+        this.setImageRasterOrientation()
+        this.changeOnRotate()
         await this.setCollectionAddress(collectionAddress)
 
         
 
-        this.setImageRasterOrientation()
-        this.changeOnRotate()
+
 
     }
 
@@ -232,9 +233,9 @@ export class NftDisplay {
      *
      * @param {function} func
      */
-    async addImageDivsFunction(func) {
+    async addImageDivsFunction(func, updateDisplay=true) {
         this.divFunctions.push(func)
-        if (document.getElementById(this.displayElementId).innerHTML) {
+        if (this.displayElement.innerHTML && updateDisplay) {
             //TODO remove only the div created by that function that needs to be removed
             this.#removeAllDivImageFromRootElement();
             await this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
@@ -402,7 +403,7 @@ export class NftDisplay {
      * @param {number} page 
      * @param {string} targetElementId 
      */
-    async selectPage(page, targetElementId=this.displayElementId) {
+    async selectPage(page) {
         //incase of refresh
         if (page !== this.currentPage) {
             this.#cancelLoadingImages(this.currentPage);
@@ -418,7 +419,7 @@ export class NftDisplay {
         //     this.imageRasterElement.replaceWith(newRasterDiv)
         // }
         
-        const existingPageSelector = document.getElementById(`pageSelector-${this.collectionAddress}`)
+        const existingPageSelector = document.getElementById(`pageSelector-${this.collectionAddress}`) //TODO reference element not id!! silly!!!!!
         if (existingPageSelector) {
             existingPageSelector.replaceWith(this.createPageSelector(page))
         }
@@ -577,16 +578,20 @@ export class NftDisplay {
      * @param {string} borderWidth 
      * @param {string} borderColor 
      */
-    async createDisplay(currentPage=this.currentPage, targetElementId=this.displayElementId, rowSize=this.rowSize, amountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor) {
+    async createDisplay(currentPage=this.currentPage, targetElement=this.displayElement, rowSize=this.rowSize, amountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor,collectionInfo=this.displayCollectionInfo ) {
         //TODO fix this by being more deliberate when and where the display is rerendered
         console.warn("if you see this more then twice in a row it means the dev is retarded")
         //TODO apply divFunctions and get image urls in 1 go
         //this.setImageRasterOrientation()
         this.currentPage =  this.#getValidPage(currentPage,this.ids.length, rowSize,amountRows)
 
-        const infoDiv =  this.#createInfoDiv(this.collectionAddress,this.nftMetaData, ids.length)
+        if (collectionInfo) {
+            const infoDiv =  this.#createInfoDiv(this.collectionAddress,this.nftMetaData, ids.length)
+            targetElement.append(await infoDiv)
 
-        let targetDiv = document.getElementById(targetElementId)
+        }
+    
+
         if (ids.length>0) {
             let imagesRasterDiv = await this.createImagesRaster(this.currentPage, rowSize, amountRows, ids, borderWidth, borderColor)
             imagesRasterDiv.id = `imagesRaster-${this.collectionAddress}`
@@ -594,12 +599,12 @@ export class NftDisplay {
             let pageSelectorDiv = this.createPageSelector(this.currentPage, rowSize, amountRows, ids)
             pageSelectorDiv.id = `pageSelector-${this.collectionAddress}`
 
-            targetDiv.append(await infoDiv,pageSelectorDiv, imagesRasterDiv)
+            targetElement.append(pageSelectorDiv, imagesRasterDiv)
 
         } else {
             let noIdsMessage = document.createElement("div")
             noIdsMessage.innerText = "no nfts found :("
-            targetDiv.append(await infoDiv, "no nfts found :(")
+            targetElement.append( "no nfts found :(")
         }
 
     
@@ -614,11 +619,11 @@ export class NftDisplay {
     }
 
     async clear(){
-        const displayElement = document.getElementById(this.displayElementId)
+        const displayElement = this.displayElement
         if(displayElement && displayElement.innerHTML) {
             await this.#removeAllDivImageFromRootElement()
             await this.#cancelLoadingImages()
-            document.getElementById(this.displayElementId).innerHTML = ""
+            this.displayElement.innerHTML = ""
         }
 
         displayElement.innerHTML = ""
@@ -800,7 +805,7 @@ export class NftDisplay {
     }
 
     async refreshImages(page=this.currentPage) {
-        await this.selectPage(page, this.displayElementId, false)
+        await this.selectPage(page)
 
     }
 
@@ -813,7 +818,7 @@ export class NftDisplay {
         if (page===0) {
             page=1
         }
-        await this.refreshImages(page, this.displayElementId, false)
+        await this.refreshImages(page)
         await this.refreshInfo()
     }
 
