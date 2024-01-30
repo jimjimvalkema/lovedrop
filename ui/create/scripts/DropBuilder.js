@@ -28,18 +28,18 @@ export class DropBuilder {
 
 
 
-    constructor({ collectionAddress, provider, ipfsGateway, nftDisplayElementIdCriteriaBuilder: nftDisplayElementIdCriteriaBuilder } = { collectionAddress: undefined, provider, ipfsGateway, nftDisplayElementIdCriteriaBuilder: nftDisplayElementIdCriteriaBuilder }) {
+    constructor({ collectionAddress, provider, ipfsGateway, nftDisplayElementCriteriaBuilder } = { collectionAddress: undefined, provider, ipfsGateway, nftDisplayElementCriteriaBuilder }) {
         this.criteriaBuilder = new CriteriaBuilder({
             collectionAddress: collectionAddress,
             provider: provider,
             ipfsGateway: ipfsGateway,
-            nftDisplayElementId: nftDisplayElementIdCriteriaBuilder
+            nftDisplayElement: nftDisplayElementCriteriaBuilder
         });
 
         this.collectionAddress = collectionAddress
         this.provider = provider
         this.ipfsGateway = ipfsGateway
-        this.nftDisplayElementIdCriteriaBuilder = nftDisplayElementIdCriteriaBuilder
+        this.nftDisplayElementCriteriaBuilder = nftDisplayElementCriteriaBuilder
 
         //initialize
         this.dropBuilderEl.style.display = "none"
@@ -194,7 +194,7 @@ export class DropBuilder {
                 document.getElementById(this.duplicatesNftDisplayId).append(element)
 
                 //create display
-                this.duplicatesNftDisplays[collectionAddress] = await this.createNftDisplay(collectionAddress, ids, elementId)
+                this.duplicatesNftDisplays[collectionAddress] = await this.createNftDisplay(collectionAddress, ids, element)
 
             }
 
@@ -202,14 +202,14 @@ export class DropBuilder {
 
     }
 
-    async createNftDisplay(collectionAddress, ids, elementId) {
+    async createNftDisplay(collectionAddress, ids, nftDisplayElement) {
         //this.nftMetaData = new NftMetaDataCollector(collectionAddress, this.provider, this.ipfsGateway)
         const nftMetaData = this.criteriaBuilder.filterBuilder.getNftMetaData(collectionAddress)
         let nftDisplay = new NftDisplay({
             ids: ids,
             collectionAddress: collectionAddress,
             provider: this.provider,
-            displayElementId: elementId,
+            displayElement: nftDisplayElement,
             ipfsGateway: this.ipfsGateway,
             nftMetaData: nftMetaData,
             landscapeOrientation: { ["rowSize"]: 7, ["amountRows"]: 1 }
@@ -217,7 +217,7 @@ export class DropBuilder {
         })
         //TODO am setting collection addres twice becuase initializing is async
         await nftDisplay.displayNames({ redirect: true })
-        await nftDisplay.addImageDivsFunction((id, nftDisplay) => this.#showCriteriaNftDisplay(id, nftDisplay))
+        await nftDisplay.addImageDivsFunction((id, nftDisplay) => this.#showCriteriaNftDisplay(id, nftDisplay), false)
         await nftDisplay.createDisplay()
 
         return nftDisplay
@@ -479,18 +479,7 @@ export class DropBuilder {
         this.criteriaPerIdNoConflicts = criteriaPerId
     }
 
-    /**
-     * 
-     * @param {CriteriaBuilder.criterionFormat} criterion} criterion 
-     * @returns {HTMLElement[]}
-     */
-    async #createCriterionOverviewTableItems(criterion) {
-        const criteriaEl = document.createElement("div")
-        const amountEl = document.createElement("div")
-        const collectionEl = document.createElement("div")
-        const nftsEl = document.createElement("div")
-
-
+    async #createCollectionElement(criterion) {
         //collectInfo
         //contract address
         const contractAddressLink = document.createElement("a")
@@ -498,7 +487,7 @@ export class DropBuilder {
         contractAddressLink.className = "address"
 
         //contractName
-        const contractName = await this.filterBuilder.getNftMetaData(criterion.collectionAddress).getContractName()
+        const contractName = await this.criteriaBuilder.filterBuilder.getNftMetaData(criterion.collectionAddress).getContractName()
 
         //add info to criteriaEl
         const wrapperDiv = document.createElement("div")
@@ -507,19 +496,107 @@ export class DropBuilder {
             document.createElement("br"), `contract: `,
             contractAddressLink
         )
-        criteriaEl.append(wrapperDiv)
+        const collectionEl = document.createElement("div")
+        collectionEl.append(wrapperDiv)
+        return collectionEl
+
+    }
+
+    #createCriteriaElement(criterion) {
+        const contentDiv = document.createElement("div")
+        contentDiv.innerText = `${criterion.name}`
+        const criteriaElement = document.createElement("div")
+        criteriaElement.append(contentDiv)
+        return criteriaElement
+    }
+
+    /**
+     * uses ethers formatEther to format a big int into a decimal 10^18 
+     * and adds a thousands separator 
+     * @param {Number|String|BigInt} number 
+     * @returns {String} number
+     */
+    #formatNumber(number) {
+        return new Intl.NumberFormat('en-EN').format(ethers.utils.formatEther((number)))
+    }
+
+    #createAmountElement(criterion) {
+        const contentElement = document.createElement("div")
+        console.log(criterion)
+        const totatAmount = criterion.amountPerItem*(criterion.ids.length-criterion.excludedIds.length)
+        const amountPerItem = criterion.amountPerItem
+        contentElement.append(
+            `total: ${this.#formatNumber(totatAmount)}`,
+                document.createElement("br"),
+                `amount per nft ${this.#formatNumber(amountPerItem)}`
+                )
+        const amountElement = document.createElement("div")
+        amountElement.append(contentElement)
+        return amountElement
+
+    }
+
+    async #createNftsElement(criterion) {
+        const ids = criterion.ids.filter((id)=>criterion.excludedIds.indexOf(id)===-1)
+        const collectionAddress = ethers.utils.getAddress(criterion.collectionAddress)
+        const contentElement = document.createElement("div")
+        const nftMetaData = this.criteriaBuilder.filterBuilder.getNftMetaData(collectionAddress)
+        contentElement.id = `${collectionAddress}-${criterion.name}-${criterion.index}`
+
+        const landscapeOrientation = {"rowSize":5,"amountRows":1}
+        const portraitOrientation = {"rowSize":3,"amountRows":1}
+        const nftDisplay = new NftDisplay({
+            ids: ids,
+            collectionAddress: collectionAddress,
+            displayElement: contentElement,
+
+            nftMetaData: nftMetaData,
+            provider: this.provider,
+            ipfsGateway: this.ipfsGateway,
+
+            landscapeOrientation: landscapeOrientation,
+            portraitOrientation: portraitOrientation,
+            displayCollectionInfo: false
+        })
+        
+        nftDisplay.displayNames({ redirect: true })
+        await nftDisplay.addImageDivsFunction((id, nftDisplay) => this.#showCriteriaNftDisplay(id, nftDisplay), false)
+        await nftDisplay.createDisplay()
+
+        // const nftsEl = document.createElement("div")
+        // nftsEl.append(contentElement)
+        return contentElement
+
+    }
+
+    /**
+     * 
+     * @param {CriteriaBuilder.criterionFormat} criterion 
+     * @returns {HTMLElement[]}
+     */
+    async #createCriterionOverviewTableItems(criterion) {
+        const criteriaEl = this.#createCriteriaElement(criterion) 
+        const amountEl = this.#createAmountElement(criterion)
+        const collectionEl = this.#createCollectionElement(criterion)
+        const nftsEl = this.#createNftsElement(criterion)
 
 
-
-        const itemElements = [criteriaEl, amountEl, collectionEl, nftsEl]
+        let itemElements = [criteriaEl, amountEl, collectionEl, nftsEl]
+        itemElements = await Promise.all(itemElements)
         itemElements.forEach((item) => item.className = "criteriaTableItem")
         return itemElements
     }
 
-    #confirmConflictResolutionHandler() {
+    async #confirmConflictResolutionHandler() {
         if (this.criteriaPerIdNoConflicts) {
             this.#resetDisplayStyleOfElements([this.distrobutionOverViewEl])
             this.#setDisplayStyleOfElements([this.dropBuilderConflictsEl], "none")
+            let tableRows = []
+            for (const criterion of this.criteriaBuilder.criteria) {
+                tableRows.push(this.#createCriterionOverviewTableItems(criterion))
+            }
+            tableRows = await Promise.all(tableRows)
+            this.criteriaTableEl.append(...tableRows.flat())
         } else {
             throw new Error(`whoops tried to go to the next step but this.criteriaPerIdNoConflicts was set to: ${this.criteriaPerIdNoConflicts}`)
         }
