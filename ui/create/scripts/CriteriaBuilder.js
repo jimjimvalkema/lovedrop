@@ -160,8 +160,11 @@ export class CriteriaBuilder {
             return false
         }
         if (value) {
-            // value stays as string for accuracy
+
+        
             criterion.amountPerItem = value
+
+
 
         } else {
             //document.getElementById(this.amountInputId).value = criterion.amountPerItem

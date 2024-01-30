@@ -6,6 +6,7 @@ import { FilterBuilder, filterTemplate } from "./FilterBuilder.js"
 
 export class DropBuilder {
     criteriaBuilder
+    erc20Units = 18 //TODO set this in u
 
     duplicatesNftDisplayId = "duplicatesNftDisplay"
     conflictResolutionSelector = document.getElementById("criteriaConflictsResolutionSelection")
@@ -313,9 +314,13 @@ export class DropBuilder {
             (id) => {
                 const total = criteriaPerIds[id].reduce(
                     //TODO!!!! do this with bigInt because this is dangerous!!!
-                    (partialSum, criteria) => partialSum + Number(criteria.amountPerItem), 0
+                    (partialSum, criterion) =>{
+                        const amountPerItem =  ethers.utils.parseUnits(criterion.amountPerItem,this.erc20Units)
+                        return amountPerItem.add(partialSum)
+
+                    } ,ethers.BigNumber.from(0)
                 )
-                return [id, total]
+                return [id, ethers.utils.formatUnits(total, this.erc20Units)]
             }
         )
         const totalsPerId = Object.fromEntries(totalsPerIdEntries)
@@ -522,8 +527,10 @@ export class DropBuilder {
 
     #createAmountElement(criterion) {
         const contentElement = document.createElement("div")
-        const totatAmount = criterion.amountPerItem*(criterion.ids.length-criterion.excludedIds.length)
-        const amountPerItem = criterion.amountPerItem
+        //we doing big numbers B)
+        const amountPerItem = ethers.utils.parseUnits(criterion.amountPerItem,this.erc20Units)
+        const totatAmount = amountPerItem.mul((criterion.ids.length-criterion.excludedIds.length))
+        
         contentElement.append(
             `total: ${this.#formatNumber(totatAmount)}`,
                 document.createElement("br"),
@@ -542,7 +549,7 @@ export class DropBuilder {
         const nftMetaData = this.criteriaBuilder.filterBuilder.getNftMetaData(collectionAddress)
         contentElement.id = `${collectionAddress}-${criterion.name}-${criterion.index}`
 
-        const landscapeOrientation = {"rowSize":6,"amountRows":1}
+        const landscapeOrientation = {"rowSize":5,"amountRows":1}
         const portraitOrientation = {"rowSize":3,"amountRows":1}
         const nftDisplay = new NftDisplay({
             ids: ids,
