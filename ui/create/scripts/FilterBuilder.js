@@ -228,8 +228,8 @@ export class FilterBuilder {
         const ids  = [...resultIdSet]
 
         if (updateIU) {
-            if (this.NftDisplay.currentAllImagesDiv) {
-                const oldImgElements = [...this.NftDisplay.currentAllImagesDiv.querySelectorAll(".nftImagesDiv")]
+            if (this.NftDisplay.imageRasterElement) {
+                const oldImgElements = [...this.NftDisplay.imageRasterElement.querySelectorAll(".nftImagesDiv")]
                 oldImgElements.forEach((img)=> img.style.opacity = 0);
                 await this.NftDisplay.clear()
             }
@@ -241,7 +241,7 @@ export class FilterBuilder {
             // setTimeout(() => {
             //    imgeElements.forEach((img)=> img.style.opacity = 1)
             //   }, 250);
-            const imgElements = [...this.NftDisplay.currentAllImagesDiv.querySelectorAll(".nftImagesDiv")]
+            const imgElements = [...this.NftDisplay.imageRasterElement.querySelectorAll(".nftImagesDiv")]
             imgElements.forEach((img)=> img.style.opacity = 0);
             setTimeout(() => {imgElements.forEach((img)=> img.style.opacity = 1)}, 50)
         

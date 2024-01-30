@@ -522,7 +522,6 @@ export class DropBuilder {
 
     #createAmountElement(criterion) {
         const contentElement = document.createElement("div")
-        console.log(criterion)
         const totatAmount = criterion.amountPerItem*(criterion.ids.length-criterion.excludedIds.length)
         const amountPerItem = criterion.amountPerItem
         contentElement.append(
@@ -543,7 +542,7 @@ export class DropBuilder {
         const nftMetaData = this.criteriaBuilder.filterBuilder.getNftMetaData(collectionAddress)
         contentElement.id = `${collectionAddress}-${criterion.name}-${criterion.index}`
 
-        const landscapeOrientation = {"rowSize":5,"amountRows":1}
+        const landscapeOrientation = {"rowSize":6,"amountRows":1}
         const portraitOrientation = {"rowSize":3,"amountRows":1}
         const nftDisplay = new NftDisplay({
             ids: ids,
@@ -560,7 +559,8 @@ export class DropBuilder {
         })
         
         nftDisplay.displayNames({ redirect: true })
-        await nftDisplay.addImageDivsFunction((id, nftDisplay) => this.#showCriteriaNftDisplay(id, nftDisplay), false)
+        await nftDisplay.showAttributes()
+        //await nftDisplay.addImageDivsFunction((id, nftDisplay) => this.#showCriteriaNftDisplay(id, nftDisplay), false)
         await nftDisplay.createDisplay()
 
         // const nftsEl = document.createElement("div")

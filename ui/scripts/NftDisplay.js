@@ -292,7 +292,7 @@ export class NftDisplay {
         let allResults = []
         for (const [index, id] of idsCurrentPage.entries()) {
             
-            const imageDiv = this.currentAllImagesDiv.querySelectorAll(`.rootDiv-${id}-${this.collectionAddress}`)[0]
+            const imageDiv = this.imageRasterElement.querySelectorAll(`.rootDiv-${id}-${this.collectionAddress}`)[0]
             let results = divFunctions.map((x)=>x(id, this))
             for (const result of results) {
                 allResults.push(result)
@@ -312,7 +312,7 @@ export class NftDisplay {
         allResults = await Promise.all(allResults)
 
         //TODO this breaks when nftName function name changes
-        if(this.currentAllImagesDiv) {
+        if(this.imageRasterElement) {
             if (-1 !== divFunctions.findIndex((f)=>f.name ==="nftNameWithOpenSeaProRedirect" ||f.name ==="nftName")) {
                 this.#resizeImagesWidthNameHeight()
             }
@@ -348,21 +348,21 @@ export class NftDisplay {
         const lastPageFunc  =  (e) => {this.selectPage(lastPage)} //, targetElementId, rowSize, amountRows, ids, borderWidth, borderColor)};
 
         let prevPageButton = document.createElement("button")
-        Object.assign(prevPageButton, {["onclick"]: prevPageFunc,   ["innerText"]: "prev"})
+        Object.assign(prevPageButton, {["onclick"]: prevPageFunc,   ["innerText"]: "prev", ["className"]:"prev"})
 
         let nextPageButton = document.createElement("button")
-        Object.assign(nextPageButton, {["onclick"]: nextPageFunc,   ["innerText"]: "next"})
+        Object.assign(nextPageButton, {["onclick"]: nextPageFunc,   ["innerText"]: "next", ["className"]:"next"})
         
         let firstPageButton = document.createElement("button")
-        Object.assign(firstPageButton, {["onclick"]: firstPageFunc, ["innerText"]: "first"})
+        Object.assign(firstPageButton, {["onclick"]: firstPageFunc, ["innerText"]: "first", ["className"]:"first"})
         
         let lastPageButton = document.createElement("button")
-        Object.assign(lastPageButton, {["onclick"]: lastPageFunc,   ["innerText"]: "last"})
+        Object.assign(lastPageButton, {["onclick"]: lastPageFunc,   ["innerText"]: "last", ["className"]:"last"})
 
         let selectorDiv = document.createElement("div")
 
         selectorDiv.append(prevPageButton,nextPageButton,firstPageButton,lastPageButton,` page ${currentPage} of ${lastPage} pages`)
-        selectorDiv.id = `pageSelector-${this.collectionAddress}`
+        selectorDiv.id =  `pageSelector-${currentPage}-${this.collectionAddress}`
         return selectorDiv
     }
 
@@ -373,25 +373,27 @@ export class NftDisplay {
      * @param {number} amountRows 
      * @param {number[]} ids 
      */
-    async #cancelLoadingImages(currentPage = this.currentPage, rowSize=this.rowSize,amountRows=this.amountRows, ids=this.ids) {
-        const maxPerPage = rowSize*amountRows
-        const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
-        await Promise.all(idsCurrentPage.map((id)=>this.#cancelLoadingImage(`img-${id}-${this.collectionAddress}`)))
+    #cancelLoadingImages(currentPage = this.currentPage, rowSize=this.rowSize,amountRows=this.amountRows, ids=this.ids) {
+        //const maxPerPage = rowSize*amountRows
+        //const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
+        if (this.imageRasterElement) {
+            const imgDivs = [...this.imageRasterElement.querySelectorAll(".nftDisplayImageElement")]
+            imgDivs.map((imgElement)=>this.#cancelLoadingImage(imgElement))
+            //await Promise.all(imgDivs.map((imgElement)=>this.#cancelLoadingImage(imgElement)))
+        }
+
     }
 
-    async #cancelLoadingImage(elementId) {
+    async #cancelLoadingImage(imgElement) {
         //TODO maybe cancel nftMetaDataCollector.getImage() with signals?
         //getImage can be slow which means the img.src isnt set for a while
-        let imgElement = document.getElementById(elementId) 
-        for (let index = 0; index < 2000; index++) {
-            if (imgElement && "src" in  imgElement) {
-                imgElement.src = ""
-                return 1
-            } else {
-                await delay(100)
-            }
+        //let imgElement = document.getElementById(elementId) 
+        // for (let index = 0; index < 2000; index++) {
+        if (imgElement && "src" in  imgElement) {
+            imgElement.src = ""
+            return 1
         }
-        console.log("am giving up :(")
+
         return 0
  
 
@@ -404,25 +406,29 @@ export class NftDisplay {
      * @param {string} targetElementId 
      */
     async selectPage(page) {
+        if (this.pageSelectorElement) {
+            const newPageSelector = this.createPageSelector(page)
+            this.pageSelectorElement.replaceWith(newPageSelector)
+            this.pageSelectorElement = newPageSelector
+        }
+        
+
+
         //incase of refresh
         if (page !== this.currentPage) {
             this.#cancelLoadingImages(this.currentPage);
         }
-        
-
-
         this.currentPage = page;
-
-        //const newRasterDiv = 
-        await this.createImagesRaster(page)
-        // if(this.imageRasterElement){
-        //     this.imageRasterElement.replaceWith(newRasterDiv)
-        // }
         
-        const existingPageSelector = document.getElementById(`pageSelector-${this.collectionAddress}`) //TODO reference element not id!! silly!!!!!
-        if (existingPageSelector) {
-            existingPageSelector.replaceWith(this.createPageSelector(page))
+
+        const newRasterElement = await this.createImagesRaster(page)
+        if(this.imageRasterElement){
+            this.imageRasterElement.replaceWith(newRasterElement)
+            this.imageRasterElement = newRasterElement
         }
+        
+        //const existingPageSelector = document.getElementById(`pageSelector-${this.collectionAddress}`) //TODO reference element not id!! silly!!!!!
+
 
        
 
@@ -564,7 +570,6 @@ export class NftDisplay {
             });
             
         })
-        this.currentAllImagesDiv = this.imageRasterElement
         return this.imageRasterElement
     }
 
@@ -596,10 +601,10 @@ export class NftDisplay {
             let imagesRasterDiv = await this.createImagesRaster(this.currentPage, rowSize, amountRows, ids, borderWidth, borderColor)
             imagesRasterDiv.id = `imagesRaster-${this.collectionAddress}`
 
-            let pageSelectorDiv = this.createPageSelector(this.currentPage, rowSize, amountRows, ids)
-            pageSelectorDiv.id = `pageSelector-${this.collectionAddress}`
+            this.pageSelectorElement = this.createPageSelector(this.currentPage, rowSize, amountRows, ids)
+            //this.pageSelectorElement.id = `pageSelector-${currentPage}-${this.collectionAddress}`
 
-            targetElement.append(pageSelectorDiv, imagesRasterDiv)
+            targetElement.append(this.pageSelectorElement, imagesRasterDiv)
 
         } else {
             let noIdsMessage = document.createElement("div")
@@ -618,11 +623,11 @@ export class NftDisplay {
     
     }
 
-    async clear(){
+    clear(){
         const displayElement = this.displayElement
         if(displayElement && displayElement.innerHTML) {
-            await this.#removeAllDivImageFromRootElement()
-            await this.#cancelLoadingImages()
+            this.#removeAllDivImageFromRootElement()
+            this.#cancelLoadingImages()
             this.displayElement.innerHTML = ""
         }
 
@@ -712,10 +717,10 @@ export class NftDisplay {
         //TODO do this separate function
         //TODO doesnt re-size if spam clicking (nftNameElement will be undefined)
 
-        const nftNameElement = [...this.currentAllImagesDiv.querySelectorAll(".nftName")][0]
+        const nftNameElement = [...this.imageRasterElement.querySelectorAll(".nftName")][0]
         if (nftNameElement) {
-            const attributeElements = [...this.currentAllImagesDiv.querySelectorAll(".attributesNftDisplayContent")]
-            const imgElements = [...this.currentAllImagesDiv.querySelectorAll(".nftDisplayImageElement")]
+            const attributeElements = [...this.imageRasterElement.querySelectorAll(".attributesNftDisplayContent")]
+            const imgElements = [...this.imageRasterElement.querySelectorAll(".nftDisplayImageElement")]
 
             const nftNameSize = getComputedStyle(nftNameElement).height 
             for (const img of imgElements) {
@@ -729,6 +734,8 @@ export class NftDisplay {
                 }
             }
 
+        } else {
+            console.warn("couldn't resize img elements")
         }
 
     }
