@@ -739,12 +739,12 @@ export class NftMetaDataCollector {
         let matchingIds = new Set()
         if (!idSet || idSet.size === 0) {
             if (endId === null) {
-                endId = await this.getTotalSupply()
+                endId = await this.getLastId()
             }
 
             if (this.idsPerAttribute) {
                 let allIds = this.getIdsWithIdsPerAttribute(attribute)
-                if (startId === 0 && endId === await this.getTotalSupply()) {
+                if (startId === 0 && endId === await this.getLastId()) {
                     matchingIds = new Set([...allIds])
                 } else {
                     matchingIds = new Set([...this.getNumberWithinRange(allIds, startId, endId)])
@@ -883,9 +883,7 @@ export class NftMetaDataCollector {
             }
         }
 
-        console.log("conditions?")
         if ("conditions" in inputs && typeof (inputs.conditions) === "object" && Object.keys(inputs.conditions).length) {//TODO this can be a function?
-            console.log("yes")
             const conditionsClone = structuredClone(inputs.conditions)
             let newIdSets = []
             for (const con of conditionsClone) {
@@ -1095,6 +1093,7 @@ export class NftMetaDataCollector {
     }
 
     async buildIdsPerAttributeFromUriCache(uriCache, keepIds = true) {
+        //TODO research if storing the id as string makes sense. it might be saver for large ids since js is bad with numbers. But strings are larger.
 
         if (!this.uriCache || !this.uriCache.length) {
             this.uriCache = await this.syncUriCache()

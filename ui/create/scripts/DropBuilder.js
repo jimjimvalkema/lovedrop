@@ -313,14 +313,13 @@ export class DropBuilder {
         const totalsPerIdEntries = ids.map(
             (id) => {
                 const total = criteriaPerIds[id].reduce(
-                    //TODO!!!! do this with bigInt because this is dangerous!!!
                     (partialSum, criterion) =>{
                         const amountPerItem =  ethers.utils.parseUnits(criterion.amountPerItem,this.erc20Units)
                         return amountPerItem.add(partialSum)
 
                     } ,ethers.BigNumber.from(0)
                 )
-                return [id, ethers.utils.formatUnits(total, this.erc20Units)]
+                return [parseInt(id), ethers.utils.formatUnits(total, this.erc20Units)]
             }
         )
         const totalsPerId = Object.fromEntries(totalsPerIdEntries)
@@ -332,7 +331,7 @@ export class DropBuilder {
         const amountPerId = Object.fromEntries(Object.keys(idsWithAmount).map((id) => [idsWithAmount[id], []]))
         for (const id in idsWithAmount) {
             const amount = idsWithAmount[id]
-            amountPerId[amount].push(id)
+            amountPerId[amount].push(parseInt(id))
         }
         return amountPerId
     }
@@ -389,6 +388,18 @@ export class DropBuilder {
         //TODO this breaks on multi collections
         if (mode === "add") {
             const criteriaPerIdsOnlyDuplicates = this.getIdsWithDuplicateCriteria(criteriaPerIds)
+
+            //add duplcate ids to exclude ids arr of these criteria
+            console.log(criteriaPerIdsOnlyDuplicates)
+            //TODO this is likley inefficient
+            //TODO rewrite this so newCriterion are made based on which criterion are combine and not on the resulting amount the ids have incommen 
+            Object.keys(criteriaPerIdsOnlyDuplicates).forEach((collection)=>{
+                const criterionsPerId = criteriaPerIdsOnlyDuplicates[collection]
+                Object.keys(criterionsPerId).forEach((id)=>{
+                    criterionsPerId[id].forEach((criterion)=>criterion.excludedIds.push(parseInt(id)))
+                })
+            })
+
             const idsPerAmountsPerCollection = this.addAmountsTogether(criteriaPerIdsOnlyDuplicates)
 
             for (const collection in idsPerAmountsPerCollection) {
@@ -435,7 +446,7 @@ export class DropBuilder {
 
                             //track ids who are removed
                             criteriaArr.forEach(criterion => {
-                                criterion.excludedIds.push(id)
+                                criterion.excludedIds.push(parseInt(id))
                             });
                         } else {
                             //set selected criterion
@@ -445,7 +456,7 @@ export class DropBuilder {
                             //track ids who are removed
                             const removedCriteria = criteriaArr.toSpliced(index, 1)
                             removedCriteria.forEach(criterion => {
-                                criterion.excludedIds.push(id)
+                                criterion.excludedIds.push(parseInt(id))
                             });
                         }
                     }
