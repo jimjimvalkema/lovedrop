@@ -313,11 +313,11 @@ export class DropBuilder {
         const totalsPerIdEntries = ids.map(
             (id) => {
                 const total = criteriaPerIds[id].reduce(
-                    (partialSum, criterion) =>{
-                        const amountPerItem =  ethers.utils.parseUnits(criterion.amountPerItem,this.erc20Units)
+                    (partialSum, criterion) => {
+                        const amountPerItem = ethers.utils.parseUnits(criterion.amountPerItem, this.erc20Units)
                         return amountPerItem.add(partialSum)
 
-                    } ,ethers.BigNumber.from(0)
+                    }, ethers.BigNumber.from(0)
                 )
                 return [parseInt(id), ethers.utils.formatUnits(total, this.erc20Units)]
             }
@@ -371,6 +371,24 @@ export class DropBuilder {
     }
 
     /**
+     * tests if arrays have the same content regardless of order of items
+     * @param {Array} testArr 
+     * @param {Array} searchArr 
+     * @returns {boolean}
+     */
+    #arrayHasSameContents(testArr, searchArr) {
+        const testSet = new Set(testArr)
+        const searchSet = new Set(searchArr)
+        if (testSet.size === searchSet.size) {
+            return [...searchSet].every((item) => testSet.has(item))
+        } else {
+            return false
+        }
+    }
+
+
+
+    /**
      * 
      * @param {String} mode "smallest", "largest", "last", "first" or "remove"
      * @param {Object} criteriaPerIds  {"0x5Af0D9827E0c53E4799BB226655A1de152A425a5": {1: [criterionObj, criterionObj], 2: [criterionObj]}}
@@ -388,48 +406,66 @@ export class DropBuilder {
         //TODO this breaks on multi collections
         if (mode === "add") {
             const criteriaPerIdsOnlyDuplicates = this.getIdsWithDuplicateCriteria(criteriaPerIds)
+            const criterionWithReferenceIndexes = []
 
-            //add duplcate ids to exclude ids arr of these criteria
-            console.log(criteriaPerIdsOnlyDuplicates)
-            //TODO this is likley inefficient
-            //TODO rewrite this so newCriterion are made based on which criterion are combine and not on the resulting amount the ids have incommen 
-            Object.keys(criteriaPerIdsOnlyDuplicates).forEach((collection)=>{
-                const criterionsPerId = criteriaPerIdsOnlyDuplicates[collection]
-                Object.keys(criterionsPerId).forEach((id)=>{
-                    criterionsPerId[id].forEach((criterion)=>criterion.excludedIds.push(parseInt(id)))
-                })
-            })
+            for (const collection of Object.keys(criteriaPerIdsOnlyDuplicates)) {
+                this.criteriaForConflictResolution[collection] = []
+                const ids = Object.keys(criteriaPerIdsOnlyDuplicates[collection]).map((id) => parseInt(id))
+                console.log(ids)
 
-            const idsPerAmountsPerCollection = this.addAmountsTogether(criteriaPerIdsOnlyDuplicates)
+                for (const id of ids) {
+                    //track excluded ids and criteria indexes
+                    const criteria = criteriaPerIdsOnlyDuplicates[collection][id]
+                    let criteriaIndexesOfId = []
+                    criteria.forEach((criterion) => {
+                        criterion.excludedIds.push(id)
+                        criteriaIndexesOfId.push(criterion.index)
+                    })
 
-            for (const collection in idsPerAmountsPerCollection) {
-                for (const amount in idsPerAmountsPerCollection[collection]) {
-                    const ids = idsPerAmountsPerCollection[collection][amount]
+                    //check if a criterion was alreade made for this combination of criteria
+                    let index = criterionWithReferenceIndexes.findIndex((i) => this.#arrayHasSameContents(i.criteriaIndexes, criteriaIndexesOfId))
 
-                    //create criterion to track ids with new summed amount
-                    //TODO why is this grabbing the wrong name lmao
-                    const collectionName = await this.criteriaBuilder.filterBuilder.getNftMetaData(collection).getContractName()
-                    const criterionName = `summedConflictingCriterion-${collectionName}-${amount}`
+                    //create new criterion if it isnt in there
+                    if (index === -1) {
+                        ////create new criterion TODO function
+                        const newCriterion = await this.criteriaBuilder.createCriterion(collection)
+                        newCriterion.ids = []
 
-                    const newCriterion = await this.createCriterionWithIds(collection, ids, criterionName)
-                    this.criteriaBuilder.setAmountPerItem(amount, newCriterion.index)
+                        //update name
+                        const allCriterionNames = criteriaIndexesOfId.reduce((name, index) => {
+                            return name += `${this.criteriaBuilder.criteria[index].name}-`
+                        }, "").slice(0, -1)
+                        console.log(allCriterionNames)
+                        const name = `conflictingIdsOf-${allCriterionNames}`
+                        await this.criteriaBuilder.updateCriterionName(newCriterion.index, name)
+                        this.criteriaBuilder.filterBuilder.changeFilterName(name, newCriterion.selectedFilter.index)
 
-                    if (this.criteriaForConflictResolution[collection]) {
+                        //set amount
+                        const amountBigNumber = criteriaIndexesOfId.reduce(
+                            (partialSum, index) =>{
+                                const amountPerItem = ethers.utils.parseUnits(this.criteriaBuilder.criteria[index].amountPerItem, this.erc20Units)
+                                return amountPerItem.add(partialSum)
+                            }, ethers.BigNumber.from(0)
+                            )
+                        newCriterion.amountPerItem = ethers.utils.formatUnits(amountBigNumber, this.erc20Units)
+
+                        //add newCriterion
+                        criterionWithReferenceIndexes.push(
+                            {
+                                "criteriaIndexes": criteriaIndexesOfId,
+                                "criterion": newCriterion
+                            }
+                        )
+                        index = criterionWithReferenceIndexes.length-1
+
+                        //add new criterion to confliction resultion criteria
                         this.criteriaForConflictResolution[collection].push(newCriterion)
-                    } else {
-                        this.criteriaForConflictResolution[collection] = [newCriterion]
                     }
 
-
-                    //assing all ids this criterion
-                    ids.forEach((id) => filteredCriteria[collection][id] = newCriterion)
-                }
-
-                //converst ids with no criterion to a single criterion instead of an array
-                for (const id in criteriaPerIds[collection]) {
-                    if (criteriaPerIds[collection][id].length === 1) {
-                        filteredCriteria[collection][id] = criteriaPerIds[collection][id][0]
-                    }
+                    //add id
+                    criterionWithReferenceIndexes[index].criterion.ids.push(id)
+                    criterionWithReferenceIndexes[index].criterion.selectedFilter.inputs.idList.push(id)
+                    filteredCriteria[collection][id] = criterionWithReferenceIndexes[index].criterion
                 }
             }
             return filteredCriteria
@@ -539,14 +575,14 @@ export class DropBuilder {
     #createAmountElement(criterion) {
         const contentElement = document.createElement("div")
         //we doing big numbers B)
-        const amountPerItem = ethers.utils.parseUnits(criterion.amountPerItem,this.erc20Units)
-        const totatAmount = amountPerItem.mul((criterion.ids.length-criterion.excludedIds.length))
-        
+        const amountPerItem = ethers.utils.parseUnits(criterion.amountPerItem, this.erc20Units)
+        const totatAmount = amountPerItem.mul((criterion.ids.length - criterion.excludedIds.length))
+
         contentElement.append(
             `total: ${this.#formatNumber(totatAmount)}`,
-                document.createElement("br"),
-                `amount per nft ${this.#formatNumber(amountPerItem)}`
-                )
+            document.createElement("br"),
+            `amount per nft ${this.#formatNumber(amountPerItem)}`
+        )
         const amountElement = document.createElement("div")
         amountElement.append(contentElement)
         return amountElement
@@ -554,14 +590,14 @@ export class DropBuilder {
     }
 
     async #createNftsElement(criterion) {
-        const ids = criterion.ids.filter((id)=>criterion.excludedIds.indexOf(id)===-1)
+        const ids = criterion.ids.filter((id) => criterion.excludedIds.indexOf(id) === -1)
         const collectionAddress = ethers.utils.getAddress(criterion.collectionAddress)
         const contentElement = document.createElement("div")
         const nftMetaData = this.criteriaBuilder.filterBuilder.getNftMetaData(collectionAddress)
         contentElement.id = `${collectionAddress}-${criterion.name}-${criterion.index}`
 
-        const landscapeOrientation = {"rowSize":5,"amountRows":1}
-        const portraitOrientation = {"rowSize":3,"amountRows":1}
+        const landscapeOrientation = { "rowSize": 5, "amountRows": 1 }
+        const portraitOrientation = { "rowSize": 3, "amountRows": 1 }
         const nftDisplay = new NftDisplay({
             ids: ids,
             collectionAddress: collectionAddress,
@@ -575,7 +611,7 @@ export class DropBuilder {
             portraitOrientation: portraitOrientation,
             displayCollectionInfo: false
         })
-        
+
         nftDisplay.displayNames({ redirect: true })
         await nftDisplay.showAttributes()
         //await nftDisplay.addImageDivsFunction((id, nftDisplay) => this.#showCriteriaNftDisplay(id, nftDisplay), false)
@@ -593,7 +629,7 @@ export class DropBuilder {
      * @returns {HTMLElement[]}
      */
     async #createCriterionOverviewTableItems(criterion) {
-        const criteriaEl = this.#createCriteriaElement(criterion) 
+        const criteriaEl = this.#createCriteriaElement(criterion)
         const amountEl = this.#createAmountElement(criterion)
         const collectionEl = this.#createCollectionElement(criterion)
         const nftsEl = this.#createNftsElement(criterion)
