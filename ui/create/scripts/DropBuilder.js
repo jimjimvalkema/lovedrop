@@ -433,10 +433,10 @@ export class DropBuilder {
 
                         //update name
                         const allCriterionNames = criteriaIndexesOfId.reduce((name, index) => {
-                            return name += `${this.criteriaBuilder.criteria[index].name}-`
-                        }, "").slice(0, -1)
+                            return name += `${this.criteriaBuilder.criteria[index].name}, `
+                        }, "").slice(0, -2)
                         console.log(allCriterionNames)
-                        const name = `conflictingIdsOf-${allCriterionNames}`
+                        const name = `overlappingCriteria: ${allCriterionNames}`
                         await this.criteriaBuilder.updateCriterionName(newCriterion.index, name)
                         this.criteriaBuilder.filterBuilder.changeFilterName(name, newCriterion.selectedFilter.index)
 
@@ -537,6 +537,7 @@ export class DropBuilder {
         const contractAddressLink = document.createElement("a")
         contractAddressLink.href = `https://etherscan.io/address/${criterion.collectionAddress}`
         contractAddressLink.className = "address"
+        contractAddressLink.innerText = criterion.collectionAddress
 
         //contractName
         const contractName = await this.criteriaBuilder.filterBuilder.getNftMetaData(criterion.collectionAddress).getContractName()
@@ -556,7 +557,8 @@ export class DropBuilder {
 
     #createCriteriaElement(criterion) {
         const contentDiv = document.createElement("div")
-        contentDiv.innerText = `${criterion.name}`
+        contentDiv.append(`name:"${criterion.name}"`, document.createElement("br"),document.createElement("br"), `filter:"${criterion.selectedFilter.filterName}"`)
+        contentDiv.className = "criterionNameTableItem"
         const criteriaElement = document.createElement("div")
         criteriaElement.append(contentDiv)
         return criteriaElement
@@ -637,7 +639,7 @@ export class DropBuilder {
 
         let itemElements = [criteriaEl, amountEl, collectionEl, nftsEl]
         itemElements = await Promise.all(itemElements)
-        itemElements.forEach((item) => item.className = "criteriaTableItem")
+        itemElements.forEach((item) => item.className += " criteriaTableItem")
         return itemElements
     }
 
