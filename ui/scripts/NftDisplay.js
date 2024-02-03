@@ -42,8 +42,8 @@ export class NftDisplay {
      */
     constructor(
         {collectionAddress,provider, displayElement, ids=[], ipfsGateway = "https://ipfs.io", 
-        landscapeOrientation = {["rowSize"]:8,["amountRows"]:2}, 
-        portraitOrientation = {["rowSize"]:4,["amountRows"]:3},
+        landscapeOrientation = {["rowSize"]:6,["amountRows"]:2}, 
+        portraitOrientation = {["rowSize"]:3,["amountRows"]:4},
         nftMetaData, displayCollectionInfo = true}
     ) {
         this.ipfsGateway = ipfsGateway
@@ -406,6 +406,9 @@ export class NftDisplay {
      * @param {string} targetElementId 
      */
     async selectPage(page) {
+        const computedHeight = getComputedStyle(this.imageRasterElement).height
+        const initialHeight = this.imageRasterElement.style.height
+
         if (this.pageSelectorElement) {
             const newPageSelector = this.createPageSelector(page)
             this.pageSelectorElement.replaceWith(newPageSelector)
@@ -413,19 +416,23 @@ export class NftDisplay {
         }
         
 
-
+        
         //incase of refresh
         if (page !== this.currentPage) {
             this.#cancelLoadingImages(this.currentPage);
         }
         this.currentPage = page;
         
-
+        
         const newRasterElement = await this.createImagesRaster(page)
         if(this.imageRasterElement){
             this.imageRasterElement.replaceWith(newRasterElement)
             this.imageRasterElement = newRasterElement
         }
+
+        //to prevent the height from jumping. but is set to fit-content after a second when images are loaded
+        this.imageRasterElement.style.height = computedHeight
+        setTimeout(()=>this.imageRasterElement.style.height=initialHeight, 1000 )
         
         //const existingPageSelector = document.getElementById(`pageSelector-${this.collectionAddress}`) //TODO reference element not id!! silly!!!!!
 
