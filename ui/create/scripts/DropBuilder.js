@@ -89,7 +89,7 @@ export class DropBuilder {
         elements.forEach((el) => el.style.display = this.originalElementDisplayValues[el.id])
     }
 
-    toggleFinalizeDropView() {
+    async toggleFinalizeDropView() {
         if (this.dropBuilderEl.style.display === "none") {
             //toggle display
             this.#setDisplayStyleOfElements([this.criteriaBuilderEl, this.distrobutionOverViewEl], "none")
@@ -104,18 +104,17 @@ export class DropBuilder {
 
             //displayduplicates
             if (validCriteria.length) {
-                const duplicates = this.getIdsWithDuplicateCriteria(this.criteriaPerIds)
-                const amountOfDuplicates = Object.keys(duplicates).reduce((total, collection) => total += Object.keys(duplicates[collection]).length, 0)
-                if (amountOfDuplicates > 0) {
-                    this.displayDuplicates(duplicates)
-                }
+                var duplicates = this.getIdsWithDuplicateCriteria(this.criteriaPerIds)
+                var amountOfDuplicates = Object.keys(duplicates).reduce((total, collection) => total += Object.keys(duplicates[collection]).length, 0)
+            } 
+
+            if (validCriteria.length && amountOfDuplicates > 0) {
+                await this.displayDuplicates(duplicates)
             } else {
                 //go to next step
                 this.criteriaPerIdNoConflicts = this.criteriaPerIds
-                this.#confirmConflictResolutionHandler()
-
+                await this.#confirmConflictResolutionHandler()
             }
-
 
         } else {
             //toggle display
