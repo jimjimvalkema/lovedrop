@@ -582,7 +582,7 @@ export class DropBuilder {
         contentElement.append(
             `total: ${this.#formatNumber(totatAmount)}`,
             document.createElement("br"),
-            `amount per nft ${this.#formatNumber(amountPerItem)}`
+            `amount per NFT: ${this.#formatNumber(amountPerItem)}`
         )
         const amountElement = document.createElement("div")
         amountElement.append(contentElement)
@@ -644,14 +644,19 @@ export class DropBuilder {
 
     async #confirmConflictResolutionHandler() {
         if (this.criteriaPerIdNoConflicts) {
+            //clear previous elements incase there are some
+            this.criteriaTableEl.querySelectorAll(".criteriaTableItem").forEach((el)=>el.outerHTML="")
             this.#resetDisplayStyleOfElements([this.distrobutionOverViewEl])
             this.#setDisplayStyleOfElements([this.dropBuilderConflictsEl], "none")
             let tableRows = []
             for (const criterion of this.criteriaBuilder.criteria) {
-                tableRows.push(this.#createCriterionOverviewTableItems(criterion))
+                const row = this.#createCriterionOverviewTableItems(criterion)
+                Promise.resolve(row).then((result) => this.criteriaTableEl.append(...result))
+                tableRows.push(row)
             }
+            
             tableRows = await Promise.all(tableRows)
-            this.criteriaTableEl.append(...tableRows.flat())
+            //this.criteriaTableEl.append(...tableRows.flat())
         } else {
             throw new Error(`whoops tried to go to the next step but this.criteriaPerIdNoConflicts was set to: ${this.criteriaPerIdNoConflicts}`)
         }

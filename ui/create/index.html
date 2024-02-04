@@ -571,7 +571,7 @@
     }
 
 
-    .criteriaTableItem {
+    .criteriaTableHeader, .criteriaTableItem {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -582,16 +582,12 @@
         padding: 0.1em;
         background-color: canvas;
 
-        max-height: 11em;
+        height: 11em;
         overflow-y: auto;
 
     }
 
 
-    .criteriaTableHeader {
-        font-weight: bold;
-        font-size: 1.3em;
-    }
 
     .address {
         display: inline-block;
@@ -608,6 +604,14 @@
         vertical-align: top;
         display: inline-block;
     }
+
+    .criteriaTableHeader {
+        display: block;
+        font-weight: bold;
+        font-size: 1.3em;
+        height: fit-content;
+    }
+
 </style>
 
 <body>
@@ -900,16 +904,16 @@
         <div id="distrobutionOverView">
             <div class="bold">final distribution </div>
             <div id="criteriaOverviewTable">
-                <div class="criteriaTableHeader criteriaTableItem">
+                <div class="criteriaTableHeader">
                     <div>criteria</div>
                 </div>
-                <div class="criteriaTableHeader criteriaTableItem">
+                <div class="criteriaTableHeader">
                     <div>amount</div>
                 </div>
-                <div class="criteriaTableHeader criteriaTableItem">
+                <div class="criteriaTableHeader">
                     <div>collection</div>
                 </div>
-                <div class="criteriaTableHeader criteriaTableItem">
+                <div class="criteriaTableHeader">
                     <div>nfts</div>
                 </div>
 

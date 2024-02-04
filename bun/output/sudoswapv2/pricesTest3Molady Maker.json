@@ -9,7 +9,7 @@
   ],
   "1994": [
     {
-      "price": 884301438057209100,
+      "price": 845656369749632800,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xaAF9142CC46Ad4834967c749De2F6d4FAd0308B2"
@@ -273,7 +273,7 @@
   ],
   "6397": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
@@ -281,7 +281,7 @@
   ],
   "6400": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
@@ -289,7 +289,7 @@
   ],
   "6407": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
@@ -305,7 +305,7 @@
   ],
   "6567": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
@@ -313,7 +313,7 @@
   ],
   "6597": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
@@ -321,7 +321,7 @@
   ],
   "6598": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
@@ -337,7 +337,7 @@
   ],
   "6602": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
@@ -345,7 +345,7 @@
   ],
   "6603": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
@@ -361,7 +361,15 @@
   ],
   "6643": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
+      "currency": "ETH",
+      "source": "SudoSwapV2",
+      "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
+    }
+  ],
+  "6833": [
+    {
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
@@ -473,7 +481,7 @@
   ],
   "7050": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
@@ -497,7 +505,7 @@
   ],
   "7172": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
@@ -505,7 +513,7 @@
   ],
   "7233": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
@@ -513,7 +521,7 @@
   ],
   "7307": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
@@ -537,7 +545,7 @@
   ],
   "7507": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
@@ -553,7 +561,7 @@
   ],
   "7509": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
@@ -561,7 +569,7 @@
   ],
   "7527": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
@@ -577,7 +585,7 @@
   ],
   "7589": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
@@ -585,7 +593,7 @@
   ],
   "7597": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
@@ -601,7 +609,7 @@
   ],
   "7694": [
     {
-      "price": 12685661742822668,
+      "price": 12081582612212064,
       "currency": "ETH",
       "source": "SudoSwapV2",
       "poolAddr": "0xBf6520a57c9C7f81140825ff00D00dA2b5D6E100"
