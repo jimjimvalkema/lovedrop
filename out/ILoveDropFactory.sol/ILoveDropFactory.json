@@ -70,7 +70,7 @@
     "createNewDrop(address,bytes32,string)": "e8bead02",
     "implementation()": "5c60da1b"
   },
-  "rawMetadata": "{\"compiler\":{\"version\":\"0.8.21+commit.d9974bed\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"deployerAddress\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"dropAddress\",\"type\":\"address\"}],\"name\":\"CreateNewDrop\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_airdropTokenAddress\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"_merkleRoot\",\"type\":\"bytes32\"},{\"internalType\":\"string\",\"name\":\"_claimDataIpfs\",\"type\":\"string\"}],\"name\":\"createNewDrop\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"implementation\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/interfaces/ILoveDropFactory.sol\":\"ILoveDropFactory\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":@openzeppelin/=node_modules/@openzeppelin/\",\":@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/\",\":ds-test/=lib/forge-std/lib/ds-test/src/\",\":erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/\",\":forge-std/=lib/forge-std/src/\",\":openzeppelin-contracts/=lib/openzeppelin-contracts/\"]},\"sources\":{\"contracts/interfaces/ILoveDropFactory.sol\":{\"keccak256\":\"0x390581bc1d3c2c8a469de8fb0e984c4d59c473e382f56b4d5cadd56557a51544\",\"license\":\"GPL-3.0-or-later\",\"urls\":[\"bzz-raw://f34f659de63630dfcb87352a1cb6c315df2bfdea82d692240dc814b2725ac824\",\"dweb:/ipfs/QmV8rvUB14X3zftq7NARYSadhGbfqyQt68LWYvL8JoF9c5\"]}},\"version\":1}",
+  "rawMetadata": "{\"compiler\":{\"version\":\"0.8.21+commit.d9974bed\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"deployerAddress\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"dropAddress\",\"type\":\"address\"}],\"name\":\"CreateNewDrop\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_airdropTokenAddress\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"_merkleRoot\",\"type\":\"bytes32\"},{\"internalType\":\"string\",\"name\":\"_claimDataIpfs\",\"type\":\"string\"}],\"name\":\"createNewDrop\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"implementation\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/interfaces/ILoveDropFactory.sol\":\"ILoveDropFactory\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":@openzeppelin/=node_modules/@openzeppelin/\",\":@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/\",\":ds-test/=lib/forge-std/lib/ds-test/src/\",\":erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/\",\":forge-std/=lib/forge-std/src/\",\":openzeppelin-contracts/=lib/openzeppelin-contracts/\"]},\"sources\":{\"contracts/interfaces/ILoveDropFactory.sol\":{\"keccak256\":\"0x17810f4fec1a04d549b953034f816476e876140c41b2304f0f9b1af5980c10d6\",\"license\":\"GPL-3.0-or-later\",\"urls\":[\"bzz-raw://c84dc38360aa227541aa603d98990caf9f0a40fdca871e9648813871a70f354f\",\"dweb:/ipfs/QmUs6YhzgAZn7nn2nE59RpRi16A9WY7GUCMsLu5qHHmV4s\"]}},\"version\":1}",
   "metadata": {
     "compiler": {
       "version": "0.8.21+commit.d9974bed"
@@ -167,10 +167,10 @@
     },
     "sources": {
       "contracts/interfaces/ILoveDropFactory.sol": {
-        "keccak256": "0x390581bc1d3c2c8a469de8fb0e984c4d59c473e382f56b4d5cadd56557a51544",
+        "keccak256": "0x17810f4fec1a04d549b953034f816476e876140c41b2304f0f9b1af5980c10d6",
         "urls": [
-          "bzz-raw://f34f659de63630dfcb87352a1cb6c315df2bfdea82d692240dc814b2725ac824",
-          "dweb:/ipfs/QmV8rvUB14X3zftq7NARYSadhGbfqyQt68LWYvL8JoF9c5"
+          "bzz-raw://c84dc38360aa227541aa603d98990caf9f0a40fdca871e9648813871a70f354f",
+          "dweb:/ipfs/QmUs6YhzgAZn7nn2nE59RpRi16A9WY7GUCMsLu5qHHmV4s"
         ],
         "license": "GPL-3.0-or-later"
       }
@@ -186,7 +186,7 @@
       ]
     },
     "nodeType": "SourceUnit",
-    "src": "45:622:3",
+    "src": "45:559:3",
     "nodes": [
       {
         "id": 573,
@@ -203,24 +203,24 @@
       {
         "id": 594,
         "nodeType": "ContractDefinition",
-        "src": "137:530:3",
+        "src": "137:467:3",
         "nodes": [
           {
             "id": 578,
             "nodeType": "FunctionDefinition",
-            "src": "234:58:3",
+            "src": "170:58:3",
             "nodes": [],
             "functionSelector": "5c60da1b",
             "implemented": false,
             "kind": "function",
             "modifiers": [],
             "name": "implementation",
-            "nameLocation": "243:14:3",
+            "nameLocation": "179:14:3",
             "parameters": {
               "id": 574,
               "nodeType": "ParameterList",
               "parameters": [],
-              "src": "257:2:3"
+              "src": "193:2:3"
             },
             "returnParameters": {
               "id": 577,
@@ -234,7 +234,7 @@
                   "nameLocation": "-1:-1:-1",
                   "nodeType": "VariableDeclaration",
                   "scope": 578,
-                  "src": "283:7:3",
+                  "src": "219:7:3",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -245,7 +245,7 @@
                     "id": 575,
                     "name": "address",
                     "nodeType": "ElementaryTypeName",
-                    "src": "283:7:3",
+                    "src": "219:7:3",
                     "stateMutability": "nonpayable",
                     "typeDescriptions": {
                       "typeIdentifier": "t_address",
@@ -255,7 +255,7 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "282:9:3"
+              "src": "218:9:3"
             },
             "scope": 594,
             "stateMutability": "view",
@@ -265,14 +265,14 @@
           {
             "id": 587,
             "nodeType": "FunctionDefinition",
-            "src": "409:113:3",
+            "src": "346:113:3",
             "nodes": [],
             "functionSelector": "e8bead02",
             "implemented": false,
             "kind": "function",
             "modifiers": [],
             "name": "createNewDrop",
-            "nameLocation": "418:13:3",
+            "nameLocation": "355:13:3",
             "parameters": {
               "id": 585,
               "nodeType": "ParameterList",
@@ -282,10 +282,10 @@
                   "id": 580,
                   "mutability": "mutable",
                   "name": "_airdropTokenAddress",
-                  "nameLocation": "440:20:3",
+                  "nameLocation": "377:20:3",
                   "nodeType": "VariableDeclaration",
                   "scope": 587,
-                  "src": "432:28:3",
+                  "src": "369:28:3",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -296,7 +296,7 @@
                     "id": 579,
                     "name": "address",
                     "nodeType": "ElementaryTypeName",
-                    "src": "432:7:3",
+                    "src": "369:7:3",
                     "stateMutability": "nonpayable",
                     "typeDescriptions": {
                       "typeIdentifier": "t_address",
@@ -310,10 +310,10 @@
                   "id": 582,
                   "mutability": "mutable",
                   "name": "_merkleRoot",
-                  "nameLocation": "470:11:3",
+                  "nameLocation": "407:11:3",
                   "nodeType": "VariableDeclaration",
                   "scope": 587,
-                  "src": "462:19:3",
+                  "src": "399:19:3",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -324,7 +324,7 @@
                     "id": 581,
                     "name": "bytes32",
                     "nodeType": "ElementaryTypeName",
-                    "src": "462:7:3",
+                    "src": "399:7:3",
                     "typeDescriptions": {
                       "typeIdentifier": "t_bytes32",
                       "typeString": "bytes32"
@@ -337,10 +337,10 @@
                   "id": 584,
                   "mutability": "mutable",
                   "name": "_claimDataIpfs",
-                  "nameLocation": "497:14:3",
+                  "nameLocation": "434:14:3",
                   "nodeType": "VariableDeclaration",
                   "scope": 587,
-                  "src": "483:28:3",
+                  "src": "420:28:3",
                   "stateVariable": false,
                   "storageLocation": "memory",
                   "typeDescriptions": {
@@ -351,7 +351,7 @@
                     "id": 583,
                     "name": "string",
                     "nodeType": "ElementaryTypeName",
-                    "src": "483:6:3",
+                    "src": "420:6:3",
                     "typeDescriptions": {
                       "typeIdentifier": "t_string_storage_ptr",
                       "typeString": "string"
@@ -360,13 +360,13 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "431:81:3"
+              "src": "368:81:3"
             },
             "returnParameters": {
               "id": 586,
               "nodeType": "ParameterList",
               "parameters": [],
-              "src": "521:0:3"
+              "src": "458:0:3"
             },
             "scope": 594,
             "stateMutability": "nonpayable",
@@ -376,12 +376,12 @@
           {
             "id": 593,
             "nodeType": "EventDefinition",
-            "src": "591:74:3",
+            "src": "528:74:3",
             "nodes": [],
             "anonymous": false,
             "eventSelector": "1e4d1ffdcddd8a1f895904c7d3e195a597210396f9b3e1717cb53bb9c29cc3ea",
             "name": "CreateNewDrop",
-            "nameLocation": "597:13:3",
+            "nameLocation": "534:13:3",
             "parameters": {
               "id": 592,
               "nodeType": "ParameterList",
@@ -392,10 +392,10 @@
                   "indexed": true,
                   "mutability": "mutable",
                   "name": "deployerAddress",
-                  "nameLocation": "627:15:3",
+                  "nameLocation": "564:15:3",
                   "nodeType": "VariableDeclaration",
                   "scope": 593,
-                  "src": "611:31:3",
+                  "src": "548:31:3",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -406,7 +406,7 @@
                     "id": 588,
                     "name": "address",
                     "nodeType": "ElementaryTypeName",
-                    "src": "611:7:3",
+                    "src": "548:7:3",
                     "stateMutability": "nonpayable",
                     "typeDescriptions": {
                       "typeIdentifier": "t_address",
@@ -421,10 +421,10 @@
                   "indexed": false,
                   "mutability": "mutable",
                   "name": "dropAddress",
-                  "nameLocation": "652:11:3",
+                  "nameLocation": "589:11:3",
                   "nodeType": "VariableDeclaration",
                   "scope": 593,
-                  "src": "644:19:3",
+                  "src": "581:19:3",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -435,7 +435,7 @@
                     "id": 590,
                     "name": "address",
                     "nodeType": "ElementaryTypeName",
-                    "src": "644:7:3",
+                    "src": "581:7:3",
                     "stateMutability": "nonpayable",
                     "typeDescriptions": {
                       "typeIdentifier": "t_address",
@@ -445,7 +445,7 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "610:54:3"
+              "src": "547:54:3"
             }
           }
         ],

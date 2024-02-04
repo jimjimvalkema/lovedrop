@@ -430,9 +430,9 @@ export class NftDisplay {
             this.imageRasterElement = newRasterElement
         }
 
-        //to prevent the height from jumping. but is set to the origanal value (fit-content) after 2 seconds when images are loaded
+        //to prevent the height from jumping. but is set to fit-content after a second when images are loaded
         this.imageRasterElement.style.height = computedHeight
-        setTimeout(()=>this.imageRasterElement.style.height=initialHeight, 2000 )
+        setTimeout(()=>this.imageRasterElement.style.height=initialHeight, 1000 )
         
         //const existingPageSelector = document.getElementById(`pageSelector-${this.collectionAddress}`) //TODO reference element not id!! silly!!!!!
 
