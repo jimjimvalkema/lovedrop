@@ -510,6 +510,7 @@ export class NftDisplay {
 
         min-height: 0;
         max-height: calc(100% - ${imagesBorderWidth} * 2 - 0.4em); 
+        width: calc(100% - ${imagesBorderWidth} * 2 - 0.4em); 
         height: fit-content;
         
        
