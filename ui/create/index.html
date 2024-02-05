@@ -617,9 +617,9 @@
     </nav>
 
     <div id="connectWallet">
-        <button>connect</button>
+        <button id="connectWalletBtn">connect</button>
         <div id="walletInfo">
-            <span id="userAddress">0x23bc95F84BD43C1FCc2bc285fDa4Cb12f9AEE2df</span>
+            <span class="userAddress"></span>
             <!-- <br>
             <span id="userTokens">1.000.000</span> <span class="ticker">TICKER</span> -->
 
@@ -940,13 +940,13 @@
             </div>
 
             <br>
-            <div id="totalsOverview" class="border">
+            <div id="totalsOverview" class="border" hidden>
                 <div class="boldTitel">Confirm</div>
                 <br>
                 <div id="airdropDistrobutionOverview">
                     <div class="bold">airdrop</div>
-                    <span class="italic">Criteria: </span>NewCriterion#1, NewCriterion#2,
-                    overlappingCriteria-NewCriterion#1-NewCriterion#3
+                    <span class="italic">Criteria: </span> <span id="allCriteriaNames">TESTCriterion#1, TESTCriterion#2,
+                    overlappingCriteria-TESTCriterion#1-TESTriterion#3</span>
                     <br>
                     <span class="italic">Airdrop: </span> <span class="totalAirdrop">100.000</span> <span
                         class="ticker">TICKER</span>
@@ -954,7 +954,7 @@
                     <span class="italic">Wallet ballance: </span> <span class="erc20UserBalance">69,690,690</span>
                     <span class="ticker">TICKER</span>
                     <br>
-                    <span class="italic">included collections: </span> <span class="allCollections">
+                    <span class="italic">included collections: </span> <span id="allCollections">
                         <a href="https://etherscan.io/address/0x3AEC26bf9FEDba55a55e970504f439101AbD7327"
                             target="_blank">Milady</a>,
                         <a href="https://etherscan.io/address/0x3AEC26bf9FEDba55a55e970504f439101AbD7327"
@@ -976,7 +976,7 @@
                     <span class="italic">Totalsupply: </span><span class="totalsupply">69,690,690</span> <span
                         class="ticker">TICKER</span>
                     <br>
-                    <span class="italic">Token contract: </span><a
+                    <span class="italic">Token contract: </span><a class="tokenContractHref"
                         href="https://etherscan.io/address/0x3AEC26bf9FEDba55a55e970504f439101AbD7327"
                         target="_blank">0x3AEC26bf9FEDba55a55e970504f439101AbD7327</a>
                     <br>

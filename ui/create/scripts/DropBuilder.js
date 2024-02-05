@@ -3,6 +3,7 @@ import { NftDisplay } from "../../scripts/NftDisplay.js"
 import { CriteriaBuilder, criterionFormat } from "./CriteriaBuilder.js"
 import { NftMetaDataCollector } from "../../scripts/NftMetaDataCollector.js"
 import { FilterBuilder, filterTemplate } from "./FilterBuilder.js"
+import { ERC20ABI } from "../../abi/ERC20ABI.js"
 
 export class DropBuilder {
     criteriaBuilder
@@ -12,7 +13,7 @@ export class DropBuilder {
     conflictResolutionSelector = document.getElementById("criteriaConflictsResolutionSelection")
     finalizeDropButton = document.getElementById("finalizeDropButton")
 
-   
+
     backButtonEl = document.getElementById("backButtonDropBuilder")
     confirmConflictResolutionButtonEl = document.getElementById("confirmConflictResolutionButton")
 
@@ -21,13 +22,19 @@ export class DropBuilder {
 
     criteriaBuilderEl = document.getElementById("criteriaBuilder")
     dropBuilderEl = document.getElementById("dropBuilder")
-        dropBuilderConflictsEl = document.getElementById("dropBuilderConflicts")
-        distrobutionOverViewEl = document.getElementById("distrobutionOverView")
-        deploymentEl = document.getElementById("deployment")
-        dropBuilderPages = [this.dropBuilderConflictsEl,this.distrobutionOverViewEl,  this.deploymentEl]
+    dropBuilderConflictsEl = document.getElementById("dropBuilderConflicts")
+    distrobutionOverViewEl = document.getElementById("distrobutionOverView")
+    deploymentEl = document.getElementById("deployment")
+    dropBuilderPages = [this.dropBuilderConflictsEl, this.distrobutionOverViewEl, this.deploymentEl]
 
-    
+    connectWallletBtn = document.getElementById("connectWalletBtn")
+
+
     confirmDistrobutionBtn = document.getElementById("confirmDistrobutionBtn")
+    airdropTokenContractAddressInput = document.getElementById("airdropTokenContractAddressInput")
+
+    allCollectionsEl =  document.getElementById("allCollections")
+    allCriteriaNamesEl =  document.getElementById("allCriteriaNames")
 
     //or do conflictResolutionSelectorHandler with a submit button but user might decide to go back anyway
     criteriaForConflictResolution = {}
@@ -58,24 +65,135 @@ export class DropBuilder {
         this.backButtonEl.addEventListener("click", (event) => this.#dropBuilderBackBtnHandler())
         this.conflictResolutionSelector.addEventListener("change", (event) => this.#conflictResolutionSelectorHandler(event, this.criteriaPerIds))
         this.confirmConflictResolutionButtonEl.addEventListener("click", (event) => this.#confirmConflictResolutionHandler(event))
-        this.confirmDistrobutionBtn.addEventListener("click", (event)=> this.#showDropBuilderPageEl(this.deploymentEl, event))
+        this.confirmDistrobutionBtn.addEventListener("click", (event) => this.#showDropBuilderPageEl(this.deploymentEl, event))
+        this.airdropTokenContractAddressInput.addEventListener("keypress", (event) => this.#setTokenContractHandler(event))
+        this.connectWallletBtn.addEventListener("click", ()=>this.connectSigner())
+    }
+
+    #isValidSubmitEvent(event, inputElement) {
+        const value = inputElement.value
+        //if ((event.key!=="Enter" && event.key!==undefined && value!==undefined)) {
+        if ((event.key !== "Enter" && event.key !== undefined && value !== undefined)) {
+            return false
+        } else {
+            return value
+        }
+    }
+
+    async #setTokenContractHandler(event) {
+        console.log(event.value)
+        const value = this.#isValidSubmitEvent(event, this.airdropTokenContractAddressInput)
+        if (value) {
+            if (ethers.utils.isAddress(value)) {
+                //TODO use signer instead of provider (for apporval)
+                this.airdropTokenContractObj = new ethers.Contract(value, ERC20ABI, this.provider)
+                //TOOD check if this is a problem if not set earlier
+                this.erc20Units = await this.airdropTokenContractObj.decimals()
+                this.displayTotalsOverView()
+ 
+                //this.airdropTokenContractObj = new ethers.Contract(value,ERC20ABI,this.provider)
+            } else {
+                this.airdropTokenContractAddressInput.value = ""
+
+            }
+
+        }
+
+    }
+
+    
+
+    async connectSigner() {
+        // MetaMask requires requesting permission to connect users accounts
+        await this.provider.send("eth_requestAccounts", []);
+        this.signer = await window.provider.getSigner();
+        await this.#runOnConnectWallet()
+    }
+    
+    async #runOnConnectWallet() {
+        await Promise.all([this.#setUserAddress(),this.#setUserBalance()])
+    }
+
+    async #setUserBalance() {
+        if (this.airdropTokenContractObj) {
+            const userAddress = await this.signer.getAddress()
+            const userBalance = this.airdropTokenContractObj.balanceOf(userAddress)
+            userBalance.then((balance)=>{
+                const formattedBalance = this.#formatNumber(balance)
+                document.querySelectorAll(".erc20UserBalance").forEach((x) => x.innerText = formattedBalance)
+            })
+            return await userBalance
+        }
+
+    }
+
+    async #setUserAddress() {
+        const userAddress =  this.signer.getAddress()
+        userAddress.then((address)=>{
+            document.querySelectorAll(".userAddress").forEach((x)=>x.innerText=address)
+        })
+        return await userAddress
+    }
+
+    async displayTotalsOverView() {
+        document.getElementById("totalsOverview").hidden = false
+
+        if (this.airdropTokenContractObj) {
+            let allResults=[]
+
+            //set info
+            document.querySelectorAll(".tokenContractHref").forEach((x) => {
+                x.innerText = this.airdropTokenContractObj.address;
+                x.href = `https://etherscan.io/token/${this.airdropTokenContractObj.address}`;
+            })
+
+            const contractName = this.airdropTokenContractObj.name()
+            contractName.then((name) => {
+                document.querySelectorAll(".tokenName").forEach((x) => x.innerText = name)
+            });
+
+            const contractTicker = this.airdropTokenContractObj.symbol()
+            contractTicker.then((ticker) => {
+                document.querySelectorAll(".ticker").forEach((x) => x.innerText = ticker)
+            });
+
+            const totalSupply = this.airdropTokenContractObj.totalSupply()
+            totalSupply.then((supply) => {
+                const formattedSupply = this.#formatNumber(supply)
+                document.querySelectorAll(".totalsupply").forEach((x) => x.innerText = formattedSupply)
+            });
+
+            //TODO
+            //document.querySelectorAll(".totalAirdrop").forEach((x) => x.innerText = "1010101")
+            this.allCollectionsEl.innerText = "TODO" 
+            this.allCriteriaNamesEl.innerText = "TODO" 
+
+
+            await this.connectSigner()
+            if (this.signer) {
+                await this.#setUserBalance()
+            }
+
+            allResults = [...allResults, contractName, contractTicker, totalSupply]
+            return await Promise.all(allResults)
+        }
     }
 
     #dropBuilderBackBtnHandler() {
-        const currentPage = this.dropBuilderPages.findIndex((el)=>el.style.display !== "none")
+        const currentPage = this.dropBuilderPages.findIndex((el) => el.style.display !== "none")
 
-        if (this.dropBuilderPages[currentPage-1] === this.dropBuilderConflictsEl) {
+        if (this.dropBuilderPages[currentPage - 1] === this.dropBuilderConflictsEl) {
             const duplicates = this.getIdsWithDuplicateCriteria(this.criteriaPerIds)
             const amountOfDuplicates = Object.keys(duplicates).reduce((total, collection) => total += Object.keys(duplicates[collection]).length, 0)
-            if (amountOfDuplicates===0) {
-                this.#showDropBuilderPageIndex(currentPage-2)
+            if (amountOfDuplicates === 0) {
+                this.#showDropBuilderPageIndex(currentPage - 2)
             } else {
-                this.#showDropBuilderPageIndex(currentPage-1)
+                this.#showDropBuilderPageIndex(currentPage - 1)
             }
-            
-        } else if (currentPage!== -1) {
-            this.#showDropBuilderPageIndex(currentPage-1)
-        } 
+
+        } else if (currentPage !== -1) {
+            this.#showDropBuilderPageIndex(currentPage - 1)
+        }
 
     }
 
@@ -123,10 +241,10 @@ export class DropBuilder {
         if (this.criteriaBuilderEl.id === element.id) {
             this.#showDropBuilderPageIndex(-1)
         } else {
-            const pageIndex = this.dropBuilderPages.findIndex((el)=>el.id === element.id)
-            if (pageIndex===-1 ) {
-                throw Error(`element id ${element.id} is not in dropBuilderPages array: ${this.dropBuilderPages.map((x)=>x.id)}`)
-            } 
+            const pageIndex = this.dropBuilderPages.findIndex((el) => el.id === element.id)
+            if (pageIndex === -1) {
+                throw Error(`element id ${element.id} is not in dropBuilderPages array: ${this.dropBuilderPages.map((x) => x.id)}`)
+            }
             this.#showDropBuilderPageIndex(pageIndex)
         }
     }
@@ -136,9 +254,9 @@ export class DropBuilder {
             this.#setDisplayStyleOfElements([this.dropBuilderEl, ...this.dropBuilderPages], "none")
             this.#resetDisplayStyleOfElements([this.criteriaBuilderEl])
         } else {
-            const otherPages = this.dropBuilderPages.toSpliced(page,1)
+            const otherPages = this.dropBuilderPages.toSpliced(page, 1)
             this.#setDisplayStyleOfElements([this.criteriaBuilderEl, ...otherPages], "none")
-            this.#resetDisplayStyleOfElements([this.dropBuilderEl, this.dropBuilderPages[page] ])
+            this.#resetDisplayStyleOfElements([this.dropBuilderEl, this.dropBuilderPages[page]])
         }
     }
 
@@ -162,7 +280,7 @@ export class DropBuilder {
             if (validCriteria.length) {
                 var duplicates = this.getIdsWithDuplicateCriteria(this.criteriaPerIds)
                 var amountOfDuplicates = Object.keys(duplicates).reduce((total, collection) => total += Object.keys(duplicates[collection]).length, 0)
-            } 
+            }
 
             if (validCriteria.length && amountOfDuplicates > 0) {
                 await this.displayDuplicates(duplicates)
@@ -493,11 +611,11 @@ export class DropBuilder {
 
                         //set amount
                         const amountBigNumber = criteriaIndexesOfId.reduce(
-                            (partialSum, index) =>{
+                            (partialSum, index) => {
                                 const amountPerItem = ethers.utils.parseUnits(this.criteriaBuilder.criteria[index].amountPerItem, this.erc20Units)
                                 return amountPerItem.add(partialSum)
                             }, ethers.BigNumber.from(0)
-                            )
+                        )
                         newCriterion.amountPerItem = ethers.utils.formatUnits(amountBigNumber, this.erc20Units)
 
                         //add newCriterion
@@ -507,7 +625,7 @@ export class DropBuilder {
                                 "criterion": newCriterion
                             }
                         )
-                        index = criterionWithReferenceIndexes.length-1
+                        index = criterionWithReferenceIndexes.length - 1
 
                         //add new criterion to confliction resultion criteria
                         this.criteriaForConflictResolution[collection].push(newCriterion)
@@ -608,7 +726,7 @@ export class DropBuilder {
 
     #createCriteriaElement(criterion) {
         const contentDiv = document.createElement("div")
-        contentDiv.append(`name: ${criterion.name}`, document.createElement("br"),document.createElement("br"), `filter: ${criterion.selectedFilter.filterName}`)
+        contentDiv.append(`name: ${criterion.name}`, document.createElement("br"), document.createElement("br"), `filter: ${criterion.selectedFilter.filterName}`)
         contentDiv.className = "criterionNameTableItem"
         const criteriaElement = document.createElement("div")
         criteriaElement.append(contentDiv)
@@ -697,7 +815,7 @@ export class DropBuilder {
     async #confirmConflictResolutionHandler() {
         if (this.criteriaPerIdNoConflicts) {
             //clear previous elements incase there are some
-            this.criteriaTableEl.querySelectorAll(".criteriaTableItem").forEach((el)=>el.outerHTML="")
+            this.criteriaTableEl.querySelectorAll(".criteriaTableItem").forEach((el) => el.outerHTML = "")
             this.#resetDisplayStyleOfElements([this.distrobutionOverViewEl])
             this.#setDisplayStyleOfElements([this.dropBuilderConflictsEl], "none")
             let tableRows = []
@@ -706,7 +824,7 @@ export class DropBuilder {
                 Promise.resolve(row).then((result) => this.criteriaTableEl.append(...result))
                 tableRows.push(row)
             }
-            
+
             tableRows = await Promise.all(tableRows)
             //this.criteriaTableEl.append(...tableRows.flat())
         } else {
