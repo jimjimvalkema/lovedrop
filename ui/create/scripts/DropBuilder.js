@@ -432,10 +432,10 @@ export class DropBuilder {
 
                         //update name
                         const allCriterionNames = criteriaIndexesOfId.reduce((name, index) => {
-                            return name += `${this.criteriaBuilder.criteria[index].name}, `
-                        }, "").slice(0, -2)
+                            return name += `${this.criteriaBuilder.criteria[index].name}-`
+                        }, "").slice(0, -1)
                         console.log(allCriterionNames)
-                        const name = `overlappingCriteria: ${allCriterionNames}`
+                        const name = `overlappingCriteria-${allCriterionNames}`
                         await this.criteriaBuilder.updateCriterionName(newCriterion.index, name)
                         this.criteriaBuilder.filterBuilder.changeFilterName(name, newCriterion.selectedFilter.index)
 
@@ -556,7 +556,7 @@ export class DropBuilder {
 
     #createCriteriaElement(criterion) {
         const contentDiv = document.createElement("div")
-        contentDiv.append(`name:"${criterion.name}"`, document.createElement("br"),document.createElement("br"), `filter:"${criterion.selectedFilter.filterName}"`)
+        contentDiv.append(`name: ${criterion.name}`, document.createElement("br"),document.createElement("br"), `filter: ${criterion.selectedFilter.filterName}`)
         contentDiv.className = "criterionNameTableItem"
         const criteriaElement = document.createElement("div")
         criteriaElement.append(contentDiv)
@@ -582,7 +582,7 @@ export class DropBuilder {
         contentElement.append(
             `total: ${this.#formatNumber(totatAmount)}`,
             document.createElement("br"),
-            `amount per NFT: ${this.#formatNumber(amountPerItem)}`
+            `per NFT: ${this.#formatNumber(amountPerItem)}`
         )
         const amountElement = document.createElement("div")
         amountElement.append(contentElement)

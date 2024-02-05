@@ -1,28 +1,19 @@
 <!DOCTYPE html>
 <style>
-    #criteriaBuilder {
-        display: grid;
-        grid-gap: 1em;
-
-        grid-template-rows: auto max-content;
-        grid-template-columns: 1fr 1fr 1fr 1fr;
-        width: 100%;
-
-
-        grid-template-areas:
-            "aidropToken  totalsDisplay criteriaManager totalscriteria"
-            "filterEditor  filterEditor filterEditor filterEditor"
-        ;
-    }
-
     nav {
         border-bottom: 1px solid black;
         padding-bottom: 1em;
     }
+    body {
+        margin: 0; 
+        /* TODO fix this issue on chrome */
+        /* overflow-x: hidden;     */
+    }
 
     .mainNav {
         list-style-type: none;
-        padding-left: 0;
+        /* padding-left: 0; */
+        
     }
 
     .mainNavItem {
@@ -38,10 +29,18 @@
     }
 
 
-    .bold {
+    .boldTitel {
         font-weight: bolder;
         text-align: left;
         font-size: 1.2em;
+    }
+
+    .italic {
+        font-style: italic;
+    }
+
+    .bold {
+        font-weight: bold;
     }
 
     * {
@@ -128,22 +127,23 @@
 
     }
 
-    #filterEditor {
-        grid-area: filterEditor;
-        border: solid;
+    #criteriaBuilder {
         display: grid;
         grid-gap: 1em;
         bottom: 1em;
+        height: -webkit-fill-available;
+        width: calc(100%-1em);
+        padding: 0.5em;
 
         /* TODO fix this
         width: 98%; */
 
-        grid-template-rows: auto 7em max-content;
-        grid-template-columns: 14em 1fr 1fr 1fr;
+        grid-template-rows: minmax(auto, max-content) minmax(auto, max-content);
+        grid-template-columns: minmax(auto, 17em) minmax(auto, max-content) minmax(auto, max-content) minmax(auto, max-content) 1fr;
         grid-template-areas:
-            "filterselector filterInputs filterInputs none"
-            "filterInputSelecter nftDisplay nftDisplay nftDisplay"
-            "filterInputSelecter nftDisplay nftDisplay nftDisplay"
+            "criteriaManager filterselector  filterIncludedInputs filterExcludedInputs finalizeDrop"
+            "filterInputSelecter nftDisplay nftDisplay nftDisplay nftDisplay"
+
         ;
 
 
@@ -160,35 +160,18 @@
     #filterselector {
         grid-area: filterselector;
         border: solid;
+        width: fit-content;
     }
 
-    #filterInputs {
-        grid-area: filterInputs;
-
-        text-align: right;
-
-        display: grid;
-        grid-gap: 1em;
-
-        grid-template-rows: auto;
-        grid-template-columns: max-content max-content auto;
-        grid-template-areas:
-            "filterIncludedInputs filterExcludedInputs ."
-        ;
-
-
-    }
 
     #filterIncludedInputs {
         grid-area: filterIncludedInputs;
-        border: solid;
-        height: 100%;
+        width: fit-content;
     }
 
     #filterExcludedInputs {
         grid-area: filterExcludedInputs;
-        border: solid;
-        height: 100%;
+        width: fit-content;
     }
 
 
@@ -196,7 +179,6 @@
 
     #filterInputSelecter {
         grid-area: filterInputSelecter;
-        border: solid;
         display: grid;
         grid-gap: 1em;
         grid-template-rows: max-content auto;
@@ -204,7 +186,7 @@
         overflow-y: scroll;
         overflow-x: hidden;
         min-height: 25em;
-        height: 62vh;
+        max-height: 70vh;
 
         scrollbar-width: none;
         /* Firefox */
@@ -228,9 +210,8 @@
         text-align: right;
         border: solid;
         position: absolute;
-        top: 0;
-        right: 0;
-        margin: 0.2em;
+        top: 0.5em;
+        right: 0.5em;
     }
 
     #userAddress {
@@ -252,7 +233,7 @@
         grid-template-rows: max-content max-content 1fr;
         /* height: 62vh; */
         min-height: 25em;
-        max-height: 62vh;
+        max-height: 70vh;
         width: -webkit-fill-available;
         overflow: hidden;
 
@@ -474,6 +455,7 @@
         justify-content: center;
         position: relative;
         width: 100%;
+        flex-direction: column;
     }
 
     #duplicatesNftDisplay {
@@ -557,7 +539,6 @@
         margin-left: 6em;
         margin-right: 6em;
 
-        border-style: solid;
     }
 
     #criteriaOverviewTable {
@@ -571,7 +552,8 @@
     }
 
 
-    .criteriaTableHeader, .criteriaTableItem {
+    .criteriaTableHeader,
+    .criteriaTableItem {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -582,7 +564,7 @@
         padding: 0.1em;
         background-color: canvas;
 
-        height: 11em;
+        height: 12em;
         overflow-y: auto;
 
     }
@@ -612,6 +594,17 @@
         height: fit-content;
     }
 
+    .border {
+        border-style: solid;
+        padding: 0.35em;
+    }
+
+    .filterInputsContent {
+        grid-area: filterExcludedInputs;
+        display: flex;
+        flex-direction: column;
+        align-items: end;
+    }
 </style>
 
 <body>
@@ -627,15 +620,15 @@
         <button>connect</button>
         <div id="walletInfo">
             <span id="userAddress">0x23bc95F84BD43C1FCc2bc285fDa4Cb12f9AEE2df</span>
-            <br>
-            <span id="userTokens">1.000.000</span> <span class="ticker">TICKER</span>
+            <!-- <br>
+            <span id="userTokens">1.000.000</span> <span class="ticker">TICKER</span> -->
 
         </div>
     </div>
 
-    <div id="criteriaBuilder">
-        <div id="aidropToken">
-            <div class="bold">Set token</div>
+
+    <!-- <div id="aidropToken">
+            <div class="boldTitel">Set token</div>
             <label>Set airdrop token: <input class="addressInput" id="airdropTokenContractAddressInput" type="text"
                     value="0x3AEC26bf9FEDba55a55e970504f439101AbD7327" placeholder="contract address"></input></label>
             <div id="airdropTokenInfo" class="airdropTokenInfo">
@@ -643,24 +636,52 @@
                 <br>
                 Ticker: <span class="ticker">TICKER</span>
                 <br>
-                <!-- Token contract: <a id="tokenContractHref" class="address"
-                    href="https://etherscan.io/address/0x3AEC26bf9FEDba55a55e970504f439101AbD7327">0x3AEC26bf9FEDba55a55e970504f439101AbD7327</a> -->
+                 Token contract: <a id="tokenContractHref" class="address"
+                    href="https://etherscan.io/address/0x3AEC26bf9FEDba55a55e970504f439101AbD7327">0x3AEC26bf9FEDba55a55e970504f439101AbD7327</a> 
                 <br>
             </div>
 
-        </div>
+        </div> -->
 
-        <div id="totalsDisplay">
-            <div class="bold">Supply</div>
+    <!-- <div id="totalsDisplay">
+            <div class="boldTitel">Supply</div>
             Total airdrop: <span class="totalAirdrop">100.000</span> <span class="ticker">TICKER</span>
             <br>
             Totalsupply: <span class="totalsupply">69,690,690</span> <span class="ticker">TICKER</span>
 
-        </div>
+        </div> -->
 
-        <div id="criteriaManager">
+
+
+    <!-- <div id="totalscriteria">
+            <div class="boldTitel">Distubution <span class="selectedcriteriaName bold">criteria#1</span> </div>
+            <div class="alignTextRight">
+                Amount NFT: <span class="floatRightBlock">
+                    <span id="amountItemsCurrentFilter" class="alignLeft"> 100</span> <span id="nftSymbol"
+                        class="floatRightTicker">MIL</span>
+                </span>
+                <br>
+
+                Tokens per NFT: <span class="floatRightBlock">
+                    <span id="currentcriteriaAmountPerItem" class="alignLeft">1.000</span> <span class="ticker"
+                        class="floatRightTicker">TICKER</span>
+                </span>
+                <br>
+
+                Total tokens: <span class="floatRightBlock">
+                    <span id="selectedcriteriaTotal" class="alignLeft">1.000.000 <span class="ticker"
+                            class="floatRightTicker">TICKER</span>
+                    </span>
+                    <br>
+            </div>
+        </div> -->
+
+
+
+    <div id="criteriaBuilder">
+        <div id="criteriaManager" class="border">
             <!-- TODO make this into grids instead of whacky floats -->
-            <span class="bold">set criteria</span><br>
+            <span class="boldTitel">Criteria</span><br>
             <div class="alignTextRight">
 
 
@@ -689,8 +710,7 @@
                 <br>
 
 
-                <label for="amountPerNftInput"> amount <span class="ticker">TICKER</span>: <span
-                        class="floatRightBlock">
+                <label for="amountPerNftInput"> amount: <span class="floatRightBlock">
                         <input id="amountPerNftInput" type="number" value="" placeholder="amount per nft"></input>
                         <button id="submitAmountPerNft">set</button>
                     </span>
@@ -712,165 +732,149 @@
 
         </div>
 
-        <div id="totalscriteria">
-            <div class="bold">Distubution <span class="selectedcriteriaName bold">criteria#1</span> </div>
-            <div class="alignTextRight">
-                Amount NFT: <span class="floatRightBlock">
-                    <span id="amountItemsCurrentFilter" class="alignLeft"> 100</span> <span id="nftSymbol"
-                        class="floatRightTicker">MIL</span>
-                </span>
-                <br>
+        <div id="filterInputSelecter" class="border">
+            <div id="inputTypeSelecter">
+                <div class="boldTitel">Inputs</div>
+                <select name="inclusionSelectionInput" id="inclusionSelectionInput">
+                    <option value="inputs">include</option>
+                    <option value="NOT">exclude</option>
+                </select>
 
-                Tokens per NFT: <span class="floatRightBlock">
-                    <span id="currentcriteriaAmountPerItem" class="alignLeft">1.000</span> <span class="ticker"
-                        class="floatRightTicker">TICKER</span>
-                </span>
-                <br>
+                <select name="inputTypeSelecterInput" id="inputTypeSelecterInput">
 
-                Total tokens: <span class="floatRightBlock">
-                    <span id="selectedcriteriaTotal" class="alignLeft">1.000.000 <span class="ticker"
-                            class="floatRightTicker">TICKER</span>
-                    </span>
-                    <br>
+                    <option value="attributes">attribute</option>
+                    <option value="conditions">filter</option>
+                    <option value="idList">id</option>
+
+
+
+                </select>
+
+            </div>
+            <span hidden id="messageProgress"></span>
+            <div id="inputSelecter">
+            </div>
+        </div>
+
+        <div id="filterselector" class="border">
+            <span class="boldTitel">Filters</span><br>
+            <label>name: <input class="nameInput" id="filterNameInput" type="text" value=""
+                    placeholder="set filter name"></input></label>
+            <br>
+
+            <label for="filterSelectorInput">select:</label>
+            <select name="filterSelectorInput" id="filterSelectorInput">
+                <option value="-1">add new</option>
+            </select>
+            <button id="deleteFilter">delete</button>
+            <br>
+
+            <label for="filterTypeSelectorInput">type:</label>
+            <select name="filterTypeSelectorInput" id="filterTypeSelectorInput">
+                <option value="AND">AND</option>
+                <option value="OR">OR</option>
+                <option value="RANGE">RANGE</option>
+            </select>
+            <br>
+        </div>
+
+        <!-- <div id="filterInputs" > -->
+        <div id="filterIncludedInputs" class="border">
+            <div class="boldTitel">Included</div>
+            <div class="filterInputsContent">
+            <div>
+                Attributes: <span id="filterTotalInputs-inputs-attributes">0</span> items
+                <button id="inputs-attributes-edit">edit</button>
+                <div hidden="true" id="inputs-attributes-dropDown" class="inputsDropDown">
+                    <button class="removeAllInputEditor" id="inputs-attributes-removeAllButton">remove
+                        all</button>
+                </div>
+            </div>
+            <div>
+
+                nft ids: <span id="filterTotalInputs-inputs-idList">0</span> items
+                <button id="inputs-idList-edit">edit</button>
+                <div hidden="true" id="inputs-idList-dropDown" class="inputsDropDown">
+                    <button class="removeAllInputEditor" id="inputs-idList-removeAllButton">remove all</button>
+                </div>
+            </div>
+            <div>
+
+                Filters: <span id="filterTotalInputs-inputs-conditions">0</span> items
+                <button id="inputs-conditions-edit">edit</button>
+                <div hidden="true" id="inputs-conditions-dropDown" class="inputsDropDown">
+                    <button class="removeAllInputEditor" id="inputs-conditions-removeAllButton">remove
+                        all</button>
+                </div>
+            </div>
+
             </div>
         </div>
 
 
-
-        <div id="filterEditor">
-            <div id="filterInputSelecter">
-                <div id="inputTypeSelecter">
-                    <div class="bold">Inputs</div>
-                    <select name="inclusionSelectionInput" id="inclusionSelectionInput">
-                        <option value="inputs">include</option>
-                        <option value="NOT">exclude</option>
-                    </select>
-
-                    <select name="inputTypeSelecterInput" id="inputTypeSelecterInput">
-
-                        <option value="attributes">attribute</option>
-                        <option value="conditions">filter</option>
-                        <option value="idList">id</option>
-
-
-
-                    </select>
-
-                </div>
-                <span hidden id="messageProgress"></span>
-                <div id="inputSelecter">
+        <div id="filterExcludedInputs" class="border">
+            <div class="boldTitel">Excluded</div>
+            <div class="filterInputsContent">
+            <!-- <div id="ExcludedInputsEditor"> -->
+            <div>
+                Attributes: <span id="filterTotalInputs-NOT-attributes">0</span> items
+                <button id="NOT-attributes-edit">edit</button>
+                <div hidden="true" id="NOT-attributes-dropDown" class="inputsDropDown">
+                    <button class="removeAllInputEditor" id="NOT-attributes-removeAllButton">remove all</button>
                 </div>
             </div>
-
-            <div id="filterselector">
-                <span class="bold">Filter</span><br>
-                <label>name: <input class="nameInput" id="filterNameInput" type="text" value=""
-                        placeholder="set filter name"></input></label>
-                <br>
-
-                <label for="filterSelectorInput">select:</label>
-                <select name="filterSelectorInput" id="filterSelectorInput">
-                    <option value="-1">add new</option>
-                </select>
-                <button id="deleteFilter">delete</button>
-                <br>
-
-                <label for="filterTypeSelectorInput">type:</label>
-                <select name="filterTypeSelectorInput" id="filterTypeSelectorInput">
-                    <option value="AND">AND</option>
-                    <option value="OR">OR</option>
-                    <option value="RANGE">RANGE</option>
-                </select>
-                <br>
-            </div>
-
-            <div id="filterInputs">
-                <div id="filterIncludedInputs">
-                    <div class="bold">Included</div>
-                    <div id="includedInputsEditor">
-                        Attributes: <span id="filterTotalInputs-inputs-attributes">0</span> items
-                        <button id="inputs-attributes-edit">edit</button>
-                        <div hidden="true" id="inputs-attributes-dropDown" class="inputsDropDown">
-                            <button class="removeAllInputEditor" id="inputs-attributes-removeAllButton">remove
-                                all</button>
-                        </div>
-                        <br>
-
-                        nft ids: <span id="filterTotalInputs-inputs-idList">0</span> items
-                        <button id="inputs-idList-edit">edit</button>
-                        <div hidden="true" id="inputs-idList-dropDown" class="inputsDropDown">
-                            <button class="removeAllInputEditor" id="inputs-idList-removeAllButton">remove all</button>
-                        </div>
-                        <br>
-
-                        Filters: <span id="filterTotalInputs-inputs-conditions">0</span> items
-                        <button id="inputs-conditions-edit">edit</button>
-                        <div hidden="true" id="inputs-conditions-dropDown" class="inputsDropDown">
-                            <button class="removeAllInputEditor" id="inputs-conditions-removeAllButton">remove
-                                all</button>
-                        </div>
-
-                    </div>
-                </div>
-
-
-                <div id="filterExcludedInputs">
-                    <div class="bold">Excluded</div>
-                    <div id="ExcludedInputsEditor">
-                        Attributes: <span id="filterTotalInputs-NOT-attributes">0</span> items
-                        <button id="NOT-attributes-edit">edit</button>
-                        <div hidden="true" id="NOT-attributes-dropDown" class="inputsDropDown">
-                            <button class="removeAllInputEditor" id="NOT-attributes-removeAllButton">remove all</button>
-                        </div>
-                        <br>
-
-                        nft ids: <span id="filterTotalInputs-NOT-idList">0</span> items
-                        <button id="NOT-idList-edit">edit</button>
-                        <div hidden="true" id="NOT-idList-dropDown" class="inputsDropDown">
-                            <button class="removeAllInputEditor" id="NOT-idList-removeAllButton">remove all</button>
-                        </div>
-                        <br>
-
-                        Filters: <span id="filterTotalInputs-NOT-conditions">0</span> items
-                        <button id="NOT-conditions-edit">edit</button>
-                        <div hidden="true" id="NOT-conditions-dropDown" class="inputsDropDown">
-                            <button class="removeAllInputEditor" id="NOT-conditions-removeAllButton">remove all</button>
-                        </div>
-
-                    </div>
+            <div>
+                nft ids: <span id="filterTotalInputs-NOT-idList">0</span> items
+                <button id="NOT-idList-edit">edit</button>
+                <div hidden="true" id="NOT-idList-dropDown" class="inputsDropDown">
+                    <button class="removeAllInputEditor" id="NOT-idList-removeAllButton">remove all</button>
                 </div>
             </div>
+            <div>
+                Filters: <span id="filterTotalInputs-NOT-conditions">0</span> items
+                <button id="NOT-conditions-edit">edit</button>
+                <div hidden="true" id="NOT-conditions-dropDown" class="inputsDropDown">
+                    <button class="removeAllInputEditor" id="NOT-conditions-removeAllButton">remove all</button>
+                </div>
 
-            <div id="finalizeDrop">
-                <button id="finalizeDropButton">criteria overview</button>
-
+                <!-- </div> -->
             </div>
-
-
-            <div id="nftDisplay" hidden>
-                <!-- <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div>
-            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
-            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
-            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
-            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
-            
-            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div>
-            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
-            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
-            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
-            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
-            
-            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div>
-            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
-            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
-            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
-            <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
-                -->
-
-            </div>
-
         </div>
     </div>
+
+    <!-- </div> -->
+
+    <div id="finalizeDrop" class="border">
+        <button id="finalizeDropButton">criteria overview</button>
+
+    </div>
+
+
+    <div id="nftDisplay" class="border">
+        <!-- <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div>
+        <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+        <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+        <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+        <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+        
+        <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div>
+        <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+        <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+        <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+        <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+        
+        <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div>
+        <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+        <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+        <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+        <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
+            -->
+
+    </div>
+
+    </div>
+
+
     <div id="dropBuilder">
         <div id="backButtonDropBuilderDiv">
             <button id="backButtonDropBuilder">go back</button>
@@ -895,14 +899,14 @@
             </div>
 
             <div id="duplicatesManager">
-                <div class="bold">nfts with conflicting criteria:</div>
+                <div class="boldTitel">nfts with conflicting criteria:</div>
 
                 <div id="duplicatesNftDisplay"></div>
             </div>
         </div>
 
-        <div id="distrobutionOverView">
-            <div class="bold">final distribution </div>
+        <div id="distrobutionOverView" class="border">
+            <div class="boldTitel">final distribution </div>
             <div id="criteriaOverviewTable">
                 <div class="criteriaTableHeader">
                     <div>criteria</div>
@@ -917,30 +921,73 @@
                     <div>nfts</div>
                 </div>
 
-                <!-- <div class="test criteriaTableItem">
-                    <div>name: criteria#1</div>
-                </div>
-                <div class="test criteriaTableItem">
-                    <div>total: 100,000 <br>
-                        per nft: 10,000</div>
-                </div>
-                <div class="test criteriaTableItem">
-                    <div>
-                    name: Milady Maker
-                        <br>contract: <a class="address"
-                            href="https:etherscan.io/address/0xafe12842e3703a3cc3a71d9463389b1bf2c5bc1c">0xafe12842e3703a3cc3a71d9463389b1bf2c5bc1c</a>
-                    </div>
-                </div>
-                <div class="test criteriaTableItem">
-                    <div>nfts<br>more nft<br> hahah moreee</div>
-                </div> -->
+
 
             </div>
 
-            <button>confirm</button><button disabled>deploy</button>
+            <button>confirm</button>
 
         </div>
 
+        <div id="deployment">
+            <div id="tokenInputForm" class="border">
+                <div class="boldTitel">Set token</div>
+                <label>Set airdrop token: <input class="addressInput" id="airdropTokenContractAddressInput" type="text"
+                        value="0x3AEC26bf9FEDba55a55e970504f439101AbD7327"
+                        placeholder="contract address"></input></label>
+
+
+            </div>
+
+            <br>
+            <div id="totalsOverview" class="border">
+                <div class="boldTitel">Confirm</div>
+                <br>
+                <div id="airdropDistrobutionOverview">
+                    <div class="bold">airdrop</div>
+                    <span class="italic">Criteria: </span>NewCriterion#1, NewCriterion#2,
+                    overlappingCriteria-NewCriterion#1-NewCriterion#3
+                    <br>
+                    <span class="italic">Airdrop: </span> <span class="totalAirdrop">100.000</span> <span
+                        class="ticker">TICKER</span>
+                    <br>
+                    <span class="italic">Wallet ballance: </span> <span class="erc20UserBalance">69,690,690</span>
+                    <span class="ticker">TICKER</span>
+                    <br>
+                    <span class="italic">included collections: </span> <span class="allCollections">
+                        <a href="https://etherscan.io/address/0x3AEC26bf9FEDba55a55e970504f439101AbD7327"
+                            target="_blank">Milady</a>,
+                        <a href="https://etherscan.io/address/0x3AEC26bf9FEDba55a55e970504f439101AbD7327"
+                            target="_blank">Schizoposters</a>,
+                        <a href="https://etherscan.io/address/0x3AEC26bf9FEDba55a55e970504f439101AbD7327"
+                            target="_blank">Bored Milady</a>
+                    </span>
+                    <br>
+                </div>
+                <br>
+
+                <div id="airdropTokenInfoOverview">
+                    <div class="bold">airdrop token</div>
+                    <span class="italic">Token: </span> <span class="tokenName"
+                        class="airdropTokenInfo">TOKENNAME</span>
+                    <br>
+                    <span class="italic">Ticker: </span> <span class="ticker">TICKER</span>
+                    <br>
+                    <span class="italic">Totalsupply: </span><span class="totalsupply">69,690,690</span> <span
+                        class="ticker">TICKER</span>
+                    <br>
+                    <span class="italic">Token contract: </span><a
+                        href="https://etherscan.io/address/0x3AEC26bf9FEDba55a55e970504f439101AbD7327"
+                        target="_blank">0x3AEC26bf9FEDba55a55e970504f439101AbD7327</a>
+                    <br>
+                </div>
+
+
+                <button>confirm</button><button disabled>deploy</button>
+
+            </div>
+
+        </div>
     </div>
 
     </div>
