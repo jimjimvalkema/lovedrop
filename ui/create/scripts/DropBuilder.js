@@ -11,14 +11,23 @@ export class DropBuilder {
     duplicatesNftDisplayId = "duplicatesNftDisplay"
     conflictResolutionSelector = document.getElementById("criteriaConflictsResolutionSelection")
     finalizeDropButton = document.getElementById("finalizeDropButton")
-    dropBuilderEl = document.getElementById("dropBuilder")
-    criteriaBuilderEl = document.getElementById("criteriaBuilder")
-    dropBuilderConflictsEl = document.getElementById("dropBuilderConflicts")
+
+   
     backButtonEl = document.getElementById("backButtonDropBuilder")
     confirmConflictResolutionButtonEl = document.getElementById("confirmConflictResolutionButton")
-    distrobutionOverViewEl = document.getElementById("distrobutionOverView")
+
     criteriaTableEl = document.getElementById("criteriaOverviewTable")
     //duplicatesManagerEl = document.getElementById("duplicatesManager")
+
+    criteriaBuilderEl = document.getElementById("criteriaBuilder")
+    dropBuilderEl = document.getElementById("dropBuilder")
+        dropBuilderConflictsEl = document.getElementById("dropBuilderConflicts")
+        distrobutionOverViewEl = document.getElementById("distrobutionOverView")
+        deploymentEl = document.getElementById("deployment")
+        dropBuilderPages = [this.dropBuilderConflictsEl,this.distrobutionOverViewEl,  this.deploymentEl]
+
+    
+    confirmDistrobutionBtn = document.getElementById("confirmDistrobutionBtn")
 
     //or do conflictResolutionSelectorHandler with a submit button but user might decide to go back anyway
     criteriaForConflictResolution = {}
@@ -46,11 +55,32 @@ export class DropBuilder {
         this.dropBuilderEl.style.display = "none"
 
         this.finalizeDropButton.addEventListener("click", (event) => this.toggleFinalizeDropView(event))
-        this.backButtonEl.addEventListener("click", (event) => this.toggleFinalizeDropView(event))
+        this.backButtonEl.addEventListener("click", (event) => this.#dropBuilderBackBtnHandler())
         this.conflictResolutionSelector.addEventListener("change", (event) => this.#conflictResolutionSelectorHandler(event, this.criteriaPerIds))
         this.confirmConflictResolutionButtonEl.addEventListener("click", (event) => this.#confirmConflictResolutionHandler(event))
+        this.confirmDistrobutionBtn.addEventListener("click", (event)=> this.#showDropBuilderPageEl(this.deploymentEl, event))
+    }
+
+    #dropBuilderBackBtnHandler() {
+        const currentPage = this.dropBuilderPages.findIndex((el)=>el.style.display !== "none")
+
+        if (this.dropBuilderPages[currentPage-1] === this.dropBuilderConflictsEl) {
+            const duplicates = this.getIdsWithDuplicateCriteria(this.criteriaPerIds)
+            const amountOfDuplicates = Object.keys(duplicates).reduce((total, collection) => total += Object.keys(duplicates[collection]).length, 0)
+            if (amountOfDuplicates===0) {
+                this.#showDropBuilderPageIndex(currentPage-2)
+            } else {
+                this.#showDropBuilderPageIndex(currentPage-1)
+            }
+            
+        } else if (currentPage!== -1) {
+            this.#showDropBuilderPageIndex(currentPage-1)
+        } 
 
     }
+
+
+
     /**
      * 
      * @param {HTMLElement[]} elements 
@@ -89,11 +119,37 @@ export class DropBuilder {
         elements.forEach((el) => el.style.display = this.originalElementDisplayValues[el.id])
     }
 
+    #showDropBuilderPageEl(element) {
+        if (this.criteriaBuilderEl.id === element.id) {
+            this.#showDropBuilderPageIndex(-1)
+        } else {
+            const pageIndex = this.dropBuilderPages.findIndex((el)=>el.id === element.id)
+            if (pageIndex===-1 ) {
+                throw Error(`element id ${element.id} is not in dropBuilderPages array: ${this.dropBuilderPages.map((x)=>x.id)}`)
+            } 
+            this.#showDropBuilderPageIndex(pageIndex)
+        }
+    }
+
+    #showDropBuilderPageIndex(page) {
+        if (page === -1) {
+            this.#setDisplayStyleOfElements([this.dropBuilderEl, ...this.dropBuilderPages], "none")
+            this.#resetDisplayStyleOfElements([this.criteriaBuilderEl])
+        } else {
+            const otherPages = this.dropBuilderPages.toSpliced(page,1)
+            this.#setDisplayStyleOfElements([this.criteriaBuilderEl, ...otherPages], "none")
+            this.#resetDisplayStyleOfElements([this.dropBuilderEl, this.dropBuilderPages[page] ])
+        }
+    }
+
+
+
+
+
     async toggleFinalizeDropView() {
         if (this.dropBuilderEl.style.display === "none") {
             //toggle display
-            this.#setDisplayStyleOfElements([this.criteriaBuilderEl, this.distrobutionOverViewEl], "none")
-            this.#resetDisplayStyleOfElements([this.dropBuilderEl, this.dropBuilderConflictsEl])
+            this.#showDropBuilderPageEl(this.dropBuilderConflictsEl)
 
             //remove data created when users goes back and returns
             this.removeConflictResolutionCriteria()
@@ -118,18 +174,16 @@ export class DropBuilder {
 
         } else {
             //toggle display
-            this.#setDisplayStyleOfElements([this.dropBuilderEl, this.distrobutionOverViewEl, this.dropBuilderConflictsEl], "none")
-            this.#resetDisplayStyleOfElements([this.criteriaBuilderEl])
+            this.#showDropBuilderPageEl(this.criteriaBuilderEl)
+
+            // this.#setDisplayStyleOfElements([this.dropBuilderEl, this.distrobutionOverViewEl, this.dropBuilderConflictsEl], "none")
+            // this.#resetDisplayStyleOfElements([this.criteriaBuilderEl])
 
             //rerun filter
             if (this.criteriaBuilder.filterBuilder) {
                 this.criteriaBuilder.filterBuilder.runFilter()
             }
-
-
         }
-
-
     }
 
 
@@ -169,9 +223,7 @@ export class DropBuilder {
     }
 
     async displayDuplicates(duplicates) {
-        this.#resetDisplayStyleOfElements([this.dropBuilderConflictsEl])
-
-
+        this.#showDropBuilderPageEl(this.dropBuilderConflictsEl)
 
         //display
         for (const rawCollectionAddress in duplicates) {
