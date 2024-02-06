@@ -982,9 +982,26 @@
                     <br>
                 </div>
 
-                <div id="progressProofGen"></div>
-                <div id="message2"></div>
-                <button id="confirmAndBuildDrop">confirm</button><button disabled>deploy</button>
+                <br>
+                <div id="airdropDeployment">
+                    <div class="bold">Notice</div>
+                    <span id="airdropDeploymentInstructions">
+                        First the merkle tree and claim data will be generated and added to IPFS 
+                        <br>
+                        Then then the contract is deployed.
+                        <br>
+                        Finally you fund the contract with the tokens. 
+                        
+                    </span>
+
+                    <div id="progressProofGen"></div>
+                    <div id="message2"></div>
+                    <button id="confirmAndBuildDrop">confirm</button>
+                    <button id="deployAirDrop" disabled>deploy</button>
+                    <button id="fundAirdrop" disabled>fund airdrop</button>
+
+                </div>
+
 
             </div>
 

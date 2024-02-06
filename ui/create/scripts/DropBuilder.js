@@ -6,6 +6,7 @@ import { FilterBuilder, filterTemplate } from "./FilterBuilder.js"
 import { ERC20ABI } from "../../abi/ERC20ABI.js"
 import {MerkleBuilder} from "../../scripts/MerkleBuilder.js"
 import {IpfsIndexer} from "../../scripts/IpfsIndexer.js"
+import {LoveDropFactoryAbi} from "../../abi/LoveDropFactoryAbi.js"
 
 export class DropBuilder {
     criteriaBuilder
@@ -39,18 +40,26 @@ export class DropBuilder {
     allCriteriaNamesEl =  document.getElementById("allCriteriaNames")
 
 
-    confirmAndBuildDrop = document.getElementById("confirmAndBuildDrop")
+    confirmAndBuildDropBtn = document.getElementById("confirmAndBuildDrop")
+    deployAirDropBtn = document.getElementById("deployAirDrop")
+    fundAirdropBtn = document.getElementById("fundAirdrop")
+
+    progressProofGenEl = document.getElementById("progressProofGen")
+
+    messageEl = document.getElementById("message2")
 
     //or do conflictResolutionSelectorHandler with a submit button but user might decide to go back anyway
     criteriaForConflictResolution = {}
     duplicatesNftDisplays = {}
 
 
+    txs = []
+
     originalElementDisplayValues = this.getDisplayStylesFromElements([this.dropBuilderEl, this.dropBuilderConflictsEl, this.criteriaBuilderEl, this.distrobutionOverViewEl])
 
 
 
-    constructor({ collectionAddress, provider, ipfsGateway, nftDisplayElementCriteriaBuilder, ipfsIndexer } = { collectionAddress: undefined, provider, ipfsGateway, nftDisplayElementCriteriaBuilder }) {
+    constructor({ collectionAddress, provider, ipfsGateway, nftDisplayElementCriteriaBuilder, ipfsIndexer, loveDropFactoryAddress } = { collectionAddress: undefined, provider, ipfsGateway, nftDisplayElementCriteriaBuilder,loveDropFactoryAddress:"0xfCD69606969625390C79c574c314b938853e1061" }) {
         this.criteriaBuilder = new CriteriaBuilder({
             collectionAddress: collectionAddress,
             provider: provider,
@@ -63,6 +72,7 @@ export class DropBuilder {
         this.ipfsGateway = ipfsGateway
         this.ipfsIndexer = ipfsIndexer
         this.nftDisplayElementCriteriaBuilder = nftDisplayElementCriteriaBuilder
+        this.loveDropFactoryAddress = loveDropFactoryAddress
 
         //initialize
         this.dropBuilderEl.style.display = "none"
@@ -74,6 +84,10 @@ export class DropBuilder {
         this.confirmDistrobutionBtn.addEventListener("click", (event) => this.#showDropBuilderPageEl(this.deploymentEl, event))
         this.airdropTokenContractAddressInput.addEventListener("keypress", (event) => this.#setTokenContractHandler(event))
         this.connectWallletBtn.addEventListener("click", ()=>this.connectSigner())
+
+        this.confirmAndBuildDropBtn.addEventListener("click",()=>this.#buildDropBtnHandler())
+        this.deployAirDropBtn.addEventListener("click", ()=>this.#deployDropHandler())
+        this.fundAirdropBtn.addEventListener("click", ()=>this.#fundAirdropBtnHandler())
     }
 
     #isValidSubmitEvent(event, inputElement) {
@@ -900,23 +914,89 @@ export class DropBuilder {
         console.log(balances)
         //TODO ipfs :p
         //setTimeout(function(){(document.getElementById("progressProofGen").innerText = (`building merkle tree on: ${balances.length} claims.`))},100)
-        this.merkleBuilder = new MerkleBuilder(balances,this.provider)
+        const merkleBuilder = new MerkleBuilder(balances,this.provider)
         //setTimeout(function(){(document.getElementById("progressProofGen").innerText = (`done building tree, calculating all ${balances.length} proofs`))},100)
-        await this.merkleBuilder.getAllProofsInChunks()
+        await merkleBuilder.getAllProofsInChunks()
         //document.getElementById("progressProofGen").innerText = "done calculating proofs adding to ipfs"
     
         //add to ipfs
-        const csvString = await this.merkleBuilder.exportBalancesCsv("",true)
-        const idsPerCollection = JSON.stringify(this.merkleBuilder.getIdsPerCollection())
+        const csvString = await merkleBuilder.exportBalancesCsv("",true)
+        const idsPerCollection = JSON.stringify(merkleBuilder.getIdsPerCollection())
 
         //TODO create ipfsIndex
         //this.ipfsIndex = new IpfsIndexer()
-        const hash = await this.ipfsIndexer.createMiladyDropClaimData(this.merkleBuilder.tree.dump(),this.merkleBuilder.allProofs, csvString,idsPerCollection,500)
+        const claimDataHash = await this.ipfsIndexer.createMiladyDropClaimData(merkleBuilder.tree.dump(),merkleBuilder.allProofs, csvString,idsPerCollection,500)
         //document.getElementById("progressProofGen").innerText = `added claim to ipfs at: ${hash}`
-        this.claimDataIpfs = hash
         // const amounts = this.merkleBuilder.balances.map((x)=>ethers.utils.formatEther( x[2]).toString())
         // const totalTokens = amounts.map((x)=>parseFloat(x)).reduce((sum, number) => sum + number)
         //document.getElementById("totalAmountDrop").innerText = `total amount of tokens is: ${totalTokens} TODO do this with bigNumber math`
-        return hash
+        return {claimDataHash:claimDataHash, merkleBuilder: merkleBuilder}
+    }
+
+    isWalletConnected(messageEl=this.messageEl) {
+        let message = "";
+        if (!this.signer) {
+            message = "wallet not connected";
+            console.log(message);
+            messageEl.innerHTML = message;
+            return false
+        } else {
+            messageEl.innerHTML = message;
+            return true;
+        }
+    }
+
+    async getLoveDropContractWithSigner() {
+        if (!this.loveDropFactoryContract) {
+            this.loveDropFactoryContract = new ethers.Contract(this.loveDropFactoryAddress, LoveDropFactoryAbi ,this.provider);
+        }
+        
+        if (this.signer) {
+            this.loveDropFactoryContract = await this.loveDropFactoryContract.connect(this.signer);
+            return this.loveDropFactoryContract
+        } else {
+            throw Error(`this.signer undefined please connect wallet`)
+        }
+
+    }
+
+
+
+    async #buildDropBtnHandler() {
+        const {claimDataHash:claimDataHash, merkleBuilder: merkleBuilder} = await this.buildTreeAndProofsIpfs()
+        this.claimDataIpfs = claimDataHash
+        this.merkleBuilder = merkleBuilder
+
+        this.progressProofGenEl.innerText = `claim data at: ipfs://${claimDataHash}`
+       
+        this.deployAirDropBtn.disabled = false
+
+    }
+
+    async #deployDropHandler() {
+        await this.connectSigner()
+        const merkleRoot = this.merkleBuilder.merkleRoot//ipfsIndex.metaData.merkleRoot;
+        const claimDataIpfs = this.claimDataIpfs//ipfsIndex.dropsRootHash;
+        const loveDropFactory = await this.getLoveDropContractWithSigner()
+    
+    
+        if (this.isWalletConnected()) {
+            var tx = loveDropFactory.createNewDrop(this.airdropTokenContractObj.address, merkleRoot, claimDataIpfs);
+            this.txs.push(tx)
+        }
+        // message(`submitted transaction at: ${(await tx).hash}`);
+        const confirmedTX = (await (await (await tx).wait(1)).transactionHash);
+        const reciept = (await this.provider.getTransactionReceipt(confirmedTX));
+        console.log(reciept.logs)
+        //reciept.logs[0] = version number
+        const deployedDropAddress = await ethers.utils.defaultAbiCoder.decode(["address"], reciept.logs[1].data)[0];
+        this.progressProofGenEl.innerText = `Contract deployed at: ${deployedDropAddress}. At tx: ${confirmedTX}`
+        // message(`confirmed transaction at: ${(await tx).hash}, deployed at: ${window.deployedDropAddress}`);
+    
+
+    }
+
+    async #fundAirdropBtnHandler() {
+
     }
 }

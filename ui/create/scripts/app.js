@@ -79,7 +79,8 @@ async function test() {
         provider : window.provider,
         ipfsGateway : window.ipfsGateway,
         ipfsIndexer: window.ipfsIndex,
-        nftDisplayElementCriteriaBuilder : nftDisplayElement
+        nftDisplayElementCriteriaBuilder : nftDisplayElement,
+        loveDropFactoryAddress:"0xfCD69606969625390C79c574c314b938853e1061"
     });
     
     //copy paste filters
