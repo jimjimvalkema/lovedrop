@@ -89,7 +89,8 @@ export class DropBuilder {
                 this.airdropTokenContractObj = new ethers.Contract(value, ERC20ABI, this.provider)
                 //TOOD check if this is a problem if not set earlier
                 this.erc20Units = await this.airdropTokenContractObj.decimals()
-                this.displayTotalsOverView()
+                document.getElementById("totalsOverview").hidden = false
+                await this.setTotalsOverViewInfo()
  
                 //this.airdropTokenContractObj = new ethers.Contract(value,ERC20ABI,this.provider)
             } else {
@@ -135,8 +136,39 @@ export class DropBuilder {
         return await userAddress
     }
 
-    async displayTotalsOverView() {
-        document.getElementById("totalsOverview").hidden = false
+    async #createCollectionHrefs() {
+        const allCollectionsAddresses = [...new Set(this.criteriaBuilder.criteria.map((x)=>x.collectionAddress))]
+        const names =  allCollectionsAddresses.map((address)=>this.criteriaBuilder.filterBuilder.getNftMetaData(address).getContractName())
+        const nameElements = (await Promise.all(names)).map((name, index)=>{
+            const address = allCollectionsAddresses[index]
+            const nameElement = document.createElement("a")
+            nameElement.innerText = name
+            nameElement.href = `https://etherscan.io/address/${address}`
+            nameElement.target="_blank"
+            return nameElement
+        })
+
+
+
+        return nameElements
+
+    }
+
+    /**
+     * 
+     * @returns {BigNumber}
+     */
+    getTotalAirdrop() {
+        const totalBigNum = this.criteriaBuilder.criteria.reduce((total,criterion)=>{
+            const amountPerItem = ethers.utils.parseUnits(criterion.amountPerItem, this.erc20Units)
+            const totatAmountCriterion = amountPerItem.mul((criterion.ids.length - criterion.excludedIds.length))
+            return totatAmountCriterion.add(total)
+        }, ethers.BigNumber.from(0))
+
+        return totalBigNum
+    }
+
+    async setTotalsOverViewInfo() {
 
         if (this.airdropTokenContractObj) {
             let allResults=[]
@@ -163,10 +195,18 @@ export class DropBuilder {
                 document.querySelectorAll(".totalsupply").forEach((x) => x.innerText = formattedSupply)
             });
 
-            //TODO
-            //document.querySelectorAll(".totalAirdrop").forEach((x) => x.innerText = "1010101")
-            this.allCollectionsEl.innerText = "TODO" 
-            this.allCriteriaNamesEl.innerText = "TODO" 
+
+            const collectionNames = this.#createCollectionHrefs()
+            collectionNames.then((names) => {
+                const namesWithSpacing = names.map((x)=>[x, ", "]).flat().toSpliced(-1,1)
+                this.allCollectionsEl.innerHTML = ""
+                this.allCollectionsEl.append(...namesWithSpacing)
+            });
+
+            const totalAirdrop = this.#formatNumber(this.getTotalAirdrop())
+            document.querySelectorAll(".totalAirdrop").forEach((x) => x.innerText = totalAirdrop)
+
+            this.allCriteriaNamesEl.innerText = this.criteriaBuilder.criteria.map((x)=>x.name).toString()
 
 
             await this.connectSigner()
@@ -174,7 +214,7 @@ export class DropBuilder {
                 await this.#setUserBalance()
             }
 
-            allResults = [...allResults, contractName, contractTicker, totalSupply]
+            allResults = [...allResults, contractName, contractTicker, totalSupply, collectionNames]
             return await Promise.all(allResults)
         }
     }
@@ -237,15 +277,21 @@ export class DropBuilder {
         elements.forEach((el) => el.style.display = this.originalElementDisplayValues[el.id])
     }
 
-    #showDropBuilderPageEl(element) {
+    async #showDropBuilderPageEl(element) {
+        //TODO cleanup and do in showDropBuilderPageIndex
         if (this.criteriaBuilderEl.id === element.id) {
             this.#showDropBuilderPageIndex(-1)
+
         } else {
             const pageIndex = this.dropBuilderPages.findIndex((el) => el.id === element.id)
             if (pageIndex === -1) {
                 throw Error(`element id ${element.id} is not in dropBuilderPages array: ${this.dropBuilderPages.map((x) => x.id)}`)
             }
             this.#showDropBuilderPageIndex(pageIndex)
+        }
+
+        if(this.deploymentEl.id === element.id) {
+            this.setTotalsOverViewInfo()
         }
     }
 
@@ -267,7 +313,7 @@ export class DropBuilder {
     async toggleFinalizeDropView() {
         if (this.dropBuilderEl.style.display === "none") {
             //toggle display
-            this.#showDropBuilderPageEl(this.dropBuilderConflictsEl)
+            await this.#showDropBuilderPageEl(this.dropBuilderConflictsEl)
 
             //remove data created when users goes back and returns
             this.removeConflictResolutionCriteria()
@@ -292,7 +338,7 @@ export class DropBuilder {
 
         } else {
             //toggle display
-            this.#showDropBuilderPageEl(this.criteriaBuilderEl)
+            await this.#showDropBuilderPageEl(this.criteriaBuilderEl)
 
             // this.#setDisplayStyleOfElements([this.dropBuilderEl, this.distrobutionOverViewEl, this.dropBuilderConflictsEl], "none")
             // this.#resetDisplayStyleOfElements([this.criteriaBuilderEl])
@@ -341,7 +387,7 @@ export class DropBuilder {
     }
 
     async displayDuplicates(duplicates) {
-        this.#showDropBuilderPageEl(this.dropBuilderConflictsEl)
+        await this.#showDropBuilderPageEl(this.dropBuilderConflictsEl)
 
         //display
         for (const rawCollectionAddress in duplicates) {
