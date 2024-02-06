@@ -62,8 +62,10 @@ async function runOnLoad() {
     }
 
     //TODO cleaner way of doing this
-    const ipfsIndex = new IpfsIndexer(window.ipfsGateways)
-    window.ipfsGateway = await ipfsIndex.getGatewayUrl()
+    const gatewayIpfsIndex = new IpfsIndexer(window.ipfsGateways)
+    window.ipfsGateway = await gatewayIpfsIndex.getGatewayUrl()
+    //TODO api urls shouldn't be hardcoded
+    window.ipfsIndex = new IpfsIndexer(["http://127.0.0.1:45001"],null,false)
 
 
 
@@ -76,6 +78,7 @@ async function test() {
         collectionAddress : undefined,
         provider : window.provider,
         ipfsGateway : window.ipfsGateway,
+        ipfsIndexer: window.ipfsIndex,
         nftDisplayElementCriteriaBuilder : nftDisplayElement
     });
     

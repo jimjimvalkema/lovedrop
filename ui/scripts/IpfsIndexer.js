@@ -27,9 +27,17 @@ export class IpfsIndexer{
     }
 
     async getGatewayUrl() {
+
+
         if (this.currentGateway) {
             return this.currentGateway
         } else {
+            //TODO separate gateways and rpc and remove this hacky if statement
+            if (this.isGateway===false) {
+                this.currentGateway = this.gateways[0]
+                return this.currentGateway
+            }
+
             this.currentGateway = await this.getFirstWorkingGateway(this.gateways)
             console.log(`using gateway: ${this.currentGateway}`)
             return this.currentGateway
@@ -66,6 +74,7 @@ export class IpfsIndexer{
     
     message(message) {
         console.log(message);
+        //TODO dont use hardoced element ids and dont use elements at all if they arent set at constructor
         document.getElementById("message2").innerHTML = message;
     }
 

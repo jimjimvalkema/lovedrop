@@ -4,6 +4,8 @@ import { CriteriaBuilder, criterionFormat } from "./CriteriaBuilder.js"
 import { NftMetaDataCollector } from "../../scripts/NftMetaDataCollector.js"
 import { FilterBuilder, filterTemplate } from "./FilterBuilder.js"
 import { ERC20ABI } from "../../abi/ERC20ABI.js"
+import {MerkleBuilder} from "../../scripts/MerkleBuilder.js"
+import {IpfsIndexer} from "../../scripts/IpfsIndexer.js"
 
 export class DropBuilder {
     criteriaBuilder
@@ -36,6 +38,9 @@ export class DropBuilder {
     allCollectionsEl =  document.getElementById("allCollections")
     allCriteriaNamesEl =  document.getElementById("allCriteriaNames")
 
+
+    confirmAndBuildDrop = document.getElementById("confirmAndBuildDrop")
+
     //or do conflictResolutionSelectorHandler with a submit button but user might decide to go back anyway
     criteriaForConflictResolution = {}
     duplicatesNftDisplays = {}
@@ -45,7 +50,7 @@ export class DropBuilder {
 
 
 
-    constructor({ collectionAddress, provider, ipfsGateway, nftDisplayElementCriteriaBuilder } = { collectionAddress: undefined, provider, ipfsGateway, nftDisplayElementCriteriaBuilder }) {
+    constructor({ collectionAddress, provider, ipfsGateway, nftDisplayElementCriteriaBuilder, ipfsIndexer } = { collectionAddress: undefined, provider, ipfsGateway, nftDisplayElementCriteriaBuilder }) {
         this.criteriaBuilder = new CriteriaBuilder({
             collectionAddress: collectionAddress,
             provider: provider,
@@ -56,6 +61,7 @@ export class DropBuilder {
         this.collectionAddress = collectionAddress
         this.provider = provider
         this.ipfsGateway = ipfsGateway
+        this.ipfsIndexer = ipfsIndexer
         this.nftDisplayElementCriteriaBuilder = nftDisplayElementCriteriaBuilder
 
         //initialize
@@ -878,4 +884,39 @@ export class DropBuilder {
         }
     }
 
+    convertCriteriaToBalances(criteria=this.criteriaBuilder.criteria) {
+        const balancesPerCriteria = criteria.map((criterion)=>{
+            const amountBigNum = ethers.utils.parseUnits(criterion.amountPerItem, this.erc20Units) 
+            const collectionAddress = criterion.collectionAddress
+            const ids = criterion.ids.filter((id)=>!criterion.excludedIds.includes(id))
+            return ids.map((id)=>[collectionAddress, id.toString(), amountBigNum])
+        })
+        return balancesPerCriteria.flat()
+    }
+
+    async buildTreeAndProofsIpfs() {
+        //TODO update the ui hash that is hardcoded in IpfsIndexer (and also dont harcode those things)
+        const balances = this.convertCriteriaToBalances(this.criteriaBuilder.criteria)
+        console.log(balances)
+        //TODO ipfs :p
+        //setTimeout(function(){(document.getElementById("progressProofGen").innerText = (`building merkle tree on: ${balances.length} claims.`))},100)
+        this.merkleBuilder = new MerkleBuilder(balances,this.provider)
+        //setTimeout(function(){(document.getElementById("progressProofGen").innerText = (`done building tree, calculating all ${balances.length} proofs`))},100)
+        await this.merkleBuilder.getAllProofsInChunks()
+        //document.getElementById("progressProofGen").innerText = "done calculating proofs adding to ipfs"
+    
+        //add to ipfs
+        const csvString = await this.merkleBuilder.exportBalancesCsv("",true)
+        const idsPerCollection = JSON.stringify(this.merkleBuilder.getIdsPerCollection())
+
+        //TODO create ipfsIndex
+        //this.ipfsIndex = new IpfsIndexer()
+        const hash = await this.ipfsIndexer.createMiladyDropClaimData(this.merkleBuilder.tree.dump(),this.merkleBuilder.allProofs, csvString,idsPerCollection,500)
+        //document.getElementById("progressProofGen").innerText = `added claim to ipfs at: ${hash}`
+        this.claimDataIpfs = hash
+        // const amounts = this.merkleBuilder.balances.map((x)=>ethers.utils.formatEther( x[2]).toString())
+        // const totalTokens = amounts.map((x)=>parseFloat(x)).reduce((sum, number) => sum + number)
+        //document.getElementById("totalAmountDrop").innerText = `total amount of tokens is: ${totalTokens} TODO do this with bigNumber math`
+        return hash
+    }
 }
