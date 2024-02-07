@@ -262,23 +262,26 @@ export class IpfsIndexer{
     }
 
     async getHashFromIpfsPath(path) {
+        
         //TODO doesnt work for sharded hashes
         //maybe use resolve??
         let pathArr = path.split("/");
         const rootHash = pathArr[0];
-        if (pathArr.length<=1){return rootHash}
+        console.log("path", path, pathArr.length)
+        if (pathArr.length===1){return rootHash}
 
         const currentDag = await this.getDag(rootHash);
 
         const nextItem = pathArr[1]
         const linksIndex = currentDag['Links'].findIndex((x)=>x.Name===nextItem)
         if (linksIndex===-1) {throw console.error(`item ${nextItem} not found in Links of ${rootHash}`);}
-        const newHash = currentDag["Links"][linksIndex]
-        pathArr = pathArr.splice(1)
+        const newHash = currentDag["Links"][linksIndex]["Hash"]["/"]
+        console.log("newHash", newHash,"linksIndex", linksIndex, "links", currentDag["Links"])
+        pathArr = pathArr.toSpliced(0,1)
         pathArr[0] = newHash
         const newPath = pathArr.join("/")
         console.log(newPath)
-        await this.getHashFromIpfsPath(newPath)
+        return await this.getHashFromIpfsPath(newPath)
 
     }
 
@@ -316,7 +319,7 @@ export class IpfsIndexer{
         return null;
     }
 
-    async createMiladyDropClaimData(treeDump, allProofs,balancesAsCsv,idsPerCollection,splitSize=500, uiHash="Qmd9khr3UjLjvYNZoLZnd7W2yeDXDQhp1pdh5hb6KGrBro") {//uiHash:oct7
+    async createMiladyDropClaimData(treeDump, allProofs,balancesAsCsv,idsPerCollection,dropMetaData={},splitSize=500, uiHash="Qmd9khr3UjLjvYNZoLZnd7W2yeDXDQhp1pdh5hb6KGrBro") {//uiHash:oct7
         const treeDumpHash = (await this.addToIpfs(JSON.stringify(treeDump), "treeDump.json"))["Hash"]
         const rootDirHash = await this.wrapInDirectory(treeDumpHash, "treeDump.json")
         let rootDirDag = await this.getDag(rootDirHash);
@@ -338,6 +341,7 @@ export class IpfsIndexer{
 
             //add to ipfs
             dag = await this.addObjectToDag(dag, index, "index.json");
+            
             const newHashWithIndex = await this.putDag(dag)
             indexHasPerNftAddr[nftAddr] = newHashWithIndex;
             this.addHashToDag(newHashWithIndex,`${nftAddr}`,allProofsDag)
@@ -347,6 +351,7 @@ export class IpfsIndexer{
         
         rootDirDag = await this.addHashToDag(await this.putDag(allProofsDag),"allProofs", rootDirDag)
         rootDirDag = await this.addHashToDag((await this.addToIpfs(balancesAsCsv))["Hash"],"balances.csv", rootDirDag)
+        rootDirDag = await this.addHashToDag((await this.addToIpfs(JSON.stringify(dropMetaData,null,2)))["Hash"],"dropMetaData.json", rootDirDag)
         rootDirDag = await this.addHashToDag((await this.addToIpfs(idsPerCollection))["Hash"],"idsPerCollection.json", rootDirDag)
         this.MiladyDropClaimDataHash = await this.putDag(rootDirDag)
         return this.MiladyDropClaimDataHash
