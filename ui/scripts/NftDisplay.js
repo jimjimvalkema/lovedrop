@@ -407,7 +407,7 @@ export class NftDisplay {
      */
     async selectPage(page, refresh=false) {
         const computedHeight = getComputedStyle(this.imageRasterElement).height
-        const initialHeight = this.imageRasterElement.style.height
+        //const initialHeight = this.imageRasterElement.style.height
 
         if (this.pageSelectorElement) {
             const newPageSelector = this.createPageSelector(page)
@@ -433,7 +433,9 @@ export class NftDisplay {
         if (!refresh) {
             //to prevent the height from jumping. but is set to the origanal value (fit-content) after 2 seconds when images are loaded
             this.imageRasterElement.style.height = computedHeight
-            setTimeout(()=>this.imageRasterElement.style.height=initialHeight, 2000 )
+            setTimeout(()=>{
+                this.imageRasterElement.style.height='fit-content' //TODO set this as global somehow
+            }, 2000 )
 
         }
 

@@ -184,7 +184,7 @@ async function displayNfts(nftAddress = null) {
     window.currentNft = nftAddress
 
     if (nftAddress in window.nftDisplays) {
-        window.nftDisplays[nftAddress].createDisplay()
+        await window.nftDisplays[nftAddress].createDisplay()
         return 0
     }
 
@@ -194,6 +194,7 @@ async function displayNfts(nftAddress = null) {
     loadingDiv.innerText = "loading"
     loadingDiv.id = "loading"
     targetDomElement.append(loadingDiv)
+    const displayElement = document.getElementById("nfts")
 
     let display
     if (window.nftDisplays[nftAddress]) {
@@ -202,43 +203,46 @@ async function displayNfts(nftAddress = null) {
         display = new NftDisplay({
             "collectionAddress": nftAddress,
             "provider": window.provider,
-            "targetDivId": "nfts",
+            "displayElement": displayElement,
             "ids": [],
             "ipfsGateway": window.ipfsGateway,
-            "landscapeOrientation": { ["rowSize"]: 7, ["amountRows"]: 2 }, 
+            "landscapeOrientation": { ["rowSize"]: 7, ["amountRows"]: 2 },
             "portraitOrientation": { ["rowSize"]: 4, ["amountRows"]: 5 }
         })
-    window.nftDisplays[nftAddress] = display
-
-}
-
-//empty the element if it already exist (incase user connects a new wallet)
+        await display.setCollectionAddress(nftAddress)
+        window.nftDisplays[nftAddress] = display
 
 
-//display amount of token recieved
-//const onclickToBuy = (id, display)=>window.open(`https://pro.opensea.io/nft/ethereum/${display.collectionAddress}/${id}`).focus()
-display.imgOnclickFunction = onclickToBuy
-display.divFunctions.push(nftImagesFilter)
-display.divFunctions.push(clickToBuyMessage)
-display.divFunctions.push(displayTokens)
-display.displayNames()
-const eligibleIds = Object.keys(window.idsPerCollection[window.currentNft])
 
-//process user ids
-//window.idsByClaimableStatus[nftAddress] =  await getClaimableStatus(allIds, window.idsPerCollection[nftAddress], nftAddress)
-//const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddress]
-display.ids = sortIdsByEligibility(eligibleIds, display.collectionAddress)
+    }
 
-//display nfts
-await display.createDisplay()
-loadingDiv.remove()
-//window.nftDisplays.push(display)
+    //empty the element if it already exist (incase user connects a new wallet)
 
-document.getElementById("collectionSelect").value = window.currentNft
-await Promise.all(window.optionsResult)
-document.getElementById("collectionSelect").value = window.currentNft
 
-return targetDomElement
+    //display amount of token recieved
+    //const onclickToBuy = (id, display)=>window.open(`https://pro.opensea.io/nft/ethereum/${display.collectionAddress}/${id}`).focus()
+    //display.imgOnclickFunction = onclickToBuy
+    //display.divFunctions.push(nftImagesFilter)
+    //display.divFunctions.push(clickToBuyMessage)
+    display.divFunctions.push(displayTokens)
+    display.displayNames({ redirect: true })
+    const eligibleIds = Object.keys(window.idsPerCollection[window.currentNft])
+
+    //process user ids
+    //window.idsByClaimableStatus[nftAddress] =  await getClaimableStatus(allIds, window.idsPerCollection[nftAddress], nftAddress)
+    //const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddress]
+    display.ids = sortIdsByEligibility(eligibleIds, display.collectionAddress)
+
+    //display nfts
+    await display.createDisplay()
+    loadingDiv.remove()
+    //window.nftDisplays.push(display)
+
+    document.getElementById("collectionSelect").value = window.currentNft
+    await Promise.all(window.optionsResult)
+    document.getElementById("collectionSelect").value = window.currentNft
+
+    return targetDomElement
 }
 window.displayNfts = displayNfts
 

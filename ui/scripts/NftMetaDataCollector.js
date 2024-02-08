@@ -218,9 +218,12 @@ export class NftMetaDataCollector {
     /**
      * assumes ids are minted incrementally
      */
-    async #getLastIdFromChain(startingPointId = 10000, maxAmountChecks = 5000, chunkSize = 50) {
-        const messageProgressElement = document.getElementById("messageProgress")
-        messageProgressElement.hidden = false
+    async #getLastIdFromChain(startingPointId = 10000, maxAmountChecks = 5000, chunkSize = 50, messageProgressElement) {
+        if (messageProgressElement) {
+            messageProgressElement.hidden = false
+
+        }
+        
 
         this.lastId = 0
         let pendingIsLastIdRes = []
@@ -245,13 +248,16 @@ export class NftMetaDataCollector {
             if (!(checkCount % 20)) {
                 const m = `searching lastId. checked ${checkCount} id out of:${maxAmountChecks} ids`
                 //console.log(m)
-                if (!(typeof (document) === "undefined")) {
+                if (messageProgressElement) {
                     messageProgressElement.innerText = m
 
                 }
             }
         }
-        messageProgressElement.hidden = true
+        if (messageProgressElement) {
+            messageProgressElement.hidden = true
+        }
+
         return this.lastId
 
     }
@@ -288,7 +294,7 @@ export class NftMetaDataCollector {
         }
     }
 
-    async getLastId(maxAmountChecks = 100) {
+    async getLastId(maxAmountChecks = 100, messageProgressElement=undefined) {
         if (this.lastId) {
             return this.lastId
         }
@@ -305,7 +311,7 @@ export class NftMetaDataCollector {
             totalSupply += 1
         }
 
-        await this.#getLastIdFromChain(totalSupply, maxAmountChecks)
+        await this.#getLastIdFromChain(totalSupply, maxAmountChecks, messageProgressElement)
         return this.lastId
 
     }
