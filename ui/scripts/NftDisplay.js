@@ -259,19 +259,24 @@ export class NftDisplay {
         //TODO seems broken?
         const maxPerPage = rowSize*amountRows
         const idsCurrentPage = ids.slice((currentPage-1)*maxPerPage, currentPage*maxPerPage)
-        for (const [index, id] of idsCurrentPage.entries()) {
-            let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
-            //keep last item since its the image 
-            if(imageDiv) {
-                const childNodes = [...imageDiv.childNodes]
-                const removeableNodes =childNodes.slice(null,childNodes.length-1) //.filter((x)=>x.id!=="selectionStatus") 
-                removeableNodes.map((x)=>{
-                    imageDiv.removeChild(x);
-                    //x.outerHTML = ""
-                })
-            }
+
+        const allImageDivs = [...this.displayElement.querySelectorAll(".nftImagesDiv")]
+        //TODO doing this in one for each instead of filter is faster
+        const allImgDivElements = allImageDivs.map((imgDiv)=>[...imgDiv.childNodes].filter((imgDivElement)=>!imgDivElement.className.includes("imageDiv") )).flat()
+        allImgDivElements.forEach((element)=>{element.outerHTML = "";element=undefined})
+        // for (const [index, id] of idsCurrentPage.entries()) {
+        //     let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
+        //     //keep last item since its the image 
+        //     if(imageDiv) {
+        //         const childNodes = [...imageDiv.childNodes]
+        //         const removeableNodes =childNodes.slice(null,childNodes.length-1) //.filter((x)=>x.id!=="selectionStatus") 
+        //         removeableNodes.map((x)=>{
+        //             imageDiv.removeChild(x);
+        //             //x.outerHTML = ""
+        //         })
+        //     }
         
-        }
+        // }
 
     }
 
@@ -541,6 +546,7 @@ export class NftDisplay {
             let imageDiv = document.createElement("div")
             imageDiv.id = `imageDiv-${id}-${this.collectionAddress}`
             imageDiv.style = `overflow: hidden; height:100%; vertical-align: bottom;`
+            imageDiv.className = "imageDiv"
             
             imageDiv.append(img)
             //imgBorderDiv.append(imageDiv)
@@ -731,7 +737,7 @@ export class NftDisplay {
         //TODO do this separate function
         //TODO doesnt re-size if spam clicking (nftNameElement will be undefined)
 
-        const nftNameElement = [...this.imageRasterElement.querySelectorAll(".nftName")][0]
+        const nftNameElement = [...this.imageRasterElementuriCacherySelectorAll(".nftName")][0]
         if (nftNameElement) {
             const attributeElements = [...this.imageRasterElement.querySelectorAll(".attributesNftDisplayContent")]
             const imgElements = [...this.imageRasterElement.querySelectorAll(".nftDisplayImageElement")]
@@ -802,16 +808,16 @@ export class NftDisplay {
         }
     }
 
-    selectAll() {
+    async selectAll() {
         this.selection = this.ids.filter((id)=>this.notSelectable.indexOf(id)===-1);
         this.#removeAllDivImageFromRootElement()
-        this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
+        await this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
     }
 
-    clearSelection() {
+    async clearSelection() {
         this.selection = []
         this.#removeAllDivImageFromRootElement()
-        this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
+        await this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
     }
 
     refreshSelectableDisplay() {

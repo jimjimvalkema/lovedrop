@@ -359,7 +359,7 @@ window.clearSelection = clearSelection
 async function selectAll() {
     await clearSelection()
     for (const nftDisplay of window.nftDisplays) {
-        nftDisplay.selectAll()
+        await nftDisplay.selectAll()
         const totalSelected = nftDisplay.selection.reduce(
             (total, id) => {
                 if (window.idsPerCollection[nftDisplay.collectionAddress][id]) {
@@ -396,14 +396,16 @@ function displayTokens(id, nftDisplay) {
 
 function makeIntoDivs(parentId, childIds) {
     let parentElement = document.getElementById(parentId)
+    let children = []
     for (const childId of childIds) {
         let childDiv = document.createElement("div");
         childDiv.id = childId
         childDiv.style.paddingTop = "1.5rem"
         parentElement.appendChild(childDiv)
+        children.push(childDiv)
     }
 
-    return parentElement
+    return children
 }
 
 async function refreshDisplay(displays) {
@@ -441,11 +443,6 @@ async function displayNfts() {
     while (!window.allNftDisplays) {
         await delay(100)
     }
-
-    // create the nftDisplay divs
-    const nftAddresses = Object.keys(await window.idsPerCollection)
-    const nftDisplayElementIds = nftAddresses.map((x)=>`nftDisplay-${x}`)
-    makeIntoDivs("nfts", nftDisplayElementIds)
 
     document.getElementById("loading").innerText = "loading"
 
@@ -559,9 +556,22 @@ async function loadAllContracts() {
     window.allNftAddresses = Object.keys(window.idsPerCollection)
     window.isClaimedCache = Object.fromEntries(window.allNftAddresses.map((x) => [x, {}]))
     window.selectedIds = {}
+
+    // create the nftDisplay divs
+    const nftAddresses = Object.keys(await window.idsPerCollection)
+    const parrentDiv = document.getElementById("nfts")
+    const nftDisplayElements = Object.fromEntries(nftAddresses.map((address)=>{
+        const displayEl = document.createElement("div")
+        displayEl.id = `nftDisplay-${address}`
+        parrentDiv.append(displayEl)
+        return [address, displayEl]
+    }))
     
+
+    //makeIntoDivs("nfts", nftDisplayElementIds)
+
     //window.allEligibleIds = window.ipfsIndex.getIdsPerCollection()
-    window.allNftDisplays = allNftAddresses.map((nftAddr) => new NftDisplay({collectionAddress:nftAddr, provider:window.provider, displayElementId:`nftDisplay-${nftAddr}`, ids:[], ipfsGateway:window.ipfsGateway}))
+    window.allNftDisplays = allNftAddresses.map((nftAddr) => new NftDisplay({collectionAddress:nftAddr, provider:window.provider, displayElement:nftDisplayElements[nftAddr], ids:[], ipfsGateway:window.ipfsGateway}))
 
 
 
@@ -575,5 +585,7 @@ async function runOnLoad() {
     connectSigner()
 }
 window.onload = runOnLoad;
+
+
 
 
