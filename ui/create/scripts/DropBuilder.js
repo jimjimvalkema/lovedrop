@@ -7,6 +7,7 @@ import { ERC20ABI } from "../../abi/ERC20ABI.js"
 import {MerkleBuilder} from "../../scripts/MerkleBuilder.js"
 import {IpfsIndexer} from "../../scripts/IpfsIndexer.js"
 import {LoveDropFactoryAbi} from "../../abi/LoveDropFactoryAbi.js"
+import {LoveDropAbi} from "../../abi/LoveDropAbi.js"
 
 export class DropBuilder {
     criteriaBuilder
@@ -48,6 +49,11 @@ export class DropBuilder {
 
     messageEl = document.getElementById("message2")
 
+    checkEnoughTokensBtn = document.getElementById("checkEnoughTokens")
+
+
+    notEnoughTokensEl = document.getElementById("notEnoughTokens")
+
     //or do conflictResolutionSelectorHandler with a submit button but user might decide to go back anyway
     criteriaForConflictResolution = {}
     duplicatesNftDisplays = {}
@@ -88,6 +94,8 @@ export class DropBuilder {
         this.confirmAndBuildDropBtn.addEventListener("click",()=>this.#buildDropBtnHandler())
         this.deployAirDropBtn.addEventListener("click", ()=>this.#deployDropHandler())
         this.fundAirdropBtn.addEventListener("click", ()=>this.#fundAirdropBtnHandler())
+
+        this.checkEnoughTokensBtn.addEventListener("click",()=>this.#checkEnoughTokensHandler())
     }
 
     #isValidSubmitEvent(event, inputElement) {
@@ -111,6 +119,7 @@ export class DropBuilder {
                 this.erc20Units = await this.airdropTokenContractObj.decimals()
                 document.getElementById("totalsOverview").hidden = false
                 await this.setTotalsOverViewInfo()
+                
  
                 //this.airdropTokenContractObj = new ethers.Contract(value,ERC20ABI,this.provider)
             } else {
@@ -312,6 +321,10 @@ export class DropBuilder {
 
         if(this.deploymentEl.id === element.id) {
             this.setTotalsOverViewInfo()
+            this.notEnoughTokensEl.hidden = true
+            this.progressProofGenEl.innerText = ""
+            this.merkleBuilder = undefined
+            this.claimDataIpfs = undefined
         }
     }
 
@@ -922,10 +935,14 @@ export class DropBuilder {
         //add to ipfs
         const csvString = await merkleBuilder.exportBalancesCsv("",true)
         const idsPerCollection = JSON.stringify(merkleBuilder.getIdsPerCollection())
+        const totalDropBigNumber = this.getTotalAirdrop()
+        const dropMetaData = {"totalDrop":this.#formatNumber(totalDropBigNumber),"totalDropBigNumber":this.getTotalAirdrop()}
 
         //TODO create ipfsIndex
         //this.ipfsIndex = new IpfsIndexer()
-        const claimDataHash = await this.ipfsIndexer.createMiladyDropClaimData(merkleBuilder.tree.dump(),merkleBuilder.allProofs, csvString,idsPerCollection,500)
+
+        //TODO!! do with named args like {}
+        const claimDataHash = await this.ipfsIndexer.createMiladyDropClaimData(merkleBuilder.tree.dump(),merkleBuilder.allProofs, csvString,idsPerCollection,dropMetaData,500)
         //document.getElementById("progressProofGen").innerText = `added claim to ipfs at: ${hash}`
         // const amounts = this.merkleBuilder.balances.map((x)=>ethers.utils.formatEther( x[2]).toString())
         // const totalTokens = amounts.map((x)=>parseFloat(x)).reduce((sum, number) => sum + number)
@@ -964,39 +981,151 @@ export class DropBuilder {
 
     async #buildDropBtnHandler() {
         const {claimDataHash:claimDataHash, merkleBuilder: merkleBuilder} = await this.buildTreeAndProofsIpfs()
+
+
         this.claimDataIpfs = claimDataHash
         this.merkleBuilder = merkleBuilder
 
         this.progressProofGenEl.innerText = `claim data at: ipfs://${claimDataHash}`
-       
-        this.deployAirDropBtn.disabled = false
+        
+        await this.connectSigner()
+        const totalAirdrop = this.getTotalAirdrop()
+        const userAddress = await this.signer.getAddress()
+        const userBalance = await this.airdropTokenContractObj.balanceOf(userAddress)
 
+        if (totalAirdrop.gt(userBalance)) {
+            //update values in ui just in case
+            document.querySelectorAll(".totalAirdrop").forEach((x) => x.innerText = this.#formatNumber(totalAirdrop))
+            document.querySelectorAll(".erc20UserBalance").forEach((x) => x.innerText = this.#formatNumber(userBalance))
+
+            //show message user doesnt have enough
+            this.notEnoughTokensEl.hidden = false
+            this.notEnoughTokensEl.style.opacity = 1
+        } else {
+            //enable deploy button when user has enough
+            this.deployAirDropBtn.disabled = false
+        }
     }
+
+    
 
     async #deployDropHandler() {
-        await this.connectSigner()
-        const merkleRoot = this.merkleBuilder.merkleRoot//ipfsIndex.metaData.merkleRoot;
-        const claimDataIpfs = this.claimDataIpfs//ipfsIndex.dropsRootHash;
-        const loveDropFactory = await this.getLoveDropContractWithSigner()
-    
-    
-        if (this.isWalletConnected()) {
-            var tx = loveDropFactory.createNewDrop(this.airdropTokenContractObj.address, merkleRoot, claimDataIpfs);
-            this.txs.push(tx)
+        if (await this.checkEnoughTokens()) {
+            const merkleRoot = this.merkleBuilder.merkleRoot//ipfsIndex.metaData.merkleRoot;
+            const claimDataIpfs = this.claimDataIpfs//ipfsIndex.dropsRootHash;
+            const loveDropFactory = await this.getLoveDropContractWithSigner()
+        
+        
+            if (this.isWalletConnected()) {
+                var tx = loveDropFactory.createNewDrop(this.airdropTokenContractObj.address, merkleRoot, claimDataIpfs);
+                this.txs.push(tx)
+
+            }
+            // message(`submitted transaction at: ${(await tx).hash}`);
+            const confirmedTX = (await (await (await tx).wait(1)).transactionHash);
+            const reciept = (await this.provider.getTransactionReceipt(confirmedTX));
+            console.log(reciept.logs)
+            //reciept.logs[0] = version number
+            const deployedDropAddress = await ethers.utils.defaultAbiCoder.decode(["address"], reciept.logs[1].data)[0];
+            
+            this.deployedLoveDrop = new ethers.Contract(deployedDropAddress, LoveDropAbi ,this.provider);
+
+            this.progressProofGenEl.innerText = `Contract deployed at: ${deployedDropAddress}. At tx: ${confirmedTX}`
+            this.deployedDropAddress = deployedDropAddress
+            // message(`confirmed transaction at: ${(await tx).hash}, deployed at: ${window.deployedDropAddress}`);
+            this.fundAirdropBtn.disabled = false
+            this.airdropTokenContractAddressInput.disabled = true
         }
-        // message(`submitted transaction at: ${(await tx).hash}`);
-        const confirmedTX = (await (await (await tx).wait(1)).transactionHash);
-        const reciept = (await this.provider.getTransactionReceipt(confirmedTX));
-        console.log(reciept.logs)
-        //reciept.logs[0] = version number
-        const deployedDropAddress = await ethers.utils.defaultAbiCoder.decode(["address"], reciept.logs[1].data)[0];
-        this.progressProofGenEl.innerText = `Contract deployed at: ${deployedDropAddress}. At tx: ${confirmedTX}`
-        // message(`confirmed transaction at: ${(await tx).hash}, deployed at: ${window.deployedDropAddress}`);
-    
+    }
+
+    async checkEnoughTokens() {
+        await this.connectSigner()
+        const totalAirdrop = this.getTotalAirdrop()
+        const userAddress = await this.signer.getAddress()
+        const userBalance = await this.airdropTokenContractObj.balanceOf(userAddress)
+
+        if (totalAirdrop.gt(userBalance)) {
+            //update values in ui just in case
+            document.querySelectorAll(".totalAirdrop").forEach((x) => x.innerText = this.#formatNumber(totalAirdrop))
+            document.querySelectorAll(".erc20UserBalance").forEach((x) => x.innerText = this.#formatNumber(userBalance))
+
+            //fade message back in with some delay so user sees its updated
+            setTimeout(()=>this.notEnoughTokensEl.style.opacity = 1,500)
+
+            //show message user doesnt have enough
+            this.notEnoughTokensEl.hidden = false
+
+            //disable buttons again
+            this.deployAirDropBtn.disabled = true
+            this.fundAirdropBtn.disabled = true
+            return false
+        } else {
+            //enable deploy button when user has enough
+            this.deployAirDropBtn.disabled = false
+            this.notEnoughTokensEl.hidden = true
+            return true
+        }
 
     }
 
+    async #checkEnoughTokensHandler() {
+        //fade message out while function is waiting on rpc
+        this.notEnoughTokensEl.style.opacity = 0
+        //get user balance
+        return await this.checkEnoughTokens()
+    }
+
+        /**
+     * 
+     * @returns {BigNumber}
+     */
+    async getTotalAirdropFromDeployedDrop(deployedLoveDrop=this.deployedLoveDrop) {
+        const claimDataIpfsHash = await deployedLoveDrop.claimDataIpfs()
+        const dropMetaData = await this.ipfsIndexer.getIpfs(`${claimDataIpfsHash}/dropMetaData.json`)
+        return dropMetaData.totalDropBigNumber
+    }
+
+
     async #fundAirdropBtnHandler() {
+        if (await this.checkEnoughTokens()) {
+            const tokenAddressFromDrop =  await this.deployedLoveDrop.airdropTokenAddress()
+            const amountInDrop = ethers.BigNumber.from(await this.getTotalAirdropFromDeployedDrop(this.deployedLoveDrop))
+
+            await this.connectSigner()
+            const airdropTokenWithSigner =  this.airdropTokenContractObj.connect(this.signer)
+            //sanity check amount and airdrop token contract address
+            //TODO check merkle root but maybe that over doing it
+            if (airdropTokenWithSigner.address === tokenAddressFromDrop) {
+                if (amountInDrop.eq(this.getTotalAirdrop())) {
+                    const tx = await airdropTokenWithSigner.transfer(this.deployedDropAddress, amountInDrop)
+                    this.txs.push(tx)
+                    const confirmedTX = (await (await (await tx).wait(1)).transactionHash);
+                    this.progressProofGenEl.innerText = `funded contract: ${deployedDropAddress}. At tx: ${confirmedTX}\nThe airdrop is now ready!`
+                } else {
+                    const errorMsg = `
+                    Total airdrop amount from the contract: ${this.deployedLoveDrop.address} as the amount build locally.
+                    `
+                    messageEl.innerText=errorMsg
+    
+                    throw Error(errorMsg)
+
+                }
+               
+
+            } else {
+                const errorMsg = `
+                tokens that were requested to send are not the same address as the address that the drop contract is specifying\n
+                loveDropContract: ${this.deployedDropAddress}\n
+                loveDropContractTokenAddress: ${tokenAddressFromDrop}\n
+                specifiedAddress: ${this.airdropTokenContractObj.address}\n
+                `
+                messageEl.innerText=errorMsg
+
+                throw Error(errorMsg)
+            }
+
+
+        }
 
     }
 }

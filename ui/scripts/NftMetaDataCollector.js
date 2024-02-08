@@ -158,7 +158,8 @@ export class NftMetaDataCollector {
 
             }
         } else if (buildMissingData) {
-            await this.getIdsPerAttribute();
+            
+            
             if ("idStartsAt" in this.extraMetaData && Number.isInteger(this.extraMetaData.idStartsAt)) {
                 this.idStartsAt = this.extraMetaData.idStartsAt
             }
@@ -174,6 +175,8 @@ export class NftMetaDataCollector {
                         break;
                 }
             }
+            await this.syncUriCache()
+            await this.getIdsPerAttribute();
 
         }
     }
@@ -199,10 +202,10 @@ export class NftMetaDataCollector {
             case "standard":
                 imgURL = (await this.getUrlByProtocol((await this.getTokenMetaData(id))["image"], true)) //(await fetch(await this.contractObj.tokenURI(id), reqObj))["image"];
                 break;
-            case "milady":
-                // miladymaker.net cors wont allow me to get metadata :(
-                imgURL = `https://www.miladymaker.net/milady/${id}.png`;
-                break;
+            // case "milady":
+            //     // miladymaker.net cors wont allow me to get metadata :(
+            //     imgURL = `https://www.miladymaker.net/milady/${id}.png`;
+            //     break;
             default:
                 //imgURL = `https://www.miladymaker.net/milady/${id}.png`;
                 imgURL = (await this.getUrlByProtocol((await this.getTokenMetaData(id))["image"], true))
@@ -388,7 +391,7 @@ export class NftMetaDataCollector {
         //TODO get base uri by striping result .getTokenUri() becuase scatter doesnt have baseURI exposed :(
         if (this.baseURICache == null) {
             if ("type" in this.extraMetaData && (this.extraMetaData.type === "milady")) {
-                baseUri = this.getUrlByProtocol("ipfs://bafybeiawqw7zaoliz2rjgiqwzyykwzjsmr24i3a6paazalmqijsldtfg7i/", true)
+                baseUri = this.getUrlByProtocol("ipfs://bafybeibkjh7jetwch4vzlyb2yq7tdqldqghnrzcqz44yswtshqqch73afm/", true)
 
             } else {
                 try {

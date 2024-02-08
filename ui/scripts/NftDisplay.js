@@ -42,7 +42,7 @@ export class NftDisplay {
      */
     constructor(
         {collectionAddress,provider, displayElement, ids=[], ipfsGateway = "https://ipfs.io", 
-        landscapeOrientation = {["rowSize"]:6,["amountRows"]:2}, 
+        landscapeOrientation = {["rowSize"]:5,["amountRows"]:2}, 
         portraitOrientation = {["rowSize"]:3,["amountRows"]:4},
         nftMetaData, displayCollectionInfo = true}
     ) {
@@ -405,7 +405,7 @@ export class NftDisplay {
      * @param {number} page 
      * @param {string} targetElementId 
      */
-    async selectPage(page) {
+    async selectPage(page, refresh=false) {
         const computedHeight = getComputedStyle(this.imageRasterElement).height
         const initialHeight = this.imageRasterElement.style.height
 
@@ -420,7 +420,7 @@ export class NftDisplay {
         //incase of refresh
         if (page !== this.currentPage) {
             this.#cancelLoadingImages(this.currentPage);
-        }
+        } 
         this.currentPage = page;
         
         
@@ -430,9 +430,13 @@ export class NftDisplay {
             this.imageRasterElement = newRasterElement
         }
 
-        //to prevent the height from jumping. but is set to the origanal value (fit-content) after 2 seconds when images are loaded
-        this.imageRasterElement.style.height = computedHeight
-        setTimeout(()=>this.imageRasterElement.style.height=initialHeight, 2000 )
+        if (!refresh) {
+            //to prevent the height from jumping. but is set to the origanal value (fit-content) after 2 seconds when images are loaded
+            this.imageRasterElement.style.height = computedHeight
+            setTimeout(()=>this.imageRasterElement.style.height=initialHeight, 2000 )
+
+        }
+
         
         //const existingPageSelector = document.getElementById(`pageSelector-${this.collectionAddress}`) //TODO reference element not id!! silly!!!!!
 
@@ -820,7 +824,7 @@ export class NftDisplay {
     }
 
     async refreshImages(page=this.currentPage) {
-        await this.selectPage(page)
+        await this.selectPage(page, true)
 
     }
 
