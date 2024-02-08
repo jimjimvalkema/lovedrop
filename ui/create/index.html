@@ -613,6 +613,10 @@
         margin-bottom: 0.5em;
         min-width: 31em;
     }
+
+    #notEnoughTokens {
+        transition: opacity 0.5s;
+    }
 </style>
 
 <body>
@@ -994,11 +998,26 @@
                         
                     </span>
 
+
                     <div id="progressProofGen"></div>
                     <div id="message2"></div>
-                    <button id="confirmAndBuildDrop">confirm</button>
-                    <button id="deployAirDrop" disabled>deploy</button>
-                    <button id="fundAirdrop" disabled>fund airdrop</button>
+
+                    <div id="notEnoughTokens" hidden>
+                        <br>
+                        <div class="boldTitel"> &#10071; You dont have enough tokens to fund the airdrop &#10071;</div> 
+                        You need <span class="totalAirdrop"></span> <span class="ticker">loading..</span> 
+                        <br>
+                        Your wallet has <span class="erc20UserBalance">loading..</span> <span class="ticker">loading..</span>
+                        <br>
+                        <button id="checkEnoughTokens">refresh balance</button>
+             
+                    </div>
+
+
+                    <br>
+                    <button id="confirmAndBuildDrop">build merkle tree</button>
+                    <button id="deployAirDrop" disabled>deploy airdrop contract</button>
+                    <button id="fundAirdrop" disabled>fund airdrop contract</button>
 
                 </div>
 
