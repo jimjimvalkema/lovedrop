@@ -737,7 +737,7 @@ export class NftDisplay {
         //TODO do this separate function
         //TODO doesnt re-size if spam clicking (nftNameElement will be undefined)
 
-        const nftNameElement = [...this.imageRasterElementuriCacherySelectorAll(".nftName")][0]
+        const nftNameElement = [...this.imageRasterElement.querySelectorAll(".nftName")][0]
         if (nftNameElement) {
             const attributeElements = [...this.imageRasterElement.querySelectorAll(".attributesNftDisplayContent")]
             const imgElements = [...this.imageRasterElement.querySelectorAll(".nftDisplayImageElement")]
