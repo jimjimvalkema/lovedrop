@@ -604,8 +604,6 @@ export class NftDisplay {
      * @param {string} borderColor 
      */
     async createDisplay(currentPage=this.currentPage, targetElement=this.displayElement, rowSize=this.rowSize, amountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor,collectionInfo=this.displayCollectionInfo ) {
-        //TODO fix this by being more deliberate when and where the display is rerendered
-        console.warn("if you see this more then twice in a row it means the dev is retarded")
         //TODO apply divFunctions and get image urls in 1 go
         //this.setImageRasterOrientation()
         this.currentPage =  this.#getValidPage(currentPage,this.ids.length, rowSize,amountRows)

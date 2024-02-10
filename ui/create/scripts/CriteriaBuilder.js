@@ -1,5 +1,7 @@
+import { ERC721ABI } from "../../abi/ERC721ABI.js"
 import { ethers } from "../../scripts/ethers-5.2.esm.min.js"
 import { FilterBuilder } from "./FilterBuilder.js"
+const ERC721InterFaceId = "0x01ffc9a7"
 
 export const criterionFormat = {"name":"", "amountPerItem":"", "ids":[],"excludedIds":[], "selectedFilter":{}, "collectionAddress":undefined}       
 
@@ -40,7 +42,7 @@ export class CriteriaBuilder {
         document.getElementById(this.submitContractId).addEventListener(("click"), (event)=>this.#setCollectionAddressHandler(event, this.contractInput))
 
         //TODO set this to set on everychange instead of only on enter press
-        document.getElementById(this.amountInputId).addEventListener("keypress", (event)=>this.#setAmountPerItemHandler(event, this.amountInputId))
+        document.getElementById(this.amountInputId).addEventListener("change", (event)=>this.#setAmountPerItemHandler(event, this.amountInputId))
         document.getElementById(this.submitAmountId).addEventListener(("click"), (event)=>this.#setAmountPerItemHandler(event, this.amountInputId))
 
         document.getElementById(this.criteriaNameInputId).addEventListener("keypress", (event)=>this.#setCriterionNameHandler(event, this.criteriaNameInputId))
@@ -109,12 +111,12 @@ export class CriteriaBuilder {
         
     }
 
-    async selectFilterForCriterion(filterIndex, criterion = this.getCurrentCriterion()) {
+    async selectFilterForCriterion(filterIndex, criterion = this.getCurrentCriterion(), updateUi=true) {
         if(filterIndex>=0) {
             const filter = this.filterBuilder.getFiltersOfCollection()[filterIndex]
             criterion.selectedFilter = filter
             document.getElementById(this.filterSelectorId).value = filterIndex
-            await this.filterBuilder.changeCurrentFilter(filterIndex)
+            await this.filterBuilder.changeCurrentFilter(filterIndex, updateUi)
         } else {
             criterion.selectedFilter = {}
         }
@@ -134,9 +136,11 @@ export class CriteriaBuilder {
     }
 
     #isValidSubmitEvent(event, inputId) {
+
         const value = document.getElementById(inputId).value
         //if ((event.key!=="Enter" && event.key!==undefined && value!==undefined)) {
-        if ((event.key!=="Enter" && event.key!==undefined && value!==undefined)) {
+        if ((event.key!=="Enter" && event.key!==undefined || value===undefined)) {
+            console.log(false)
             return false
         }else {
             return value
@@ -153,7 +157,7 @@ export class CriteriaBuilder {
     }
 
     #setAmountPerItemHandler(event ,inputId) {
-        const value =  this.#isValidSubmitEvent(event, inputId)
+        const value =  document.getElementById(inputId).value//this.#isValidSubmitEvent(event, inputId)
         const criterion = this.getCurrentCriterion()
         if (value==="0") {
             document.getElementById(this.amountInputId).value = criterion.amountPerItem
@@ -173,21 +177,63 @@ export class CriteriaBuilder {
         }
     }
 
-    async #setCollectionAddressHandler(event, inputId) {
-        const value = this.#isValidSubmitEvent(event, inputId)
-        await this.setCollectionAddress(value)
+    async isContract(address) {
+        return "0x" !== (await this.provider.getCode(address))
+
     }
 
-    async setCollectionAddress(collectionAddress,criterionIndex=this.currentCriterionIndex){
+    async isAddress(address) {
+
+    }
+
+
+    async isERC721(address) {
+        //TODO move this to NftMetadataCollector)
+        if(ethers.utils.isAddress(address) && await this.isContract(address)) {
+            const contract = new ethers.Contract(address, ERC721ABI, this.provider)
+            try {
+                return await contract.supportsInterface(ERC721InterFaceId)
+
+            } catch (error) {
+                console.log(`couldnt get contract ${address} from chain`)
+                console.warn(error)
+                return false
+            }
+
+        } else {
+            return false
+        }
+        
+
+        
+        }
+
+    async #setCollectionAddressHandler(event, inputId) {
+        const value = this.#isValidSubmitEvent(event, inputId)
+        //TODO check if nft contract
+        if(value){
+            if (await this.isERC721(value)) {
+                await this.setCollectionAddress(value)
+            } else {
+                console.log("TODO inform user its not a erc721 contract")
+                document.getElementById(inputId).value = ""
+            }
+           
+        } 
+
+    }
+
+    async setCollectionAddress(collectionAddress,criterionIndex=this.currentCriterionIndex, updateUi=true){
         collectionAddress = this.#handleAddressUserInput(collectionAddress)
         const criterion = this.criteria[criterionIndex]
         const oldCollectionAddress = criterion.collectionAddress
 
         //check if filterbuilder needs to be updated
-        if (collectionAddress === this.filterBuilder.currentCollection) {
-            console.info("filterBuilder was set to the same collection address")
+        if (collectionAddress !== this.filterBuilder.currentCollection) {
+            await this.#setCollectionFilterBuilder(collectionAddress, updateUi) 
+
         } else {
-            await this.#setCollectionFilterBuilder(collectionAddress) 
+            console.info("filterBuilder was set to the same collection address")
         }
 
         //check if collection is being set to none / input wrong
@@ -203,7 +249,7 @@ export class CriteriaBuilder {
         //check if a new filter need to be created
         if (collectionAddress !== oldCollectionAddress || (!("index" in criterion.selectedFilter)) ) {
             const newFilter = this.filterBuilder.createNewFilter("AND")
-            await this.selectFilterForCriterion(newFilter.index, criterion) //creates display
+            await this.selectFilterForCriterion(newFilter.index, criterion, updateUi) //creates display
         }
 
         await this.updateCriterionName()
@@ -215,20 +261,20 @@ export class CriteriaBuilder {
         
     }
 
-    async #setCollectionFilterBuilder(address) {
+    async #setCollectionFilterBuilder(address, updateUi=true) {
         
         if (this.filterBuilder) {
             if (this.filterBuilder.collectionAddress !== address) {
-                await this.filterBuilder.setCollectionAddress(address)
+                await this.filterBuilder.setCollectionAddress(address, updateUi)
             }
            
         } else {
-            this.filterBuilder = this.#createNewFilterBuilder(address)
+            this.filterBuilder = this.#createNewFilterBuilder(address, updateUi)
         }
 
     }
 
-    #createNewFilterBuilder(collectionAddress) {
+    #createNewFilterBuilder(collectionAddress, updateUi=true) {
         const filterBuilder = new FilterBuilder({
             collectionAddress: collectionAddress,
             provider: this.provider,
@@ -337,8 +383,9 @@ export class CriteriaBuilder {
         newCriterionOption.value = newCriterionIndex
         criteriaSelector.insertBefore(newCriterionOption, addNewOption)
 
-        await this.setCollectionAddress(collectionAddress)
-        await this.changeCurrentCriterion(newCriterionIndex)
+        
+        await this.setCollectionAddress(collectionAddress,newCriterionIndex, false) //creates dispay
+        await this.changeCurrentCriterion(newCriterionIndex) //creates display
         
 
         
@@ -379,7 +426,7 @@ export class CriteriaBuilder {
         const filterSelector = document.getElementById(this.filterSelectorId)
         if ("index" in currentCriterion.selectedFilter) {
             filterSelector.value = currentCriterion.selectedFilter.index
-            await this.filterBuilder.changeCurrentFilter(currentCriterion.selectedFilter.index)
+            await this.filterBuilder.changeCurrentFilter(currentCriterion.selectedFilter.index) //create display
 
         } else {
             filterSelector.value = "-1"

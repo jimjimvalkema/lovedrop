@@ -136,7 +136,7 @@ export class FilterBuilder {
         await this.setCollectionAddress(value)
     }
 
-    async setCollectionAddress(addres) {
+    async setCollectionAddress(addres, updateUi=false) {
         if (!addres) {
             console.warn("collection address not set")
             return
@@ -151,23 +151,28 @@ export class FilterBuilder {
         }
 
         //clear nfts
-        if (this.NftDisplay) {
-            await this.NftDisplay.clear()
+        if(updateUi) {
+            if (this.NftDisplay) {
+                await this.NftDisplay.clear()
+            }
+            //reinitialize metaData and display
+            const nftMetaData = this.getNftMetaData(this.collectionAddress)
+            this.NftDisplay = new NftDisplay({
+                collectionAddress: this.collectionAddress,
+                provider: this.provider,
+                displayElement: this.displayElement,
+                ipfsGateway: this.ipfsGateway,
+                nftMetaData: nftMetaData
+            })
+            this.NftDisplay.displayNames({redirect:true})
+            await this.NftDisplay.showAttributes()
+
+            await this.reinitializeUi()
+
         }
 
-        //reinitialize metaData and display
-        const nftMetaData = this.getNftMetaData(this.collectionAddress)
-        this.NftDisplay = new NftDisplay({
-            collectionAddress: this.collectionAddress,
-            provider: this.provider,
-            displayElement: this.displayElement,
-            ipfsGateway: this.ipfsGateway,
-            nftMetaData: nftMetaData
-        })
-        this.NftDisplay.displayNames({redirect:true})
-        await this.NftDisplay.showAttributes()
 
-        await this.reinitializeUi()
+
     }
 
     getNftMetaData(collectionAddress=this.collectionAddress) {
@@ -717,18 +722,21 @@ export class FilterBuilder {
     }
 
 
-    async changeCurrentFilter(index) {
+    async changeCurrentFilter(index, updateUi=true) {
         const currentFilter = this.getFiltersOfCollection()[index]
-        document.getElementById("filterSelectorInput").value = index
-        document.getElementById("filterNameInput").value = currentFilter.filterName
-        document.getElementById("filterTypeSelectorInput").value = currentFilter.type
         this.currentFilterIndex = index
-
-        this.#updateAllFilterTotalsUi()
-        this.#updateInputsDropdowns()
         const selectedDataType = document.getElementById("inputTypeSelecterInput").value
-        await this.#setInputTypeHandler({"target":{"value":selectedDataType}})
-        await this.#onFilterChange()
+
+        if(updateUi) {
+            document.getElementById("filterSelectorInput").value = index
+            document.getElementById("filterNameInput").value = currentFilter.filterName
+            document.getElementById("filterTypeSelectorInput").value = currentFilter.type
+            this.#updateAllFilterTotalsUi()
+            this.#updateInputsDropdowns()
+            await this.#setInputTypeHandler({"target":{"value":selectedDataType}})
+            await this.#onFilterChange()
+
+        }
     }
 
    
