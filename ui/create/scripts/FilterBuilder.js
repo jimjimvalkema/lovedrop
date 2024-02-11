@@ -1,6 +1,6 @@
 import { NftDisplay } from "../../scripts/NftDisplay.js"
 import { NftMetaDataCollector } from "../../scripts/NftMetaDataCollector.js"
-import { ethers } from "../../scripts/ethers-5.2.esm.min.js"
+import { ethers } from "../../scripts/ethers-6.7.0.min.js"
 
 export const filterTemplate = { "type": "OR", "inputs": { "idList": [], "conditions": [], "attributes": [] }, "NOT": { "idList": [], "conditions": [], "attributes": [] } }
 
@@ -28,7 +28,7 @@ export class FilterBuilder {
     constructor({ collectionAddress, provider, displayElement ,ipfsGateway = "https://ipfs.io", filterSelectors=[] }) {
         //globals
         
-        //this.collectionAddress = ethers.utils.getAddress(collectionAddress)
+        //this.collectionAddress = ethers.getAddress(collectionAddress)
         this.ipfsGateway = ipfsGateway
         this.provider = provider
         this.displayElement = displayElement
@@ -142,7 +142,7 @@ export class FilterBuilder {
             return
         }
         //set defaults if not exist
-        this.collectionAddress = ethers.utils.getAddress(addres)
+        this.collectionAddress = ethers.getAddress(addres)
         if (!(this.collectionAddress in this.filtersPerCollection)) {
             this.filtersPerCollection[this.collectionAddress] = []
         }
@@ -176,7 +176,7 @@ export class FilterBuilder {
     }
 
     getNftMetaData(collectionAddress=this.collectionAddress) {
-        collectionAddress = ethers.utils.getAddress(collectionAddress)
+        collectionAddress = ethers.getAddress(collectionAddress)
         if (!(collectionAddress in this.nftMetaDataPerCollection)) {
             this.nftMetaDataPerCollection[collectionAddress] = new NftMetaDataCollector(collectionAddress, this.provider, this.ipfsGateway)
         }

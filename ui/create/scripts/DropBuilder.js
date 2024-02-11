@@ -1,13 +1,13 @@
-import { ethers } from "../../scripts/ethers-5.2.esm.min.js"
+import { ethers } from "../../scripts/ethers-6.7.0.min.js"
 import { NftDisplay } from "../../scripts/NftDisplay.js"
 import { CriteriaBuilder, criterionFormat } from "./CriteriaBuilder.js"
 import { NftMetaDataCollector } from "../../scripts/NftMetaDataCollector.js"
 import { FilterBuilder, filterTemplate } from "./FilterBuilder.js"
 import { ERC20ABI } from "../../abi/ERC20ABI.js"
-import {MerkleBuilder} from "../../scripts/MerkleBuilder.js"
-import {IpfsIndexer} from "../../scripts/IpfsIndexer.js"
-import {LoveDropFactoryAbi} from "../../abi/LoveDropFactoryAbi.js"
-import {LoveDropAbi} from "../../abi/LoveDropAbi.js"
+import { MerkleBuilder } from "../../scripts/MerkleBuilder.js"
+import { IpfsIndexer } from "../../scripts/IpfsIndexer.js"
+import { LoveDropFactoryAbi } from "../../abi/LoveDropFactoryAbi.js"
+import { LoveDropAbi } from "../../abi/LoveDropAbi.js"
 
 export class DropBuilder {
     criteriaBuilder
@@ -37,8 +37,8 @@ export class DropBuilder {
     confirmDistrobutionBtn = document.getElementById("confirmDistrobutionBtn")
     airdropTokenContractAddressInput = document.getElementById("airdropTokenContractAddressInput")
 
-    allCollectionsEl =  document.getElementById("allCollections")
-    allCriteriaNamesEl =  document.getElementById("allCriteriaNames")
+    allCollectionsEl = document.getElementById("allCollections")
+    allCriteriaNamesEl = document.getElementById("allCriteriaNames")
 
 
     confirmAndBuildDropBtn = document.getElementById("confirmAndBuildDrop")
@@ -65,7 +65,7 @@ export class DropBuilder {
 
 
 
-    constructor({ collectionAddress, provider, ipfsGateway, nftDisplayElementCriteriaBuilder, ipfsIndexer, loveDropFactoryAddress } = { collectionAddress: undefined, provider, ipfsGateway, nftDisplayElementCriteriaBuilder,loveDropFactoryAddress:"0xfCD69606969625390C79c574c314b938853e1061" }) {
+    constructor({ collectionAddress, provider, ipfsGateway, nftDisplayElementCriteriaBuilder, ipfsIndexer, loveDropFactoryAddress } = { collectionAddress: undefined, provider, ipfsGateway, nftDisplayElementCriteriaBuilder, loveDropFactoryAddress: "0xfCD69606969625390C79c574c314b938853e1061" }) {
         this.criteriaBuilder = new CriteriaBuilder({
             collectionAddress: collectionAddress,
             provider: provider,
@@ -89,13 +89,13 @@ export class DropBuilder {
         this.confirmConflictResolutionButtonEl.addEventListener("click", (event) => this.#confirmConflictResolutionHandler(event))
         this.confirmDistrobutionBtn.addEventListener("click", (event) => this.#showDropBuilderPageEl(this.deploymentEl, event))
         this.airdropTokenContractAddressInput.addEventListener("keypress", (event) => this.#setTokenContractHandler(event))
-        this.connectWallletBtn.addEventListener("click", ()=>this.connectSigner())
+        this.connectWallletBtn.addEventListener("click", () => this.connectSigner())
 
-        this.confirmAndBuildDropBtn.addEventListener("click",()=>this.#buildDropBtnHandler())
-        this.deployAirDropBtn.addEventListener("click", ()=>this.#deployDropHandler())
-        this.fundAirdropBtn.addEventListener("click", ()=>this.#fundAirdropBtnHandler())
+        this.confirmAndBuildDropBtn.addEventListener("click", () => this.#buildDropBtnHandler())
+        this.deployAirDropBtn.addEventListener("click", () => this.#deployDropHandler())
+        this.fundAirdropBtn.addEventListener("click", () => this.#fundAirdropBtnHandler())
 
-        this.checkEnoughTokensBtn.addEventListener("click",()=>this.#checkEnoughTokensHandler())
+        this.checkEnoughTokensBtn.addEventListener("click", () => this.#checkEnoughTokensHandler())
     }
 
     #isValidSubmitEvent(event, inputElement) {
@@ -112,15 +112,15 @@ export class DropBuilder {
         console.log(event.value)
         const value = this.#isValidSubmitEvent(event, this.airdropTokenContractAddressInput)
         if (value) {
-            if (ethers.utils.isAddress(value)) {
+            if (ethers.isAddress(value)) {
                 //TODO use signer instead of provider (for apporval)
                 this.airdropTokenContractObj = new ethers.Contract(value, ERC20ABI, this.provider)
                 //TOOD check if this is a problem if not set earlier
                 this.erc20Units = await this.airdropTokenContractObj.decimals()
                 document.getElementById("totalsOverview").hidden = false
                 await this.setTotalsOverViewInfo()
-                
- 
+
+
                 //this.airdropTokenContractObj = new ethers.Contract(value,ERC20ABI,this.provider)
             } else {
                 this.airdropTokenContractAddressInput.value = ""
@@ -131,7 +131,7 @@ export class DropBuilder {
 
     }
 
-    
+
 
     async connectSigner() {
         // MetaMask requires requesting permission to connect users accounts
@@ -139,16 +139,16 @@ export class DropBuilder {
         this.signer = await window.provider.getSigner();
         await this.#runOnConnectWallet()
     }
-    
+
     async #runOnConnectWallet() {
-        await Promise.all([this.#setUserAddress(),this.#setUserBalance()])
+        await Promise.all([this.#setUserAddress(), this.#setUserBalance()])
     }
 
     async #setUserBalance() {
         if (this.airdropTokenContractObj) {
             const userAddress = await this.signer.getAddress()
             const userBalance = this.airdropTokenContractObj.balanceOf(userAddress)
-            userBalance.then((balance)=>{
+            userBalance.then((balance) => {
                 const formattedBalance = this.#formatNumber(balance)
                 document.querySelectorAll(".erc20UserBalance").forEach((x) => x.innerText = formattedBalance)
             })
@@ -158,22 +158,22 @@ export class DropBuilder {
     }
 
     async #setUserAddress() {
-        const userAddress =  this.signer.getAddress()
-        userAddress.then((address)=>{
-            document.querySelectorAll(".userAddress").forEach((x)=>x.innerText=address)
+        const userAddress = this.signer.getAddress()
+        userAddress.then((address) => {
+            document.querySelectorAll(".userAddress").forEach((x) => x.innerText = address)
         })
         return await userAddress
     }
 
     async #createCollectionHrefs() {
-        const allCollectionsAddresses = [...new Set(this.criteriaBuilder.criteria.map((x)=>x.collectionAddress))]
-        const names =  allCollectionsAddresses.map((address)=>this.criteriaBuilder.filterBuilder.getNftMetaData(address).getContractName())
-        const nameElements = (await Promise.all(names)).map((name, index)=>{
+        const allCollectionsAddresses = [...new Set(this.criteriaBuilder.criteria.map((x) => x.collectionAddress))]
+        const names = allCollectionsAddresses.map((address) => this.criteriaBuilder.filterBuilder.getNftMetaData(address).getContractName())
+        const nameElements = (await Promise.all(names)).map((name, index) => {
             const address = allCollectionsAddresses[index]
             const nameElement = document.createElement("a")
             nameElement.innerText = name
             nameElement.href = `https://etherscan.io/address/${address}`
-            nameElement.target="_blank"
+            nameElement.target = "_blank"
             return nameElement
         })
 
@@ -185,14 +185,14 @@ export class DropBuilder {
 
     /**
      * 
-     * @returns {BigNumber}
+     * @returns {bigint}
      */
     getTotalAirdrop() {
-        const totalBigNum = this.criteriaBuilder.criteria.reduce((total,criterion)=>{
-            const amountPerItem = ethers.utils.parseUnits(criterion.amountPerItem, this.erc20Units)
-            const totatAmountCriterion = amountPerItem.mul((criterion.ids.length - criterion.excludedIds.length))
-            return totatAmountCriterion.add(total)
-        }, ethers.BigNumber.from(0))
+        const totalBigNum = this.criteriaBuilder.criteria.reduce((total, criterion) => {
+            const amountPerItem = ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
+            const totatAmountCriterion = amountPerItem * BigInt(criterion.ids.length - criterion.excludedIds.length)
+            return totatAmountCriterion + total
+        }, 0n)
 
         return totalBigNum
     }
@@ -200,12 +200,12 @@ export class DropBuilder {
     async setTotalsOverViewInfo() {
 
         if (this.airdropTokenContractObj) {
-            let allResults=[]
+            let allResults = []
 
             //set info
             document.querySelectorAll(".tokenContractHref").forEach((x) => {
-                x.innerText = this.airdropTokenContractObj.address;
-                x.href = `https://etherscan.io/token/${this.airdropTokenContractObj.address}`;
+                x.innerText = this.airdropTokenContractObj.target;
+                x.href = `https://etherscan.io/token/${this.airdropTokenContractObj.target}`;
             })
 
             const contractName = this.airdropTokenContractObj.name()
@@ -227,7 +227,7 @@ export class DropBuilder {
 
             const collectionNames = this.#createCollectionHrefs()
             collectionNames.then((names) => {
-                const namesWithSpacing = names.map((x)=>[x, ", "]).flat().toSpliced(-1,1)
+                const namesWithSpacing = names.map((x) => [x, ", "]).flat().toSpliced(-1, 1)
                 this.allCollectionsEl.innerHTML = ""
                 this.allCollectionsEl.append(...namesWithSpacing)
             });
@@ -235,7 +235,7 @@ export class DropBuilder {
             const totalAirdrop = this.#formatNumber(this.getTotalAirdrop())
             document.querySelectorAll(".totalAirdrop").forEach((x) => x.innerText = totalAirdrop)
 
-            this.allCriteriaNamesEl.innerText = this.criteriaBuilder.criteria.map((x)=>x.name).toString()
+            this.allCriteriaNamesEl.innerText = this.criteriaBuilder.criteria.map((x) => x.name).toString()
 
 
             await this.connectSigner()
@@ -319,7 +319,7 @@ export class DropBuilder {
             this.#showDropBuilderPageIndex(pageIndex)
         }
 
-        if(this.deploymentEl.id === element.id) {
+        if (this.deploymentEl.id === element.id) {
             this.setTotalsOverViewInfo()
             this.notEnoughTokensEl.hidden = true
             this.progressProofGenEl.innerText = ""
@@ -424,7 +424,7 @@ export class DropBuilder {
 
         //display
         for (const rawCollectionAddress in duplicates) {
-            const collectionAddress = ethers.utils.getAddress(rawCollectionAddress)
+            const collectionAddress = ethers.getAddress(rawCollectionAddress)
             const ids = Object.keys(duplicates[collectionAddress])
 
             //nftDisplay setup
@@ -562,12 +562,12 @@ export class DropBuilder {
             (id) => {
                 const total = criteriaPerIds[id].reduce(
                     (partialSum, criterion) => {
-                        const amountPerItem = ethers.utils.parseUnits(criterion.amountPerItem, this.erc20Units)
-                        return amountPerItem.add(partialSum)
+                        const amountPerItem = ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
+                        return amountPerItem + partialSum
 
-                    }, ethers.BigNumber.from(0)
+                    }, 0n //1n
                 )
-                return [parseInt(id), ethers.utils.formatUnits(total, this.erc20Units)]
+                return [parseInt(id), ethers.formatUnits(total, this.erc20Units)]
             }
         )
         const totalsPerId = Object.fromEntries(totalsPerIdEntries)
@@ -691,11 +691,11 @@ export class DropBuilder {
                         //set amount
                         const amountBigNumber = criteriaIndexesOfId.reduce(
                             (partialSum, index) => {
-                                const amountPerItem = ethers.utils.parseUnits(this.criteriaBuilder.criteria[index].amountPerItem, this.erc20Units)
-                                return amountPerItem.add(partialSum)
-                            }, ethers.BigNumber.from(0)
+                                const amountPerItem = ethers.parseUnits(this.criteriaBuilder.criteria[index].amountPerItem, this.erc20Units)
+                                return amountPerItem + partialSum
+                            }, 0n
                         )
-                        newCriterion.amountPerItem = ethers.utils.formatUnits(amountBigNumber, this.erc20Units)
+                        newCriterion.amountPerItem = ethers.formatUnits(amountBigNumber, this.erc20Units)
 
                         //add newCriterion
                         criterionWithReferenceIndexes.push(
@@ -819,14 +819,14 @@ export class DropBuilder {
      * @returns {String} number
      */
     #formatNumber(number) {
-        return new Intl.NumberFormat('en-EN').format(ethers.utils.formatEther((number)))
+        return new Intl.NumberFormat('en-EN').format(ethers.formatEther((number)))
     }
 
     #createAmountElement(criterion) {
         const contentElement = document.createElement("div")
         //we doing big numbers B)
-        const amountPerItem = ethers.utils.parseUnits(criterion.amountPerItem, this.erc20Units)
-        const totatAmount = amountPerItem.mul((criterion.ids.length - criterion.excludedIds.length))
+        const amountPerItem = ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
+        const totatAmount = amountPerItem * BigInt((criterion.ids.length - criterion.excludedIds.length))
 
         contentElement.append(
             `total: ${this.#formatNumber(totatAmount)}`,
@@ -841,7 +841,7 @@ export class DropBuilder {
 
     async #createNftsElement(criterion) {
         const ids = criterion.ids.filter((id) => criterion.excludedIds.indexOf(id) === -1)
-        const collectionAddress = ethers.utils.getAddress(criterion.collectionAddress)
+        const collectionAddress = ethers.getAddress(criterion.collectionAddress)
         const contentElement = document.createElement("div")
         const nftMetaData = this.criteriaBuilder.filterBuilder.getNftMetaData(collectionAddress)
         contentElement.id = `${collectionAddress}-${criterion.name}-${criterion.index}`
@@ -911,12 +911,12 @@ export class DropBuilder {
         }
     }
 
-    convertCriteriaToBalances(criteria=this.criteriaBuilder.criteria) {
-        const balancesPerCriteria = criteria.map((criterion)=>{
-            const amountBigNum = ethers.utils.parseUnits(criterion.amountPerItem, this.erc20Units) 
+    convertCriteriaToBalances(criteria = this.criteriaBuilder.criteria) {
+        const balancesPerCriteria = criteria.map((criterion) => {
+            const amountBigNum = ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
             const collectionAddress = criterion.collectionAddress
-            const ids = criterion.ids.filter((id)=>!criterion.excludedIds.includes(id))
-            return ids.map((id)=>[collectionAddress, id.toString(), amountBigNum])
+            const ids = criterion.ids.filter((id) => !criterion.excludedIds.includes(id))
+            return ids.map((id) => [collectionAddress, id.toString(), amountBigNum.toString()])
         })
         return balancesPerCriteria.flat()
     }
@@ -927,30 +927,38 @@ export class DropBuilder {
         console.log(balances)
         //TODO ipfs :p
         //setTimeout(function(){(document.getElementById("progressProofGen").innerText = (`building merkle tree on: ${balances.length} claims.`))},100)
-        const merkleBuilder = new MerkleBuilder(balances,this.provider)
+        const merkleBuilder = new MerkleBuilder(balances, this.provider)
         //setTimeout(function(){(document.getElementById("progressProofGen").innerText = (`done building tree, calculating all ${balances.length} proofs`))},100)
         await merkleBuilder.getAllProofsInChunks()
         //document.getElementById("progressProofGen").innerText = "done calculating proofs adding to ipfs"
-    
+
         //add to ipfs
-        const csvString = await merkleBuilder.exportBalancesCsv("",true)
-        const idsPerCollection = JSON.stringify(merkleBuilder.getIdsPerCollection())
+        const csvString = await merkleBuilder.exportBalancesCsv("", true)
+
+        const idsPerCollection = merkleBuilder.getIdsPerCollection()
+        // const idsPerCollectionAmountAsString = Object.fromEntries(
+        //     Object.keys(idsPerCollection).map((collection) => {
+        //         const amountPerIdEntries = Object.keys(idsPerCollection[collection]).map((id) => [id, idsPerCollection[collection][id].toString()])
+        //         return [collection, amountPerIdEntries]
+        //     })
+        // )
+        const idsPerCollectionString = JSON.stringify(idsPerCollection)
         const totalDropBigNumber = this.getTotalAirdrop()
-        const dropMetaData = {"totalDrop":this.#formatNumber(totalDropBigNumber),"totalDropBigNumber":this.getTotalAirdrop()}
+        const dropMetaData = { "totalDrop": this.#formatNumber(totalDropBigNumber), "totalDropBigNumber": this.getTotalAirdrop().toString() }
 
         //TODO create ipfsIndex
         //this.ipfsIndex = new IpfsIndexer()
 
         //TODO!! do with named args like {}
-        const claimDataHash = await this.ipfsIndexer.createMiladyDropClaimData(merkleBuilder.tree.dump(),merkleBuilder.allProofs, csvString,idsPerCollection,dropMetaData,500)
+        const claimDataHash = await this.ipfsIndexer.createMiladyDropClaimData(merkleBuilder.tree.dump(), merkleBuilder.allProofs, csvString, idsPerCollectionString, dropMetaData, 500)
         //document.getElementById("progressProofGen").innerText = `added claim to ipfs at: ${hash}`
-        // const amounts = this.merkleBuilder.balances.map((x)=>ethers.utils.formatEther( x[2]).toString())
+        // const amounts = this.merkleBuilder.balances.map((x)=>ethers.formatEther( x[2]).toString())
         // const totalTokens = amounts.map((x)=>parseFloat(x)).reduce((sum, number) => sum + number)
         //document.getElementById("totalAmountDrop").innerText = `total amount of tokens is: ${totalTokens} TODO do this with bigNumber math`
-        return {claimDataHash:claimDataHash, merkleBuilder: merkleBuilder}
+        return { claimDataHash: claimDataHash, merkleBuilder: merkleBuilder }
     }
 
-    isWalletConnected(messageEl=this.messageEl) {
+    isWalletConnected(messageEl = this.messageEl) {
         let message = "";
         if (!this.signer) {
             message = "wallet not connected";
@@ -965,9 +973,9 @@ export class DropBuilder {
 
     async getLoveDropContractWithSigner() {
         if (!this.loveDropFactoryContract) {
-            this.loveDropFactoryContract = new ethers.Contract(this.loveDropFactoryAddress, LoveDropFactoryAbi ,this.provider);
+            this.loveDropFactoryContract = new ethers.Contract(this.loveDropFactoryAddress, LoveDropFactoryAbi, this.provider);
         }
-        
+
         if (this.signer) {
             this.loveDropFactoryContract = await this.loveDropFactoryContract.connect(this.signer);
             return this.loveDropFactoryContract
@@ -980,20 +988,20 @@ export class DropBuilder {
 
 
     async #buildDropBtnHandler() {
-        const {claimDataHash:claimDataHash, merkleBuilder: merkleBuilder} = await this.buildTreeAndProofsIpfs()
+        const { claimDataHash: claimDataHash, merkleBuilder: merkleBuilder } = await this.buildTreeAndProofsIpfs()
 
 
         this.claimDataIpfs = claimDataHash
         this.merkleBuilder = merkleBuilder
 
         this.progressProofGenEl.innerText = `claim data at: ipfs://${claimDataHash}`
-        
+
         await this.connectSigner()
         const totalAirdrop = this.getTotalAirdrop()
         const userAddress = await this.signer.getAddress()
         const userBalance = await this.airdropTokenContractObj.balanceOf(userAddress)
 
-        if (totalAirdrop.gt(userBalance)) {
+        if (totalAirdrop > userBalance) {
             //update values in ui just in case
             document.querySelectorAll(".totalAirdrop").forEach((x) => x.innerText = this.#formatNumber(totalAirdrop))
             document.querySelectorAll(".erc20UserBalance").forEach((x) => x.innerText = this.#formatNumber(userBalance))
@@ -1007,28 +1015,29 @@ export class DropBuilder {
         }
     }
 
-    
+
 
     async #deployDropHandler() {
         if (await this.checkEnoughTokens()) {
             const merkleRoot = this.merkleBuilder.merkleRoot//ipfsIndex.metaData.merkleRoot;
             const claimDataIpfs = this.claimDataIpfs//ipfsIndex.dropsRootHash;
             const loveDropFactory = await this.getLoveDropContractWithSigner()
-        
-        
+
+
             if (this.isWalletConnected()) {
-                var tx = loveDropFactory.createNewDrop(this.airdropTokenContractObj.address, merkleRoot, claimDataIpfs);
+                console.log(this.airdropTokenContractObj.target, merkleRoot, claimDataIpfs)
+                var tx = loveDropFactory.createNewDrop(this.airdropTokenContractObj.target, merkleRoot, claimDataIpfs);
                 this.txs.push(tx)
 
             }
             // message(`submitted transaction at: ${(await tx).hash}`);
-            const confirmedTX = (await (await (await tx).wait(1)).transactionHash);
+            const confirmedTX = (await (await (await tx).wait(1)).hash);
             const reciept = (await this.provider.getTransactionReceipt(confirmedTX));
             console.log(reciept.logs)
             //reciept.logs[0] = version number
-            const deployedDropAddress = await ethers.utils.defaultAbiCoder.decode(["address"], reciept.logs[1].data)[0];
-            
-            this.deployedLoveDrop = new ethers.Contract(deployedDropAddress, LoveDropAbi ,this.provider);
+            const deployedDropAddress = await ethers.AbiCoder.defaultAbiCoder().decode(["address"],  reciept.logs[1].data)[0];
+
+            this.deployedLoveDrop = new ethers.Contract(deployedDropAddress, LoveDropAbi, this.provider);
 
             this.progressProofGenEl.innerText = `Contract deployed at: ${deployedDropAddress}. At tx: ${confirmedTX}`
             this.deployedDropAddress = deployedDropAddress
@@ -1044,13 +1053,13 @@ export class DropBuilder {
         const userAddress = await this.signer.getAddress()
         const userBalance = await this.airdropTokenContractObj.balanceOf(userAddress)
 
-        if (totalAirdrop.gt(userBalance)) {
+        if (totalAirdrop > userBalance) {
             //update values in ui just in case
             document.querySelectorAll(".totalAirdrop").forEach((x) => x.innerText = this.#formatNumber(totalAirdrop))
             document.querySelectorAll(".erc20UserBalance").forEach((x) => x.innerText = this.#formatNumber(userBalance))
 
             //fade message back in with some delay so user sees its updated
-            setTimeout(()=>this.notEnoughTokensEl.style.opacity = 1,500)
+            setTimeout(() => this.notEnoughTokensEl.style.opacity = 1, 500)
 
             //show message user doesnt have enough
             this.notEnoughTokensEl.hidden = false
@@ -1075,11 +1084,11 @@ export class DropBuilder {
         return await this.checkEnoughTokens()
     }
 
-        /**
-     * 
-     * @returns {BigNumber}
-     */
-    async getTotalAirdropFromDeployedDrop(deployedLoveDrop=this.deployedLoveDrop) {
+    /**
+ * 
+ * @returns {BigNumber}
+ */
+    async getTotalAirdropFromDeployedDrop(deployedLoveDrop = this.deployedLoveDrop) {
         const claimDataIpfsHash = await deployedLoveDrop.claimDataIpfs()
         const dropMetaData = await this.ipfsIndexer.getIpfs(`${claimDataIpfsHash}/dropMetaData.json`)
         return dropMetaData.totalDropBigNumber
@@ -1088,38 +1097,42 @@ export class DropBuilder {
 
     async #fundAirdropBtnHandler() {
         if (await this.checkEnoughTokens()) {
-            const tokenAddressFromDrop =  await this.deployedLoveDrop.airdropTokenAddress()
-            const amountInDrop = ethers.BigNumber.from(await this.getTotalAirdropFromDeployedDrop(this.deployedLoveDrop))
+            const tokenAddressFromDrop = await this.deployedLoveDrop.airdropTokenAddress()
+            const amountInDrop = BigInt(await this.getTotalAirdropFromDeployedDrop(this.deployedLoveDrop)) //ethers.BigNumber.from(await this.getTotalAirdropFromDeployedDrop(this.deployedLoveDrop))
 
             await this.connectSigner()
-            const airdropTokenWithSigner =  this.airdropTokenContractObj.connect(this.signer)
+            const airdropTokenWithSigner = this.airdropTokenContractObj.connect(this.signer)
             //sanity check amount and airdrop token contract address
             //TODO check merkle root but maybe that over doing it
-            if (airdropTokenWithSigner.address === tokenAddressFromDrop) {
-                if (amountInDrop.eq(this.getTotalAirdrop())) {
+            if (airdropTokenWithSigner.target === tokenAddressFromDrop) {
+                if (amountInDrop === this.getTotalAirdrop()) {
                     const tx = await airdropTokenWithSigner.transfer(this.deployedDropAddress, amountInDrop)
+                    //TODO figure out how make sure user doesnt fun it twice
+                    //this.fundAirdropBtn.disabled
                     this.txs.push(tx)
-                    const confirmedTX = (await (await (await tx).wait(1)).transactionHash);
-                    this.progressProofGenEl.innerText = `funded contract: ${deployedDropAddress}. At tx: ${confirmedTX}\nThe airdrop is now ready!`
+                    const confirmedTX = (await (await (await tx).wait(1)).hash);
+                    this.progressProofGenEl.innerText = `funded contract: ${this.deployedDropAddress}. At tx: ${confirmedTX}\nThe airdrop is now ready!`
+                    this.fundAirdropBtn.disabled = true
+                    this.deployAirDropBtn.disabled = true
                 } else {
                     const errorMsg = `
-                    Total airdrop amount from the contract: ${this.deployedLoveDrop.address} as the amount build locally.
+                    Total airdrop amount from the contract: ${this.deployedLoveDrop.target} as the amount build locally.
                     `
-                    messageEl.innerText=errorMsg
-    
+                    messageEl.innerText = errorMsg
+
                     throw Error(errorMsg)
 
                 }
-               
+
 
             } else {
                 const errorMsg = `
                 tokens that were requested to send are not the same address as the address that the drop contract is specifying\n
                 loveDropContract: ${this.deployedDropAddress}\n
                 loveDropContractTokenAddress: ${tokenAddressFromDrop}\n
-                specifiedAddress: ${this.airdropTokenContractObj.address}\n
+                specifiedAddress: ${this.airdropTokenContractObj.target}\n
                 `
-                messageEl.innerText=errorMsg
+                messageEl.innerText = errorMsg
 
                 throw Error(errorMsg)
             }

@@ -1,5 +1,8 @@
 import { IpfsIndexer } from "../../scripts/IpfsIndexer.js";
-import { ethers } from "../../scripts/ethers-5.2.esm.min.js";
+import { ethers } from "../../scripts/ethers-6.7.0.min.js";
+//test
+window.ethers = ethers
+
 // import {CriteriaBuilder} from "./CriteriaBuilder.js";
 import {DropBuilder} from "./DropBuilder.js"
 
@@ -16,7 +19,18 @@ async function getUrlVars() {
 
 async function connectProvider() {
     if (window.ethereum) {
-        window.provider = new ethers.providers.Web3Provider(window.ethereum);
+        window.provider = new ethers.BrowserProvider(window.ethereum);
+        // The "any" network will allow spontaneous network changes
+
+        window.provider.on("network", (newNetwork, oldNetwork) => {
+            // When a Provider makes its initial connection, it emits a "network"
+            // event with a null oldNetwork along with the newNetwork. So, if the
+            // oldNetwork exists, it represents a changing network
+            console.log(oldNetwork, newNetwork)
+            if (oldNetwork) {
+                window.location.reload();
+            }
+        });
     } else {
         console.log("couldn't connect to window.ethereum using a external rpc")
         const providerUrls = ["https://mainnet.infura.io/v3/", "https://eth.llamarpc.com"] 
@@ -65,7 +79,7 @@ async function runOnLoad() {
     const gatewayIpfsIndex = new IpfsIndexer(window.ipfsGateways)
     window.ipfsGateway = await gatewayIpfsIndex.getGatewayUrl()
     //TODO api urls shouldn't be hardcoded
-    window.ipfsIndex = new IpfsIndexer(["http://127.0.0.1:45001"],null,false)
+    window.ipfsIndex = new IpfsIndexer(["http://127.0.0.1:45005"],null,false)
 
 
 
@@ -88,4 +102,6 @@ async function test() {
 
 }
 window.onload = runOnLoad;
+
+
 

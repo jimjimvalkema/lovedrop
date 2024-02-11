@@ -1,5 +1,5 @@
 import { ERC721ABI } from "../../abi/ERC721ABI.js"
-import { ethers } from "../../scripts/ethers-5.2.esm.min.js"
+import { ethers } from "../../scripts/ethers-6.7.0.min.js"
 import { FilterBuilder } from "./FilterBuilder.js"
 const ERC721InterFaceId = "0x01ffc9a7"
 
@@ -189,7 +189,9 @@ export class CriteriaBuilder {
 
     async isERC721(address) {
         //TODO move this to NftMetadataCollector)
-        if(ethers.utils.isAddress(address) && await this.isContract(address)) {
+        console.log(ethers.isAddress(address))
+        console.log(ethers.isAddress(address))
+        if(ethers.isAddress(address) && await this.isContract(address)) {
             const contract = new ethers.Contract(address, ERC721ABI, this.provider)
             try {
                 return await contract.supportsInterface(ERC721InterFaceId)
@@ -290,18 +292,18 @@ export class CriteriaBuilder {
 
 
     #handleAddressUserInput(address) {
-        
-        if(address) {
-            try {
-                return ethers.utils.getAddress(address) 
-            } catch (error) {
+        if(address){
+            if(ethers.isAddress(address)) {
+                return ethers.getAddress(address) 
+            } else {
                 console.warn(`${address} is not an address TODO warn user"`)
-                return false    
-            }
+                    return false    
+            } 
         } else {
             console.warn("no collection address provided")
             return ""
         }
+
 
 
     }
