@@ -1,13 +1,24 @@
 import { ethers } from "../../scripts/ethers-6.7.0.min.js"
 import { NftDisplay } from "../../scripts/NftDisplay.js"
-import { CriteriaBuilder, criterionFormat } from "./CriteriaBuilder.js"
-import { NftMetaDataCollector } from "../../scripts/NftMetaDataCollector.js"
-import { FilterBuilder, filterTemplate } from "./FilterBuilder.js"
+import { CriteriaBuilder } from "./CriteriaBuilder.js"
+// import { NftMetaDataCollector } from "../../scripts/NftMetaDataCollector.js"
+// import { FilterBuilder, filterTemplate } from "./FilterBuilder.js"
 import { ERC20ABI } from "../../abi/ERC20ABI.js"
 import { MerkleBuilder } from "../../scripts/MerkleBuilder.js"
 import { IpfsIndexer } from "../../scripts/IpfsIndexer.js"
 import { LoveDropFactoryAbi } from "../../abi/LoveDropFactoryAbi.js"
 import { LoveDropAbi } from "../../abi/LoveDropAbi.js"
+const localFork = {
+    chainId: "0x7A69",
+    rpcUrls: ["http://localhost:8555/"],
+    chainName: "local fork Ethereum Mainnet",
+    nativeCurrency: {
+      name: "Ethereum",
+      symbol: "ETH",
+      decimals: 18
+    },
+    //blockExplorerUrls: []
+  }
 
 export class DropBuilder {
     criteriaBuilder
@@ -96,6 +107,26 @@ export class DropBuilder {
         this.fundAirdropBtn.addEventListener("click", () => this.#fundAirdropBtnHandler())
 
         this.checkEnoughTokensBtn.addEventListener("click", () => this.#checkEnoughTokensHandler())
+
+        this.chainManagement()
+    }
+
+    async chainManagement() {
+        
+        //TODO this will only trigger after the ether.provider is used to interact with the chain
+        //which means that the first interaction is with the wrong chain
+        await  this.provider.on("network", (networkId)=>
+        {   
+            if(networkId !== localFork.chainId) {
+                this.switchNetwork(localFork)
+                console.warn("network changed TODO handle this")
+            }
+        })
+
+
+        await this.switchNetwork(localFork)
+
+
     }
 
     #isValidSubmitEvent(event, inputElement) {
@@ -135,9 +166,42 @@ export class DropBuilder {
 
     async connectSigner() {
         // MetaMask requires requesting permission to connect users accounts
+        await this.switchNetwork(localFork)
         await this.provider.send("eth_requestAccounts", []);
         this.signer = await window.provider.getSigner();
         await this.#runOnConnectWallet()
+    }
+
+    async switchNetwork(network=localFork) {
+        try {
+            await window.provider.send("wallet_switchEthereumChain",[{ chainId: network.chainId }]);
+            // await ethereum.request({
+            //   method: 'wallet_switchEthereumChain',
+            //   params: [{ chainId: '0xf00' }],
+            // });
+          } catch (switchError) {
+            window.switchError = switchError
+            // This error code indicates that the chain has not been added to MetaMask.
+            if (switchError.error.code === 4902) {
+              try {
+                await window.provider.send("wallet_addEthereumChain",[network]);
+                // await ethereum.request({
+                //   method: 'wallet_addEthereumChain',
+                //   params: [
+                //     {
+                //       chainId: '0xf00',
+                //       chainName: '...',
+                //       rpcUrls: ['https://...'] /* ... */,
+                //     },
+                //   ],
+                // });
+              } catch (addError) {
+                // handle "add" error
+              }
+            }
+            // handle other "switch" errors
+          }
+    
     }
 
     async #runOnConnectWallet() {

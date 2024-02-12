@@ -6,31 +6,6 @@ window.ethers = ethers
 // import {CriteriaBuilder} from "./CriteriaBuilder.js";
 import {DropBuilder} from "./DropBuilder.js"
 
-const mainChainLlamarpc = {
-    chainId: "0x1",
-    rpcUrls: ["https://eth.llamarpc.com"],
-    chainName: "Ethereum Mainnet",
-    nativeCurrency: {
-      name: "Ethereum",
-      symbol: "ETH",
-      decimals: 18
-    },
-    blockExplorerUrls: ["https://etherscan.io/"]
-  }
-
-const localFork = {
-    chainId: "0x7A69",
-    rpcUrls: ["http://localhost:8555/"],
-    chainName: "local fork Ethereum Mainnet",
-    nativeCurrency: {
-      name: "Ethereum",
-      symbol: "ETH",
-      decimals: 18
-    },
-    //blockExplorerUrls: []
-  }
-
-
 
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
@@ -45,18 +20,18 @@ async function getUrlVars() {
 
 async function connectProvider() {
     if (window.ethereum) {
-        window.provider = new ethers.BrowserProvider(window.ethereum);
+        window.provider = new ethers.BrowserProvider(window.ethereum)//, new ethers.Network("local fork", 31337n));
         // The "any" network will allow spontaneous network changes
 
-        window.provider.on("network", (newNetwork, oldNetwork) => {
-            // When a Provider makes its initial connection, it emits a "network"
-            // event with a null oldNetwork along with the newNetwork. So, if the
-            // oldNetwork exists, it represents a changing network
-            console.log(oldNetwork, newNetwork)
-            if (oldNetwork) {
-                window.location.reload();
-            }
-        });
+        // window.provider.on("network", (newNetwork, oldNetwork) => {
+        //     // When a Provider makes its initial connection, it emits a "network"
+        //     // event with a null oldNetwork along with the newNetwork. So, if the
+        //     // oldNetwork exists, it represents a changing network
+        //     console.log(oldNetwork, newNetwork)
+        //     if (oldNetwork) {
+        //         window.location.reload();
+        //     }
+        // });
     } else {
         console.log("couldn't connect to window.ethereum using a external rpc")
         const providerUrls = ["https://mainnet.infura.io/v3/", "https://eth.llamarpc.com"] 
@@ -112,41 +87,8 @@ async function runOnLoad() {
     test()
 }
 
-async function switchNetwork(network=localFork) {
-    try {
-        await window.provider.send("wallet_switchEthereumChain",[{ chainId: network.chainId }]);
-        // await ethereum.request({
-        //   method: 'wallet_switchEthereumChain',
-        //   params: [{ chainId: '0xf00' }],
-        // });
-      } catch (switchError) {
-        window.switchError = switchError
-        // This error code indicates that the chain has not been added to MetaMask.
-        if (switchError.error.code === 4902) {
-          try {
-            await window.provider.send("wallet_addEthereumChain",[network]);
-            // await ethereum.request({
-            //   method: 'wallet_addEthereumChain',
-            //   params: [
-            //     {
-            //       chainId: '0xf00',
-            //       chainName: '...',
-            //       rpcUrls: ['https://...'] /* ... */,
-            //     },
-            //   ],
-            // });
-          } catch (addError) {
-            // handle "add" error
-          }
-        }
-        // handle other "switch" errors
-      }
-
-}
-
 async function test() {
     //TODO do on connect wallet?
-    await switchNetwork(localFork)
     const nftDisplayElement = document.getElementById("nftDisplay")
     window.DropBuilderTest = new DropBuilder({
         collectionAddress : undefined,
@@ -156,12 +98,19 @@ async function test() {
         nftDisplayElementCriteriaBuilder : nftDisplayElement,
         loveDropFactoryAddress:"0xfCD69606969625390C79c574c314b938853e1061"
     });
+
+
+
     
     //copy paste filters
     //detect if filters feed into them selfs
 
 }
 window.onload = runOnLoad;
+
+
+
+
 
 
 
