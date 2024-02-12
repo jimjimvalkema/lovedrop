@@ -6,6 +6,32 @@ window.ethers = ethers
 // import {CriteriaBuilder} from "./CriteriaBuilder.js";
 import {DropBuilder} from "./DropBuilder.js"
 
+const mainChainLlamarpc = {
+    chainId: "0x1",
+    rpcUrls: ["https://eth.llamarpc.com"],
+    chainName: "Ethereum Mainnet",
+    nativeCurrency: {
+      name: "Ethereum",
+      symbol: "ETH",
+      decimals: 18
+    },
+    blockExplorerUrls: ["https://etherscan.io/"]
+  }
+
+const localFork = {
+    chainId: "0x7A69",
+    rpcUrls: ["http://localhost:8555/"],
+    chainName: "local fork Ethereum Mainnet",
+    nativeCurrency: {
+      name: "Ethereum",
+      symbol: "ETH",
+      decimals: 18
+    },
+    //blockExplorerUrls: []
+  }
+
+
+
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
@@ -86,7 +112,41 @@ async function runOnLoad() {
     test()
 }
 
+async function switchNetwork(network=localFork) {
+    try {
+        await window.provider.send("wallet_switchEthereumChain",[{ chainId: network.chainId }]);
+        // await ethereum.request({
+        //   method: 'wallet_switchEthereumChain',
+        //   params: [{ chainId: '0xf00' }],
+        // });
+      } catch (switchError) {
+        window.switchError = switchError
+        // This error code indicates that the chain has not been added to MetaMask.
+        if (switchError.error.code === 4902) {
+          try {
+            await window.provider.send("wallet_addEthereumChain",[network]);
+            // await ethereum.request({
+            //   method: 'wallet_addEthereumChain',
+            //   params: [
+            //     {
+            //       chainId: '0xf00',
+            //       chainName: '...',
+            //       rpcUrls: ['https://...'] /* ... */,
+            //     },
+            //   ],
+            // });
+          } catch (addError) {
+            // handle "add" error
+          }
+        }
+        // handle other "switch" errors
+      }
+
+}
+
 async function test() {
+    //TODO do on connect wallet?
+    await switchNetwork(localFork)
     const nftDisplayElement = document.getElementById("nftDisplay")
     window.DropBuilderTest = new DropBuilder({
         collectionAddress : undefined,
