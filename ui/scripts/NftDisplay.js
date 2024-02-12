@@ -1,5 +1,5 @@
 import {NftMetaDataCollector} from "./NftMetaDataCollector.js";
-import { ethers } from "./ethers-5.2.esm.min.js";
+import { ethers } from "./ethers-6.7.0.min.js";
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 
@@ -79,16 +79,16 @@ export class NftDisplay {
     }
 
     async setCollectionAddress(collectionAddress) {
-        collectionAddress = ethers.utils.getAddress(collectionAddress)
+        collectionAddress = ethers.getAddress(collectionAddress)
        
         await this.clear()
         if (!collectionAddress) {
             console.warn(`collection address is not set`)
             return
         } else {
-            this.collectionAddress = ethers.utils.getAddress(collectionAddress)
+            this.collectionAddress = ethers.getAddress(collectionAddress)
             //TODO recreating nftMetaData is inefecient if it used somewhere else
-            if (this.nftMetaData.contractObj.address !== collectionAddress) {
+            if (this.nftMetaData.contractObj.target !== collectionAddress) {
                 console.warn("collection address is set by creating a new NftMetaDataCollector object this can break things! ")
                 this.nftMetaData = new NftMetaDataCollector(this.collectionAddress,this.provider,this.ipfsGateway)
 

@@ -1,4 +1,4 @@
-import { ethers, utils } from "./ethers-5.2.esm.min.js"
+import { ethers } from "./ethers-6.7.0.min.js"
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getProtoOf = Object.getPrototypeOf;
@@ -11796,7 +11796,7 @@ export class MerkleBuilder {
   }
   formatAddressInBalances(balances) {
     return balances.map((x) => [
-      ethers.utils.getAddress(x[0]),
+      ethers.getAddress(x[0]),
       x[1],
       x[2]
     ]);
@@ -11934,7 +11934,7 @@ export class MerkleBuilder {
       console.log(addr)
       addrToNameMap[addr] = await constractObj.name();
     }
-    const balancesWithNftName = this.balances.map((x) => [...x,addrToNameMap[ethers.utils.getAddress(x[0])]]);
+    const balancesWithNftName = this.balances.map((x) => [...x,addrToNameMap[ethers.getAddress(x[0])]]);
     const csvString = Papa.unparse(balancesWithNftName)
     if(justString) {return csvString}
     this.exportObjAsFile(csvString, fileDest);

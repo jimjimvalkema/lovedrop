@@ -2,7 +2,7 @@
 //const { error } = require("console");
 
 //import assertion are not supported in firefox :((
-import { ethers } from "./ethers-5.2.esm.min.js"
+import { ethers } from "./ethers-6.7.0.min.js"
 import { allExtraMetaData } from "./extraMetaData.js"
 import { ERC721ABI } from "../abi/ERC721ABI.js"
 
@@ -53,7 +53,7 @@ export function isFulfilled(x) {
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 export class NftMetaDataCollector {
-    alchemyApiKey = ""
+    alchemyApiKey = "5hUqMLpX3qUN2PpvLhhmSZMmnlFdUd0W"
     contractObj = undefined;
     provider = undefined
     extraMetaData = undefined;
@@ -94,7 +94,7 @@ export class NftMetaDataCollector {
         if (!_contractAddr) {
             return
         } else {
-            _contractAddr = ethers.utils.getAddress(_contractAddr)
+            _contractAddr = ethers.getAddress(_contractAddr)
             const newContract = new ethers.Contract(_contractAddr, ERC721ABI, this.provider);
             return newContract;
         }
@@ -148,9 +148,9 @@ export class NftMetaDataCollector {
 
     async fetchAllExtraMetaData(buildMissingData = true) {
         this.idsOfOwnerCache = await this.getCachedIdsOfOwner()
-        if (!(typeof (localStorage) === "undefined") && localStorage.hasOwnProperty(await this.contractObj.address)) {
-            console.log(`${this.contractObj.address} extraMetaDataFile was found in local storage :D`)
-            const data = JSON.parse(localStorage.getItem(await this.contractObj.address));
+        if (!(typeof (localStorage) === "undefined") && localStorage.hasOwnProperty(await this.contractObj.target)) {
+            console.log(`${this.contractObj.target} extraMetaDataFile was found in local storage :D`)
+            const data = JSON.parse(localStorage.getItem(await this.contractObj.target));
             this.idsPerAttribute = data.idsPerAttribute;
             this.idStartsAt = data.idStartsAt;
             if ("totalsupply" in data) {
@@ -587,7 +587,7 @@ export class NftMetaDataCollector {
         if (this.extraMetaData.metaDataArray) {
             this.uriCache = await (await this.getUrlByProtocol(this.extraMetaData.metaDataArray)).json()
         } else {
-            console.log(`no premade metadata found for ntf contract: ${await this.contractObj.address} :( collecting attribute manually!`)
+            console.log(`no premade metadata found for ntf contract: ${await this.contractObj.target} :( collecting attribute manually!`)
             //syncUriCacheByScraping already
             //this.uriCache = 
             this.uriCache = await this.syncUriCacheByScraping(startId, endId, chunkSize)
@@ -1192,18 +1192,18 @@ export class NftMetaDataCollector {
 
         if (!forceResync && this.extraMetaData.idsPerAttributeCbor) {
             if (this.extraMetaData.idsPerAttributeCbor) {
-                console.log(`found preprossed data for contract: ${this.contractObj.address}, at  ${this.extraMetaData.idsPerAttributeCbor}`)
+                console.log(`found preprossed data for contract: ${this.contractObj.target}, at  ${this.extraMetaData.idsPerAttributeCbor}`)
                 const r = await this.getUrlByProtocol(this.extraMetaData.idsPerAttributeCbor)
                 this.idsPerAttribute = CBOR.decode(await r.arrayBuffer())
             }
 
             //this.idsPerAttribute = await (await this.getUrlByProtocol((await this.extraUriMetaData).idsPerAttribute)).json()
         } else {
-            console.log(`no premade metadata found for ntf contract: ${await this.contractObj.address} :( collecting attributes manually!`)
+            console.log(`no premade metadata found for ntf contract: ${await this.contractObj.target} :( collecting attributes manually!`)
             this.idsPerAttribute = await this.buildIdsPerAttributeFromUriCache(uriCache, keepIds)
             try {
                 if (!(typeof (localStorage) === "undefined")) {
-                    localStorage.setItem(await this.contractObj.address, JSON.stringify({ "idStartsAt": this.idStartsAt, "totalsupply": (await this.getTotalSupply()), "idsPerAttribute": this.idsPerAttribute }));
+                    localStorage.setItem(await this.contractObj.target, JSON.stringify({ "idStartsAt": this.idStartsAt, "totalsupply": (await this.getTotalSupply()), "idsPerAttribute": this.idsPerAttribute }));
 
                 }
 
@@ -1223,7 +1223,7 @@ export class NftMetaDataCollector {
         let events = []
         for (let i = 0; i < amountOfScans; i++) {
             if (i > maxRequests) {
-                console.log("scanned events", contrObj.address, startChunk, endBlock)
+                console.log("scanned events", contrObj.target, startChunk, endBlock)
                 events = await Promise.all(events)
                 maxRequests = maxRequests * 2
             }
@@ -1237,7 +1237,7 @@ export class NftMetaDataCollector {
     }
 
     async getIdsOfownerByEventScanning(ownerAddres, startBlockEventScan, nftContrObj = this.contractObj) {
-        //ownerAddres = await ethers.utils.getAddress(ownerAddres)
+        //ownerAddres = await ethers.getAddress(ownerAddres)
         let idTransferCount = {}
         let startBlockOfResults = startBlockEventScan
         if (
@@ -1318,11 +1318,11 @@ export class NftMetaDataCollector {
     //17309202 = deployment block sudoswap2Factory
     async getIdsOfowner(ownerAddres, startBlockEventScan = 0, nftContrObj = this.contractObj) {
         if ((await this.contractObj.balanceOf(ownerAddres)).toNumber() === 0) { return [] }
-        //ownerAddres = await ethers.utils.getAddress(ownerAddres)
+        //ownerAddres = await ethers.getAddress(ownerAddres)
         let foundIds = []
-        const nftAddr = await this.contractObj.address
+        const nftAddr = await this.contractObj.target
         let tokenOfOwnerByindexFailed = false;
-        console.log(ownerAddres, nftContrObj.address)
+        console.log(ownerAddres, nftContrObj.target)
         //TODO do try catch becuase mfrs be deploying proxys 
         //if ((await contractHasFunction(nftAddr,"tokenOfOwnerByIndex(address,uint256)","../ui/abi/ERC721ABI.json", provider ))) {//wil just return empty array id tokenOfOwnerByindex doesnt exist :(
         try {
@@ -1345,9 +1345,9 @@ export class NftMetaDataCollector {
         }
         if (idsOfownerWithTokensOfOwnerFailed) {
             const endBlock = (await this.provider.getBlock("latest")).number
-            const cacheLocalStorage = JSON.parse(localStorage.getItem(`balancesOf-${await this.contractObj.address}`))
+            const cacheLocalStorage = JSON.parse(localStorage.getItem(`balancesOf-${await this.contractObj.target}`))
             if (cacheLocalStorage && ownerAddres in cacheLocalStorage && cacheLocalStorage[ownerAddres].endBlock > (endBlock - 4000 * 4)) {
-                const cacheLocalStorage = JSON.parse(localStorage.getItem(`balancesOf-${await this.contractObj.address}`))
+                const cacheLocalStorage = JSON.parse(localStorage.getItem(`balancesOf-${await this.contractObj.target}`))
                 this.idsOfOwnerCache = cacheLocalStorage
                 foundIds = await this.getIdsOfownerByEventScanning(ownerAddres, cacheLocalStorage[ownerAddres].endBlock, this.contractObj)
                 return foundIds
@@ -1356,7 +1356,7 @@ export class NftMetaDataCollector {
                 try {
                     const options = { method: 'GET', headers: { accept: 'application/json' } };
                     const apiKey = this.alchemyApiKey //please dont grift i dont have money for premium :(
-                    const reqString = `https://eth-mainnet.g.alchemy.com/nft/v3/${apiKey}/getNFTsForOwner?owner=${ownerAddres}&contractAddresses[]=${this.contractObj.address}&withMetadata=true&pageSize=100`
+                    const reqString = `https://eth-mainnet.g.alchemy.com/nft/v3/${apiKey}/getNFTsForOwner?owner=${ownerAddres}&contractAddresses[]=${this.contractObj.target}&withMetadata=true&pageSize=100`
                     const r = await (await fetch(reqString, options)).json()
                     const ids = r.ownedNfts.map((x) => x.tokenId)
                     const endBlock = (await this.provider.getBlock("latest")).number
@@ -1386,15 +1386,18 @@ export class NftMetaDataCollector {
 
 
     async getCachedIdsOfOwner(source = this.extraMetaData.idsOfOwner) {
-        console.log(`fetching id from ${source}`)
+        
         if (Object.keys(this.idsOfOwnerCache).length) {
             return this.idsOfOwnerCache
         }
         if (source) {
+            console.log(`fetching id from ${source}`)
 
             this.idsOfOwnerCache = await (await this.getUrlByProtocol(source)).json()
             return this.idsOfOwnerCache
         } else {
+            console.warn(`no idsOfOwner in extraMetadata for ${await this.contractObj.target}`)
+
             return {}
         }
     }
@@ -1439,12 +1442,12 @@ export class NftMetaDataCollector {
     }
 
     async saveOwnerIdsCacheToStorage(outputFilePath = undefined) {
-        let fromStorage = JSON.parse(localStorage.getItem(`balancesOf-${await this.contractObj.address}`))
+        let fromStorage = JSON.parse(localStorage.getItem(`balancesOf-${await this.contractObj.target}`))
         this.idsOfOwnerCache = { ...fromStorage, ...this.idsOfOwnerCache }
         //TODO cleanup
         try {
             if (!(typeof (localStorage) === "undefined")) {
-                localStorage.setItem(`balancesOf-${await this.contractObj.address}`, JSON.stringify(this.idsOfOwnerCache));
+                localStorage.setItem(`balancesOf-${await this.contractObj.target}`, JSON.stringify(this.idsOfOwnerCache));
             }
             if (outputFilePath) {
                 try {
