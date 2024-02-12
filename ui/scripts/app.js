@@ -726,3 +726,5 @@ async function loadAllContracts() {
     //window.nftContract = await getNftContract(provider, urlVars["nft"]);
 }
 window.loadAllContracts = loadAllContracts
+
+

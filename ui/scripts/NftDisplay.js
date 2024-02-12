@@ -44,7 +44,7 @@ export class NftDisplay {
         {collectionAddress,provider, displayElement, ids=[], ipfsGateway = "https://ipfs.io", 
         landscapeOrientation = {["rowSize"]:5,["amountRows"]:2}, 
         portraitOrientation = {["rowSize"]:3,["amountRows"]:4},
-        nftMetaData, displayCollectionInfo = true}
+        nftMetaData, displayCollectionInfo = true, initialize=true}
     ) {
         this.ipfsGateway = ipfsGateway
         this.provider =provider
@@ -56,12 +56,18 @@ export class NftDisplay {
         this.portraitOrientation = portraitOrientation
         this.displayCollectionInfo = displayCollectionInfo
 
-        this.initialize(collectionAddress, nftMetaData)
+        if(initialize) {
+            this.initialize(collectionAddress, nftMetaData)
+
+        } else {
+            this.collectionAddress = collectionAddress
+        }
+        
 
         
     }
 
-    async initialize(collectionAddress, nftMetaData) {
+    async initialize(collectionAddress=this.collectionAddress, nftMetaData=undefined) {
         if (!nftMetaData) {
             this.nftMetaData = new NftMetaDataCollector(collectionAddress,this.provider,this.ipfsGateway)
         } else {
@@ -262,7 +268,7 @@ export class NftDisplay {
 
         const allImageDivs = [...this.displayElement.querySelectorAll(".nftImagesDiv")]
         //TODO doing this in one for each instead of filter is faster
-        const allImgDivElements = allImageDivs.map((imgDiv)=>[...imgDiv.childNodes].filter((imgDivElement)=>!imgDivElement.className.includes("imageDiv") )).flat()
+        const allImgDivElements = allImageDivs.map((imgDiv)=>[...imgDiv.childNodes].filter((imgDivElement)=>!imgDivElement.className || !imgDivElement.className.includes("imageDiv") )).flat()
         allImgDivElements.forEach((element)=>{element.outerHTML = "";element=undefined})
         // for (const [index, id] of idsCurrentPage.entries()) {
         //     let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)

@@ -1,8 +1,21 @@
 import { IpfsIndexer } from "../../scripts/IpfsIndexer.js";
-import { ethers } from "../../scripts/ethers-5.2.esm.min.js";
+import { ethers } from "../../scripts/ethers-6.7.0.min.js";
 import { MerkleBuilder } from "../../scripts/MerkleBuilder.js"
 import { NftDisplay } from "../../scripts/NftDisplay.js";
 const delay = ms => new Promise(res => setTimeout(res, ms));
+
+
+const localFork = {
+    chainId: "0x7A69",
+    rpcUrls: ["http://localhost:8555/"],
+    chainName: "local fork Ethereum Mainnet",
+    nativeCurrency: {
+      name: "Ethereum",
+      symbol: "ETH",
+      decimals: 18
+    },
+    //blockExplorerUrls: []
+  }
 
 async function getUrlVars() {
     var vars = {};
@@ -14,13 +27,13 @@ async function getUrlVars() {
 
 async function connectProvider() {
     if (window.ethereum) {
-        window.provider = new ethers.providers.Web3Provider(window.ethereum);
+        window.provider = new ethers.BrowserProvider(window.ethereum);
     } else {
         console.log("couldn't connect to window.ethereum using a external rpc")
         const providerUrls = ["https://mainnet.infura.io/v3/", "https://eth.llamarpc.com"] 
         const workingProviderUrl = await getFirstAvailableProvider(providerUrls)
         console.log(workingProviderUrl) 
-        window.provider = new ethers.providers.JsonRpcProvider(workingProviderUrl)
+        window.provider = new ethers.JsonRpcProvider(workingProviderUrl)
     } 
 
 }
@@ -34,7 +47,7 @@ async function getFirstAvailableProvider(providerUrls) {
 
 async function isProviderAvailable(url) {
     try {
-        const testProvider = new ethers.providers.JsonRpcProvider(url)
+        const testProvider = new  ethers.JsonRpcProvider(url)
         await testProvider.getNetwork()
         return true
     } catch (error) {
@@ -85,7 +98,7 @@ async function getAccountName(address) {
 }
 window.getAccountName = getAccountName
 
-async function connectSigner() {
+async function connectSigner(refreshNftDisplay=true) {
     // MetaMask requires requesting permission to connect users accounts
     if (!window.ethereum) {
         message("no inject ethereum wallet found please install metamask or equivalant!")
@@ -93,52 +106,88 @@ async function connectSigner() {
         
         return 0
     }
-    provider.send("eth_requestAccounts", []);
+
+    await switchNetwork(localFork)
+    await provider.send("eth_requestAccounts", []);
     window.signer = await provider.getSigner();
     message("please connect wallet :)")
+
     if (isWalletConnected()) {
+        
         await resolveTillConnected()
         message("")
-        while (!window.airdropTokenContract) {
-            await delay(100)
-        }
-        window.mildayDropWithSigner = await window.mildayDropContract.connect(window.signer);
+        // while (!window.airdropTokenContract) {
+        //     await delay(100)
+        // }
+        // window.mildayDropWithSigner = await window.mildayDropContract.connect(window.signer);
         window.userAddress = await window.signer.getAddress()
-        await displayNfts();
+        if(window.allNftDisplays && refreshNftDisplay) {
+            await displayNfts();
 
-        displayUserAccountInfo()
+        }
+
+
+        await displayUserAccountInfo()
         console.log("connected")
         return [provider, signer];
     }
 }
 window.connectSigner = connectSigner
 
+async function switchNetwork(network=localFork) {
+    try {
+        await window.provider.send("wallet_switchEthereumChain",[{ chainId: network.chainId }]);
+
+      } catch (switchError) {
+        window.switchError = switchError
+        // This error code indicates that the chain has not been added to MetaMask.
+        if (switchError.error.code === 4902) {
+          try {
+            await window.provider.send("wallet_addEthereumChain",[network]);
+
+          } catch (addError) {
+            // handle "add" error
+          }
+        }
+        // handle other "switch" errors
+      }
+
+}
+
 async function displayUserAccountInfo() {
-    let accountInfoDiv = document.getElementById("accountInfo")
-    const accountName = getAccountName(window.userAddress)
-    const balance = window.airdropTokenContract.balanceOf(window.userAddress)
     
-    const allUserIds = Object.fromEntries(window.nftDisplays.map((x)=>[x.collectionAddress,x.ids]).filter((x)=>x[1].length))
-    const claimableAmount = getClaimableAmount(allUserIds)
+    let accountInfoDiv = document.getElementById("accountInfo")
+    if (window.userAddress && window.airdropTokenContract) {
+        const accountName = getAccountName(window.userAddress)
+    
 
 
-    const formattedClaimableBalance = new Intl.NumberFormat('en-EN').format(ethers.utils.formatEther((await claimableAmount).toString()))
-    const formattedBalance = new Intl.NumberFormat('en-EN').format(ethers.utils.formatEther((await balance).toString()))
-    const ticker = await window.ticker
+        const balance = window.airdropTokenContract.balanceOf(window.userAddress)
+    
+        const allUserIds = Object.fromEntries(window.nftDisplays.map((x)=>[x.collectionAddress,x.ids]).filter((x)=>x[1].length))
+        const claimableAmount = getClaimableAmount(allUserIds)
 
-    accountInfoDiv.innerHTML = `
-    <div style="text-align: right">${await accountName}</div> 
-    <div style="text-align: left; float:left; position: absolute"> Wallet: </div> ${formattedBalance} ${ticker} <br> 
-    <div style="text-align: left; float:left; position: absolute"> Airdrop: </div>  ${formattedClaimableBalance} ${ticker} 
-    `
+
+        const formattedClaimableBalance = new Intl.NumberFormat('en-EN').format(ethers.formatEther((await claimableAmount).toString()))
+        const formattedBalance = new Intl.NumberFormat('en-EN').format(ethers.formatEther((await balance).toString()))
+        const ticker = await window.ticker
+
+        accountInfoDiv.innerHTML = `
+        <div style="text-align: right">${await accountName}</div> 
+        <div style="text-align: left; float:left; position: absolute"> Wallet: </div> ${formattedBalance} ${ticker} <br> 
+        <div style="text-align: left; float:left; position: absolute"> Airdrop: </div>  ${formattedClaimableBalance} ${ticker} 
+        `
+
+    }
+    
 }
 
 async function getClaimableAmount(userIdsPerCollection) {
-    let total = ethers.BigNumber.from(0)
+    let total = 0n 
     for (const collectionAddr in userIdsPerCollection) {
         for (const id of userIdsPerCollection[collectionAddr]) {
             if (!await isClaimed(collectionAddr, id) && id in window.idsPerCollection[collectionAddr]) {
-                total = total.add(ethers.BigNumber.from(window.idsPerCollection[collectionAddr][id]))
+                total = total + BigInt(window.idsPerCollection[collectionAddr][id])
             }
 
         }
@@ -161,7 +210,7 @@ async function addDropTokenToMetamaskButton() {
     let addToMetaMaskButton = document.createElement("button")
     addToMetaMaskButton.innerText = `add to metamask`
     addToMetaMaskButton.style.fontSize = "1rem"
-    addToMetaMaskButton.onclick = ()=>addTokenToMetamask(window.airdropTokenContract.address,ticker,18)
+    addToMetaMaskButton.onclick = ()=>addTokenToMetamask(window.airdropTokenContract.target,ticker,18)
     return addToMetaMaskButton
 }
 
@@ -278,7 +327,7 @@ async function loadTreeAndBuildMultiProof(merkleBuilder,selectedIds) {
         }, 10);
     });
     message("done")
-    const nftAddresses = leaves.map((x) => ethers.utils.getAddress(x[0]))
+    const nftAddresses = leaves.map((x) => ethers.getAddress(x[0]))
     const ids = leaves.map((x) => x[1])
     const amounts = leaves.map((x) => x[2])
 
@@ -301,6 +350,8 @@ async function fetchSingleProof(ipfsIndex,id,nftAddr) {
 
 
 async function claimSelected() {
+    await connectSigner(false)
+    window.mildayDropWithSigner = await window.mildayDropContract.connect(window.signer);
     //get selected ids {nftAddr:[ids]}
     const selectedIdsEntries = window.nftDisplays.map((x)=>[x.collectionAddress,x.selection]).filter((x)=>x[1].length>0)
     const selectedIds = Object.fromEntries(selectedIdsEntries)
@@ -311,16 +362,29 @@ async function claimSelected() {
         const {proof, proofFlags, ids, amounts, nftAddresses} = await loadTreeAndBuildMultiProof(window.merkleBuilder, selectedIds)
 
         //submit tx
-        let tx = await window.mildayDropWithSigner.claimMultiple(proof, proofFlags, ids, amounts, nftAddresses)
-        let receipt = await tx.wait(1)
+        let receipt
+        try {
+            const tx = await window.mildayDropWithSigner.claimMultiple(proof, proofFlags, ids, amounts, nftAddresses)
+            receipt = await tx.wait(1)
+        } catch (error) {
+            if (error.code === 'ACTION_REJECTED') {
+                message("transaction rejected try again")
+
+            } else {
+                message(error)
+            }
+ 
+            
+        }
+    
         message("claimed :)")
 
         //update display
-        clearIsClaimedIds(selectedIds)
-        clearSelection()
+        await clearIsClaimedIds(selectedIds)
+        await clearSelection()
         const selectedNftDisplays = window.nftDisplays.filter((display)=> nftAddresses.indexOf(display.collectionAddress)!==-1)
-        refreshDisplay(selectedNftDisplays)
-        displayUserAccountInfo()
+        await refreshDisplay(selectedNftDisplays)
+        await displayUserAccountInfo()
 
     } else {
         //get selected item
@@ -331,16 +395,30 @@ async function claimSelected() {
         const { amount, proof } = await fetchSingleProof(window.ipfsIndex, id,nftAddr)
 
         //submit tx
-        let tx = await window.mildayDropWithSigner.claim(proof, id, amount, nftAddr)
-        let receipt = await tx.wait(1)
+        console.log(proof, id, amount, nftAddr)
+        let receipt
+        try {
+            const tx = await window.mildayDropWithSigner.claim(proof, id, amount, nftAddr)
+            receipt = await tx.wait(1)
+            
+        } catch (error) {
+            if (error.code === 'ACTION_REJECTED') {
+                message("transaction rejected try again")
+
+            } else {
+                message(error)
+            }
+        }
+        
+
         message("claimed :)")
 
         //update display
-        clearIsClaimedIds(selectedIds)
-        clearSelection()
+        await clearIsClaimedIds(selectedIds)
+        await clearSelection()
         const nftDisplay = window.allNftDisplays.find((display) => display.collectionAddress === nftAddr)
-        refreshDisplay([nftDisplay])
-        displayUserAccountInfo()
+        await refreshDisplay([nftDisplay])
+        await displayUserAccountInfo()
 
     }
 }
@@ -350,8 +428,8 @@ async function clearSelection() {
     for (const nftDisplay of window.nftDisplays) {
         await nftDisplay.clearSelection()
     }
-    window.selectedAmount = ethers.BigNumber.from(0)
-    const formattedAmount  =  new Intl.NumberFormat('en-EN').format(ethers.utils.formatEther( window.selectedAmount.toString()))
+    window.selectedAmount = 0n
+    const formattedAmount  =  new Intl.NumberFormat('en-EN').format(ethers.formatEther( window.selectedAmount.toString()))
     document.getElementById("amountSelected").innerHTML = `${formattedAmount} ${await window.ticker}  selected`
 }
 window.clearSelection = clearSelection
@@ -363,17 +441,17 @@ async function selectAll() {
         const totalSelected = nftDisplay.selection.reduce(
             (total, id) => {
                 if (window.idsPerCollection[nftDisplay.collectionAddress][id]) {
-                    const amount = ethers.BigNumber.from(window.idsPerCollection[nftDisplay.collectionAddress][id])
-                    return total.add(amount)
+                    const amount = BigInt(window.idsPerCollection[nftDisplay.collectionAddress][id])
+                    return total + (amount)
                 } else {
-                    return ethers.BigNumber.from(0)
+                    return 0n
                 }
 
-            },ethers.BigNumber.from(0)
+            },0n
         );
-        window.selectedAmount = window.selectedAmount.add(totalSelected)
+        window.selectedAmount = window.selectedAmount + (totalSelected)
     }
-    const formattedAmount  =  new Intl.NumberFormat('en-EN').format(ethers.utils.formatEther( window.selectedAmount.toString()))
+    const formattedAmount  =  new Intl.NumberFormat('en-EN').format(ethers.formatEther( window.selectedAmount.toString()))
     document.getElementById("amountSelected").innerHTML = `${formattedAmount} ${await window.ticker}  selected`
 }
 window.selectAll = selectAll
@@ -382,7 +460,7 @@ function displayTokens(id, nftDisplay) {
     let d = document.createElement("div");
     d.className = "tokenDisplay"
     if (id in window.idsPerCollection[nftDisplay.collectionAddress]) {
-        const amount = ethers.utils.formatEther(window.idsPerCollection[nftDisplay.collectionAddress][id])
+        const amount = ethers.formatEther(window.idsPerCollection[nftDisplay.collectionAddress][id])
         d.innerText =  `${amount} ${window.ticker}`
         if (id in window.idsByClaimableStatus[nftDisplay.collectionAddress].claimed) {
             d.style.textDecoration = "line-through"
@@ -410,7 +488,7 @@ function makeIntoDivs(parentId, childIds) {
 
 async function refreshDisplay(displays) {
     for (const display of displays) {
-        display.clearSelection()
+        await display.clearSelection()
 
         //refreh claimable status all ids (TODO do only claimed to reduce rpc calls)
         const nftAddr = display.collectionAddress
@@ -421,28 +499,28 @@ async function refreshDisplay(displays) {
         
         //re-sort ids
         display.ids = [...Object.keys(claimable), ...Object.keys(claimed), ...Object.keys(ineligible)]
-        display.refreshPage()
+        await display.refreshPage()
     }
 }
 
-window.selectedAmount = ethers.BigNumber.from(0)
+window.selectedAmount = 0n
 async function updateSelectedAmount(id, display) {
     //TODO selectAll
     if (display.selection.indexOf(id) === -1) {
-        const amountBigNum = ethers.BigNumber.from(window.idsPerCollection[display.collectionAddress][id])
-        window.selectedAmount = window.selectedAmount.sub(amountBigNum) 
+        const amountBigNum = BigInt(window.idsPerCollection[display.collectionAddress][id])
+        window.selectedAmount = window.selectedAmount / (amountBigNum) 
     } else {
-        const amountBigNum = ethers.BigNumber.from(window.idsPerCollection[display.collectionAddress][id])
-        window.selectedAmount = window.selectedAmount.add(amountBigNum) 
+        const amountBigNum = BigInt(window.idsPerCollection[display.collectionAddress][id])
+        window.selectedAmount = window.selectedAmount + (amountBigNum) 
     }   
-    const formattedAmount  =  new Intl.NumberFormat('en-EN').format(ethers.utils.formatEther( window.selectedAmount.toString()))
+    const formattedAmount  =  new Intl.NumberFormat('en-EN').format(ethers.formatEther( window.selectedAmount.toString()))
     document.getElementById("amountSelected").innerHTML = `${formattedAmount} ${await window.ticker}  selected`
 }
 
 async function displayNfts() {
-    while (!window.allNftDisplays) {
-        await delay(100)
-    }
+    // while (!window.allNftDisplays) {
+    //     await delay(100)
+    // }
 
     document.getElementById("loading").innerText = "loading"
 
@@ -477,21 +555,21 @@ async function displayNfts() {
 }
 
 function getTotalDrop() {
-    let total = ethers.BigNumber.from(0)
+    let total = 0n
     for (const address in window.idsPerCollection) {
         const collection = window.idsPerCollection[address]
         const totalFromCollection = Object.keys(collection).reduce(
             (total, id) => {
-                return total.add(ethers.BigNumber.from(collection[id]))
+                return total + (BigInt(collection[id]))
             },
-            ethers.BigNumber.from(0)
+            0n
         )
-        total = total.add(totalFromCollection)
+        total = total + (totalFromCollection)
     }
-    return ethers.utils.formatEther(total.toString())
+    return ethers.formatEther(total.toString())
 }
 
-async function clearIsClaimedIds(idsPerNftAddr) {
+function clearIsClaimedIds(idsPerNftAddr) {
     for (const nftAddr in idsPerNftAddr) {
         for (const id of idsPerNftAddr[nftAddr]) {
             delete isClaimedCache[nftAddr][id]
@@ -541,11 +619,11 @@ async function loadAllContracts() {
     let totalSupply = (await window.airdropTokenContract).totalSupply()
     const dropTokenName = (await window.airdropTokenContract).name()
     const dropSize = getTotalDrop()
-    totalSupply = ethers.utils.formatEther((await totalSupply).toString())
+    totalSupply = ethers.formatEther((await totalSupply).toString())
     dropInfo.innerHTML = `<span class="titel">${await dropTokenName}</span> <br> <br>
     Airdrop size: ${new Intl.NumberFormat('en-EN').format(dropSize)} ${await window.ticker} <br>
     Total supply: ${new Intl.NumberFormat('en-EN').format(await totalSupply)} ${await window.ticker}<br>
-    ${await window.ticker} on etherscan: <a href="https://etherscan.io/token/${window.airdropTokenContract.address}">${window.airdropTokenContract.address}<a><br>
+    ${await window.ticker} on etherscan: <a href="https://etherscan.io/token/${window.airdropTokenContract.target}">${window.airdropTokenContract.target}<a><br>
     See all nfts: <a href=../drop/?lovedrop=${window.urlVars["lovedrop"]}>drop page</a> <br>
     `
     dropInfo.insertBefore(await addDropTokenToMetamaskButton(), dropInfo.childNodes[3]);
@@ -571,7 +649,13 @@ async function loadAllContracts() {
     //makeIntoDivs("nfts", nftDisplayElementIds)
 
     //window.allEligibleIds = window.ipfsIndex.getIdsPerCollection()
-    window.allNftDisplays = allNftAddresses.map((nftAddr) => new NftDisplay({collectionAddress:nftAddr, provider:window.provider, displayElement:nftDisplayElements[nftAddr], ids:[], ipfsGateway:window.ipfsGateway}))
+    window.allNftDisplays = window.allNftAddresses.map((nftAddr) => new NftDisplay({collectionAddress:nftAddr, provider:window.provider, displayElement:nftDisplayElements[nftAddr], ids:[], ipfsGateway:window.ipfsGateway, initialize:false}))
+    await Promise.all(window.allNftDisplays.map(display => display.initialize()))
+    if(window.signer) {
+        await displayNfts()
+        await displayUserAccountInfo()
+
+    }
 
 
 
@@ -581,8 +665,9 @@ window.loadAllContracts = loadAllContracts
 
 async function runOnLoad() {
     await connectProvider()
+    await connectSigner()
     loadAllContracts()
-    connectSigner()
+    
 }
 window.onload = runOnLoad;
 
