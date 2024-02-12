@@ -326,7 +326,7 @@ export class NftMetaDataCollector {
         } else {
             let id = 0;
             try {
-                id = (await this.contractObj.totalSupply()).toNumber()
+                id =parseInt(await this.contractObj.totalSupply())
 
             } catch (error) {
                 console.warn("uriHandeler had a error")
@@ -1310,14 +1310,14 @@ export class NftMetaDataCollector {
     }
 
     async getIdsOfownerWithTokensOfOwner(ownerAddres, nftContrObj = this.contractObj) {
-        const foundIds = (await nftContrObj.tokensOfOwner(ownerAddres)).map((x) => x.toNumber())
+        const foundIds = (await nftContrObj.tokensOfOwner(ownerAddres)).map((x) => parseInt(x))
         return foundIds
     }
 
     //search id is only there to save on rpc calls when contract doesnt have tokenOfOwnerByindex 
     //17309202 = deployment block sudoswap2Factory
     async getIdsOfowner(ownerAddres, startBlockEventScan = 0, nftContrObj = this.contractObj) {
-        if ((await this.contractObj.balanceOf(ownerAddres)).toNumber() === 0) { return [] }
+        if (parseInt(await this.contractObj.balanceOf(ownerAddres)) === 0) { return [] }
         //ownerAddres = await ethers.getAddress(ownerAddres)
         let foundIds = []
         const nftAddr = await this.contractObj.target
