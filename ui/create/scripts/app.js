@@ -37,7 +37,7 @@ async function connectProvider() {
         const providerUrls = ["https://mainnet.infura.io/v3/", "https://eth.llamarpc.com"] 
         const workingProviderUrl = await getFirstAvailableProvider(providerUrls)
         console.log(workingProviderUrl) 
-        window.provider = new ethers.providers.JsonRpcProvider(workingProviderUrl)
+        window.provider = new  ethers.JsonRpcProvider(workingProviderUrl)
     } 
 
 }
@@ -50,7 +50,7 @@ async function getFirstAvailableProvider(providerUrls) {
 
 async function isProviderAvailable(url) {
     try {
-        const testProvider = new ethers.providers.JsonRpcProvider(url)
+        const testProvider = new  ethers.JsonRpcProvider(url)
         await testProvider.getNetwork()
         return true
     } catch (error) {
