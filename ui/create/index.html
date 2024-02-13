@@ -60,16 +60,14 @@
 
     .tokenDisplay {
         position: absolute;
-        float: top-right;
-        top: 1.5rem;
-        right: 0.12rem;
-        font-size: 1.7rem;
+        top: 1.5em;
+        right: 0.12em;
+        font-size: 1.7em;
         font-weight: bold;
         -webkit-text-fill-color: #ffffff;
-        -webkit-text-stroke-width: 0.1rem;
+        -webkit-text-stroke-width: 0.06em;
         -webkit-text-stroke-color: #000000;
         z-index: 3;
-
     }
 
     .nftdisplayInfo {
@@ -898,7 +896,7 @@
                 <br>
                 <label for="criteriaConflictsResolutionSelection">choose a method:</label>
                 <select name="criteria conflicts resolution options" id="criteriaConflictsResolutionSelection">
-                    <option value="">--select method--</option>
+                    <option value="selectMethod">--select method--</option>
                     <option value="largest">largest amount</option>
                     <option value="smallest">smallest amount</option>
                     <option value="first">first criterion made</option>
@@ -990,11 +988,11 @@
                 <div id="airdropDeployment">
                     <div class="bold">Notice</div>
                     <span id="airdropDeploymentInstructions">
-                        First the merkle tree and claim data will be generated and added to IPFS 
+                        1. The merkle tree is build and claim data will be generated and added to IPFS 
                         <br>
-                        Then then the contract is deployed.
+                        2. The contract is deployed.
                         <br>
-                        Finally you fund the contract with the tokens. 
+                        3. Finally you fund the contract with the exact amount of tokens. 
                         
                     </span>
 

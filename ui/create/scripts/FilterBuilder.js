@@ -712,13 +712,12 @@ export class FilterBuilder {
         //only update ui if that collection is actually selected
         if(collectionAddress===this.collectionAddress) {
             this.#removeOptionNameFromFilterSelectors(filterIndex)
-            let filters = this.getFiltersOfCollection()
-            filters = this.#setFilterIndexes(filters)
-            this.changeCurrentFilter(currentFilters.length-1)
-    
-            await this.#onFilterChange()
-
         }
+        let filters = this.getFiltersOfCollection()
+        filters = this.#setFilterIndexes(filters)
+        this.changeCurrentFilter(currentFilters.length-1)
+
+        await this.#onFilterChange()
     }
 
 
@@ -1104,11 +1103,17 @@ export class FilterBuilder {
                 checkBox.checked = true
 
             } else {
+                console.log(`attributeDropdown-${trait_type}-${this.collectionAddress}`)
                 const dropDownDiv = document.getElementById(`attributeDropdown-${trait_type}-${this.collectionAddress}`)
-                const wrapper = this.#createAttributeCheckBox(idsPerAttribute,trait_type,value)
-                dropDownDiv.insertBefore(wrapper, dropDownDiv.lastElementChild)
-                checkBox = document.getElementById(`${trait_type}-${value}-${this.collectionAddress}`)
-                checkBox.checked = true
+                console.log(dropDownDiv)
+                if (dropDownDiv) {
+                    const wrapper = this.#createAttributeCheckBox(idsPerAttribute,trait_type,value)
+                    dropDownDiv.insertBefore(wrapper, dropDownDiv.lastElementChild)
+                    checkBox = document.getElementById(`${trait_type}-${value}-${this.collectionAddress}`)
+                    checkBox.checked = true
+
+                }
+
             }
 
         }

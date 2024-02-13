@@ -27,6 +27,7 @@ async function getUrlVars() {
 
 async function connectProvider() {
     if (window.ethereum) {
+        await switchNetwork(localFork)
         window.provider = new ethers.BrowserProvider(window.ethereum);
     } else {
         console.log("couldn't connect to window.ethereum using a external rpc")
@@ -141,7 +142,7 @@ async function switchNetwork(network=localFork) {
       } catch (switchError) {
         window.switchError = switchError
         // This error code indicates that the chain has not been added to MetaMask.
-        if (switchError.error.code === 4902) {
+        if (switchError.error && switchError.error.code === 4902) {
           try {
             await window.provider.send("wallet_addEthereumChain",[network]);
 

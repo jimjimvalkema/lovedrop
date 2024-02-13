@@ -175,26 +175,14 @@ export class DropBuilder {
     async switchNetwork(network=localFork) {
         try {
             await window.provider.send("wallet_switchEthereumChain",[{ chainId: network.chainId }]);
-            // await ethereum.request({
-            //   method: 'wallet_switchEthereumChain',
-            //   params: [{ chainId: '0xf00' }],
-            // });
+
           } catch (switchError) {
             window.switchError = switchError
             // This error code indicates that the chain has not been added to MetaMask.
             if (switchError.error.code === 4902) {
               try {
                 await window.provider.send("wallet_addEthereumChain",[network]);
-                // await ethereum.request({
-                //   method: 'wallet_addEthereumChain',
-                //   params: [
-                //     {
-                //       chainId: '0xf00',
-                //       chainName: '...',
-                //       rpcUrls: ['https://...'] /* ... */,
-                //     },
-                //   ],
-                // });
+
               } catch (addError) {
                 // handle "add" error
               }
@@ -312,20 +300,29 @@ export class DropBuilder {
         }
     }
 
-    #dropBuilderBackBtnHandler() {
+    async #dropBuilderBackBtnHandler() {
         const currentPage = this.dropBuilderPages.findIndex((el) => el.style.display !== "none")
 
         if (this.dropBuilderPages[currentPage - 1] === this.dropBuilderConflictsEl) {
             const duplicates = this.getIdsWithDuplicateCriteria(this.criteriaPerIds)
             const amountOfDuplicates = Object.keys(duplicates).reduce((total, collection) => total += Object.keys(duplicates[collection]).length, 0)
             if (amountOfDuplicates === 0) {
-                this.#showDropBuilderPageIndex(currentPage - 2)
+                await this.#showDropBuilderPageIndex(currentPage - 2)
             } else {
-                this.#showDropBuilderPageIndex(currentPage - 1)
+                await this.#showDropBuilderPageIndex(currentPage - 1)
             }
 
+        } else if(this.dropBuilderPages[currentPage] === this.deploymentEl) {
+            //TODO if the contract is already deployed and not funded, the user wont be able to fund it and needs to deploy it again
+            //TODO make a fix for this. example check if the claimdata hash is the same for the deployed contract
+            //but you have to make sure the criteria the user saw on the last page matches the criteria in the contract they are funding
+            //maybe handle case if criteria are different but contract is already deployed
+            //or just make a wrapper contract that deploys and send token in 1 tx
+            this.fundAirdropBtn.disabled = true
+            this.deployAirDropBtn.disabled = true
+            await this.#showDropBuilderPageIndex(currentPage - 1)
         } else if (currentPage !== -1) {
-            this.#showDropBuilderPageIndex(currentPage - 1)
+            await this.#showDropBuilderPageIndex(currentPage - 1)
         }
 
     }
@@ -373,14 +370,14 @@ export class DropBuilder {
     async #showDropBuilderPageEl(element) {
         //TODO cleanup and do in showDropBuilderPageIndex
         if (this.criteriaBuilderEl.id === element.id) {
-            this.#showDropBuilderPageIndex(-1)
+            await this.#showDropBuilderPageIndex(-1)
 
         } else {
             const pageIndex = this.dropBuilderPages.findIndex((el) => el.id === element.id)
             if (pageIndex === -1) {
                 throw Error(`element id ${element.id} is not in dropBuilderPages array: ${this.dropBuilderPages.map((x) => x.id)}`)
             }
-            this.#showDropBuilderPageIndex(pageIndex)
+            await this.#showDropBuilderPageIndex(pageIndex)
         }
 
         if (this.deploymentEl.id === element.id) {
@@ -392,7 +389,12 @@ export class DropBuilder {
         }
     }
 
-    #showDropBuilderPageIndex(page) {
+    async #showDropBuilderPageIndex(page) {
+        if (this.dropBuilderPages[page] === this.dropBuilderConflictsEl) {
+            this.conflictResolutionSelector.value = "selectMethod"
+            await this.removeConflictResolutionCriteria()
+
+        }
         if (page === -1) {
             this.#setDisplayStyleOfElements([this.dropBuilderEl, ...this.dropBuilderPages], "none")
             this.#resetDisplayStyleOfElements([this.criteriaBuilderEl])
@@ -413,6 +415,7 @@ export class DropBuilder {
             await this.#showDropBuilderPageEl(this.dropBuilderConflictsEl)
 
             //remove data created when users goes back and returns
+            this.conflictResolutionSelector.value = "selectMethod"
             this.removeConflictResolutionCriteria()
 
             //process data
@@ -668,9 +671,12 @@ export class DropBuilder {
      * undo effects from removeConflictingCriteria
      */
     async removeConflictResolutionCriteria() {
+    
         for (const collection in this.criteriaForConflictResolution) {
             for (const currentCriterion of this.criteriaForConflictResolution[collection]) {
                 //await this.criteriaBuilder.setCollectionAddress(currentCriterion.collectionAddress, currentCriterion.index)
+                //TODO do this without updating DOM?
+                await this.criteriaBuilder.changeCurrentCriterion(currentCriterion.index)
                 await this.criteriaBuilder.filterBuilder.removeFilterByIndex(currentCriterion.selectedFilter.index, currentCriterion.collectionAddress)
                 await this.criteriaBuilder.removeCriterionByIndex(currentCriterion.index, currentCriterion.collectionAddress)
             }
