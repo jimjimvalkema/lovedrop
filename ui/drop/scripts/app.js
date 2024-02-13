@@ -1,7 +1,39 @@
 import { IpfsIndexer } from "../../scripts/IpfsIndexer.js";
-import { ethers } from "../../scripts/ethers-5.2.esm.min.js";
+import { ethers } from "../../scripts/ethers-6.7.0.min.js";
 import { NftDisplay } from "../../scripts/NftDisplay.js";
 const delay = ms => new Promise(res => setTimeout(res, ms));
+const localFork = {
+    chainId: "0x7A69",
+    rpcUrls: ["http://localhost:8555/"],
+    chainName: "local fork Ethereum Mainnet",
+    nativeCurrency: {
+      name: "Ethereum",
+      symbol: "ETH",
+      decimals: 18
+    },
+    //blockExplorerUrls: []
+  }
+
+
+  async function switchNetwork(network=localFork) {
+    try {
+        await window.provider.send("wallet_switchEthereumChain",[{ chainId: network.chainId }]);
+
+      } catch (switchError) {
+        window.switchError = switchError
+        // This error code indicates that the chain has not been added to MetaMask.
+        if (switchError.error && switchError.error.code === 4902) {
+          try {
+            await window.provider.send("wallet_addEthereumChain",[network]);
+
+          } catch (addError) {
+            // handle "add" error
+          }
+        }
+        // handle other "switch" errors
+      }
+
+}
 
 async function getUrlVars() {
     var vars = {};
@@ -12,14 +44,16 @@ async function getUrlVars() {
 }
 
 async function connectProvider() {
+    
     if (window.ethereum) {
-        window.provider = new ethers.providers.Web3Provider(window.ethereum);
+        await switchNetwork(localFork)
+        window.provider = new  ethers.BrowserProvider(window.ethereum);
     } else {
         console.log("couldn't connect to window.ethereum using a external rpc")
         const providerUrls = ["https://mainnet.infura.io/v3/", "https://eth.llamarpc.com"]
         const workingProviderUrl = await getFirstAvailableProvider(providerUrls)
         console.log(workingProviderUrl)
-        window.provider = new ethers.providers.JsonRpcProvider(workingProviderUrl)
+        window.provider = new ethers.JsonRpcProvider(workingProviderUrl)
     }
 
 }
@@ -33,7 +67,7 @@ async function getFirstAvailableProvider(providerUrls) {
 
 async function isProviderAvailable(url) {
     try {
-        const testProvider = new ethers.providers.JsonRpcProvider(url)
+        const testProvider = new  ethers.JsonRpcProvider(url)
         await testProvider.getNetwork()
         return true
     } catch (error) {
@@ -145,7 +179,7 @@ function nftImagesFilter(id, nftDisplay) {
 
 function getAmountAirdrop(id, collectionAddress) {
     if (id in window.idsPerCollection[collectionAddress]) {
-        const amount = ethers.utils.formatEther(window.idsPerCollection[collectionAddress][id])
+        const amount = ethers.formatEther(window.idsPerCollection[collectionAddress][id])
         return amount
     } else {
         return 0
@@ -210,6 +244,7 @@ async function displayNfts(nftAddress = null) {
             "portraitOrientation": { ["rowSize"]: 4, ["amountRows"]: 5 }
         })
         await display.setCollectionAddress(nftAddress)
+        await display.showAttributes()
         window.nftDisplays[nftAddress] = display
 
 
@@ -254,26 +289,26 @@ async function getTicker(mildayDropContract, ER20ABI) {
 }
 
 function getTotalDrop() {
-    let total = ethers.BigNumber.from(0)
+    let total = 0n
     for (const address in window.idsPerCollection) {
         const collection = window.idsPerCollection[address]
         const totalFromCollection = Object.keys(collection).reduce(
             (total, id) => {
-                return total.add(ethers.BigNumber.from(collection[id]))
+                return total + (BigInt(collection[id]))
             },
-            ethers.BigNumber.from(0)
+            0n
         )
-        total = total.add(totalFromCollection)
+        total = total + (totalFromCollection)
     }
-    return ethers.utils.formatEther(total.toString())
+    return ethers.formatEther(total.toString())
 }
 
 async function addDropTokenToMetamaskButton() {
     const ticker = await window.ticker
     let addToMetaMaskButton = document.createElement("button")
     addToMetaMaskButton.innerText = `add to metamask`
-    addToMetaMaskButton.style.fontSize = "1rem"
-    addToMetaMaskButton.onclick = () => addTokenToMetamask(window.airdropTokenContract.address, ticker, 18)
+    addToMetaMaskButton.style.fontSize = "1em"
+    addToMetaMaskButton.onclick = () => addTokenToMetamask(window.airdropTokenContract.target, ticker, 18)
     return addToMetaMaskButton
 }
 
@@ -353,11 +388,11 @@ async function loadAllContracts() {
     let totalSupply = (await window.airdropTokenContract).totalSupply()
     const dropTokenName = (await window.airdropTokenContract).name()
     const dropSize = getTotalDrop()
-    totalSupply = ethers.utils.formatEther((await totalSupply).toString())
+    totalSupply = ethers.formatEther((await totalSupply).toString())
     dropInfo.innerHTML = `<span class="titel">${await dropTokenName}</span> <br> <br>
     Airdrop size: ${new Intl.NumberFormat('en-EN').format(dropSize)} ${await window.ticker} <br>
     Total supply: ${new Intl.NumberFormat('en-EN').format(await totalSupply)} ${await window.ticker}<br>
-    ${await window.ticker} on etherscan: <a href="https://etherscan.io/token/${window.airdropTokenContract.address}">${window.airdropTokenContract.address}<a><br>
+    ${await window.ticker} on etherscan: <a href="https://etherscan.io/token/${window.airdropTokenContract.target}">${window.airdropTokenContract.target}</a><br>
     Claim at: <a href=../claim/?lovedrop=${window.urlVars["lovedrop"]}>claim page</a> <br>
     `
     dropInfo.insertBefore(await addDropTokenToMetamaskButton(), dropInfo.childNodes[3]);
