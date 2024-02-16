@@ -217,9 +217,10 @@ export class NftMetaDataCollector {
 
     /**
      * assumes ids are minted incrementally
-     * TODO 
+     * TODO use the iterable externsion
+     * TODO make it skip ids until it finds unminted ones
      */
-    async #getLastIdFromChain(startingPointId = 5000, maxAmountChecks = 2500, chunkSize = 15, messageProgressElement, maxAmountFailsPerChunk=5) {
+    async #getLastIdFromChain(startingPointId = 5000, maxAmountChecks = 2500, chunkSize = 20, messageProgressElement, maxAmountFailsPerChunk=9) {
         if(maxAmountFailsPerChunk>(chunkSize/2)) {
             maxAmountFailsPerChunk = Math.floor(chunkSize/2)
         }
@@ -242,12 +243,13 @@ export class NftMetaDataCollector {
             const higherId = startingPointId + checkCount
             const lowerId = startingPointId - checkCount
 
-            console.log(checkCount)
-
             //change maxAmountChecks to maxFailedChecksStreak 
             //to make sure it only stops checking if it failed to check a existing id for n times in a row
             pendingIsLastIdResUpperRange.push(MakeQuerablePromise(this.isLastId(higherId)))
-            pendingIsLastIdResLowerRange.push(MakeQuerablePromise(this.isLastId(lowerId)))
+            if (!this.lastId) {
+                pendingIsLastIdResLowerRange.push(MakeQuerablePromise(this.isLastId(lowerId)))
+            }
+
         
 
             if (pendingIsLastIdResUpperRange.length >= chunkSize/2) {
@@ -258,15 +260,15 @@ export class NftMetaDataCollector {
                 
 
                 totalFails += pendingIsLastIdResUpperRange.filter((x)=>x===-1).length
-                console.log(totalFails)
-                console.log(pendingIsLastIdResUpperRange)
 
-                if (totalFails >= maxAmountFailsPerChunk) {
+                if (totalFails >= maxAmountFailsPerChunk && this.lastId !== 0) {
+                    console.warn(`too many fails ${totalFails}`)
                     return this.lastId
                 }
                 pendingIsLastIdRes = []
                 pendingIsLastIdResUpperRange = []
                 pendingIsLastIdResLowerRange = []
+                totalFails = 0
 
             }
 
@@ -323,7 +325,7 @@ export class NftMetaDataCollector {
         }
     }
 
-    async getLastId(maxAmountChecks = 500, messageProgressElement=undefined) {
+    async getLastId(maxAmountChecks = 8000, messageProgressElement=undefined) {
         if (this.lastId) {
             return this.lastId
         }
