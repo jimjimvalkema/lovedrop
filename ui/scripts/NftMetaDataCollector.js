@@ -53,7 +53,7 @@ export function isFulfilled(x) {
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 export class NftMetaDataCollector {
-    alchemyApiKey = "5hUqMLpX3qUN2PpvLhhmSZMmnlFdUd0W"
+    alchemyApiKey = ""
     contractObj = undefined;
     provider = undefined
     extraMetaData = undefined;
@@ -217,8 +217,12 @@ export class NftMetaDataCollector {
 
     /**
      * assumes ids are minted incrementally
+     * TODO 
      */
-    async #getLastIdFromChain(startingPointId = 10000, maxAmountChecks = 5000, chunkSize = 50, messageProgressElement) {
+    async #getLastIdFromChain(startingPointId = 5000, maxAmountChecks = 2500, chunkSize = 15, messageProgressElement, maxAmountFailsPerChunk=5) {
+        if(maxAmountFailsPerChunk>(chunkSize/2)) {
+            maxAmountFailsPerChunk = Math.floor(chunkSize/2)
+        }
         if (messageProgressElement) {
             messageProgressElement.hidden = false
 
@@ -227,22 +231,43 @@ export class NftMetaDataCollector {
 
         this.lastId = 0
         let pendingIsLastIdRes = []
+        let pendingIsLastIdResUpperRange = []
+        let pendingIsLastIdResLowerRange= []
+
         const maxChecksHalf = Math.round(maxAmountChecks / 2)
+        let totalFails = 0
 
 
         for (let checkCount = 0; checkCount < maxChecksHalf; checkCount++) {
             const higherId = startingPointId + checkCount
             const lowerId = startingPointId - checkCount
 
+            console.log(checkCount)
+
             //change maxAmountChecks to maxFailedChecksStreak 
             //to make sure it only stops checking if it failed to check a existing id for n times in a row
-            pendingIsLastIdRes.push(MakeQuerablePromise(this.isLastId(higherId)))
-            pendingIsLastIdRes.push(MakeQuerablePromise(this.isLastId(lowerId)))
+            pendingIsLastIdResUpperRange.push(MakeQuerablePromise(this.isLastId(higherId)))
+            pendingIsLastIdResLowerRange.push(MakeQuerablePromise(this.isLastId(lowerId)))
+        
 
-            if (pendingIsLastIdRes.length >= chunkSize) {
+            if (pendingIsLastIdResUpperRange.length >= chunkSize/2) {
+                pendingIsLastIdRes = [...pendingIsLastIdResUpperRange, ...pendingIsLastIdResLowerRange]
                 pendingIsLastIdRes = await Promise.all(pendingIsLastIdRes)
+                pendingIsLastIdResUpperRange = await Promise.all(pendingIsLastIdResUpperRange)
                 this.lastId = Math.max(this.lastId, ...pendingIsLastIdRes)
+                
+
+                totalFails += pendingIsLastIdResUpperRange.filter((x)=>x===-1).length
+                console.log(totalFails)
+                console.log(pendingIsLastIdResUpperRange)
+
+                if (totalFails >= maxAmountFailsPerChunk) {
+                    return this.lastId
+                }
                 pendingIsLastIdRes = []
+                pendingIsLastIdResUpperRange = []
+                pendingIsLastIdResLowerRange = []
+
             }
 
             if (!(checkCount % 20)) {
@@ -258,6 +283,10 @@ export class NftMetaDataCollector {
             messageProgressElement.hidden = true
         }
 
+        pendingIsLastIdRes = await Promise.all(pendingIsLastIdRes)
+        console.log(pendingIsLastIdRes)
+        this.lastId = Math.max(this.lastId, ...pendingIsLastIdRes)
+
         return this.lastId
 
     }
@@ -271,7 +300,7 @@ export class NftMetaDataCollector {
             if (await this.idExist(id)) {
                 return id
             } else {
-                return 0
+                return -1
             }
         }
         return 0
@@ -294,7 +323,7 @@ export class NftMetaDataCollector {
         }
     }
 
-    async getLastId(maxAmountChecks = 100, messageProgressElement=undefined) {
+    async getLastId(maxAmountChecks = 500, messageProgressElement=undefined) {
         if (this.lastId) {
             return this.lastId
         }
