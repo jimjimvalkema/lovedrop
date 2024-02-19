@@ -8,10 +8,10 @@ import { MerkleBuilder } from "../../scripts/MerkleBuilder.js"
 import { IpfsIndexer } from "../../scripts/IpfsIndexer.js"
 import { LoveDropFactoryAbi } from "../../abi/LoveDropFactoryAbi.js"
 import { LoveDropAbi } from "../../abi/LoveDropAbi.js"
-const localFork = {
-    chainId: "0x7A69",
-    rpcUrls: ["http://localhost:8555/"],
-    chainName: "local fork Ethereum Mainnet",
+const mainChain = {
+    chainId: "0x1",
+    rpcUrls: ["https://eth.llamarpc.com"],
+    chainName: "Ethereum Mainnet",
     nativeCurrency: {
       name: "Ethereum",
       symbol: "ETH",
@@ -19,6 +19,18 @@ const localFork = {
     },
     //blockExplorerUrls: []
   }
+
+// const mainChain = {
+//     chainId: "0x7A69",
+//     rpcUrls: ["http://localhost:8555/"],
+//     chainName: "local fork Ethereum Mainnet",
+//     nativeCurrency: {
+//       name: "Ethereum",
+//       symbol: "ETH",
+//       decimals: 18
+//     },
+//     //blockExplorerUrls: []
+//   }
 
 export class DropBuilder {
     criteriaBuilder
@@ -117,14 +129,14 @@ export class DropBuilder {
         //which means that the first interaction is with the wrong chain
         await  this.provider.on("network", (networkId)=>
         {   
-            if(networkId !== localFork.chainId) {
-                this.switchNetwork(localFork)
+            if(networkId !== mainChain.chainId) {
+                this.switchNetwork(mainChain)
                 console.warn("network changed TODO handle this")
             }
         })
 
 
-        await this.switchNetwork(localFork)
+        await this.switchNetwork(mainChain)
 
 
     }
@@ -166,13 +178,13 @@ export class DropBuilder {
 
     async connectSigner() {
         // MetaMask requires requesting permission to connect users accounts
-        await this.switchNetwork(localFork)
+        await this.switchNetwork(mainChain)
         await this.provider.send("eth_requestAccounts", []);
         this.signer = await window.provider.getSigner();
         await this.#runOnConnectWallet()
     }
 
-    async switchNetwork(network=localFork) {
+    async switchNetwork(network=mainChain) {
         try {
             await window.provider.send("wallet_switchEthereumChain",[{ chainId: network.chainId }]);
 
@@ -892,16 +904,26 @@ export class DropBuilder {
         return new Intl.NumberFormat('en-EN').format(ethers.formatEther((number)))
     }
 
-    #createAmountElement(criterion) {
+    #createAmountElement(criterion, totalAirdrop) {
         const contentElement = document.createElement("div")
         //we doing big numbers B)
         const amountPerItem = ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
-        const totatAmount = amountPerItem * BigInt((criterion.ids.length - criterion.excludedIds.length))
+        const totalAmount = amountPerItem * BigInt((criterion.ids.length - criterion.excludedIds.length))
+        const percentTotal = 100*(parseFloat(totalAmount)/parseFloat(totalAirdrop))
+        let precentPerItem
+        if (totalAmount>0) {
+            precentPerItem = 100*(parseFloat(amountPerItem)/parseFloat(totalAirdrop))
+
+        } else {
+            precentPerItem = 0
+        }
+       
 
         contentElement.append(
-            `total: ${this.#formatNumber(totatAmount)}`,
+            
+            `total: ${this.#formatNumber(totalAmount)} (${Math.round(percentTotal * 1000) / 1000}%)`,
             document.createElement("br"),
-            `per NFT: ${this.#formatNumber(amountPerItem)}`
+            `per NFT: ${this.#formatNumber(amountPerItem)} (${Math.round(precentPerItem * 1000) / 1000}%)`
         )
         const amountElement = document.createElement("div")
         amountElement.append(contentElement)
@@ -948,9 +970,9 @@ export class DropBuilder {
      * @param {CriteriaBuilder.criterionFormat} criterion 
      * @returns {HTMLElement[]}
      */
-    async #createCriterionOverviewTableItems(criterion) {
+    async #createCriterionOverviewTableItems(criterion, totalAirdrop) {
         const criteriaEl = this.#createCriteriaElement(criterion)
-        const amountEl = this.#createAmountElement(criterion)
+        const amountEl = this.#createAmountElement(criterion, totalAirdrop)
         const collectionEl = this.#createCollectionElement(criterion)
         const nftsEl = this.#createNftsElement(criterion)
 
@@ -968,8 +990,9 @@ export class DropBuilder {
             this.#resetDisplayStyleOfElements([this.distrobutionOverViewEl])
             this.#setDisplayStyleOfElements([this.dropBuilderConflictsEl], "none")
             let tableRows = []
+            const totalAirdrop = this.getTotalAirdrop()
             for (const criterion of this.criteriaBuilder.criteria) {
-                const row = this.#createCriterionOverviewTableItems(criterion)
+                const row = this.#createCriterionOverviewTableItems(criterion,totalAirdrop)
                 Promise.resolve(row).then((result) => this.criteriaTableEl.append(...result))
                 tableRows.push(row)
             }

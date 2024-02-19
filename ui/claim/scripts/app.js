@@ -5,10 +5,10 @@ import { NftDisplay } from "../../scripts/NftDisplay.js";
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 
-const localFork = {
-    chainId: "0x7A69",
-    rpcUrls: ["http://localhost:8555/"],
-    chainName: "local fork Ethereum Mainnet",
+const mainChain = {
+    chainId: "0x1",
+    rpcUrls: ["https://eth.llamarpc.com"],
+    chainName: "Ethereum Mainnet",
     nativeCurrency: {
       name: "Ethereum",
       symbol: "ETH",
@@ -16,6 +16,18 @@ const localFork = {
     },
     //blockExplorerUrls: []
   }
+
+// const mainChain = {
+//     chainId: "0x7A69",
+//     rpcUrls: ["http://localhost:8555/"],
+//     chainName: "local fork Ethereum Mainnet",
+//     nativeCurrency: {
+//       name: "Ethereum",
+//       symbol: "ETH",
+//       decimals: 18
+//     },
+//     //blockExplorerUrls: []
+//   }
 
 async function getUrlVars() {
     var vars = {};
@@ -27,7 +39,7 @@ async function getUrlVars() {
 
 async function connectProvider() {
     if (window.ethereum) {
-        await switchNetwork(localFork)
+        await switchNetwork(mainChain)
         window.provider = new ethers.BrowserProvider(window.ethereum);
     } else {
         console.log("couldn't connect to window.ethereum using a external rpc")
@@ -108,7 +120,7 @@ async function connectSigner(refreshNftDisplay=true) {
         return 0
     }
 
-    await switchNetwork(localFork)
+    await switchNetwork(mainChain)
     await provider.send("eth_requestAccounts", []);
     window.signer = await provider.getSigner();
     message("please connect wallet :)")
@@ -135,7 +147,7 @@ async function connectSigner(refreshNftDisplay=true) {
 }
 window.connectSigner = connectSigner
 
-async function switchNetwork(network=localFork) {
+async function switchNetwork(network=mainChain) {
     try {
         await window.provider.send("wallet_switchEthereumChain",[{ chainId: network.chainId }]);
 

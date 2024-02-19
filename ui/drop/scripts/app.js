@@ -2,7 +2,20 @@ import { IpfsIndexer } from "../../scripts/IpfsIndexer.js";
 import { ethers } from "../../scripts/ethers-6.7.0.min.js";
 import { NftDisplay } from "../../scripts/NftDisplay.js";
 const delay = ms => new Promise(res => setTimeout(res, ms));
-const localFork = {
+
+// const mainChain = {
+//     chainId: "0x1",
+//     rpcUrls: ["https://eth.llamarpc.com"],
+//     chainName: "Ethereum Mainnet",
+//     nativeCurrency: {
+//       name: "Ethereum",
+//       symbol: "ETH",
+//       decimals: 18
+//     },
+//     //blockExplorerUrls: []
+//   }
+
+const mainChain = {
     chainId: "0x7A69",
     rpcUrls: ["http://localhost:8555/"],
     chainName: "local fork Ethereum Mainnet",
@@ -15,7 +28,7 @@ const localFork = {
   }
 
 
-  async function switchNetwork(network=localFork) {
+  async function switchNetwork(network=mainChain) {
     try {
         await window.provider.send("wallet_switchEthereumChain",[{ chainId: network.chainId }]);
 
@@ -46,7 +59,7 @@ async function getUrlVars() {
 async function connectProvider() {
     
     if (window.ethereum) {
-        await switchNetwork(localFork)
+        await switchNetwork(mainChain)
         window.provider = new  ethers.BrowserProvider(window.ethereum);
     } else {
         console.log("couldn't connect to window.ethereum using a external rpc")
