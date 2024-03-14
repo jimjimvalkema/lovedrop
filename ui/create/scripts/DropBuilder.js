@@ -973,7 +973,24 @@ export class DropBuilder {
 
         //wrong value? => reset to prev value
         if (isNaN(element.innerText)) {
+            const prevCursorPos = window.getSelection().getRangeAt(0).startOffset -1
             element.innerText = this.#roundNumber(ethers.formatUnits(prevValue, units), 4)
+            //focus is lost once innerText is set
+            //const textLen = element.innerText.length
+            const range = document.createRange();
+            const sel = window.getSelection();
+
+            const textLen = element.innerText.length
+            console.log(prevCursorPos, textLen,prevCursorPos> textLen)
+            if (prevCursorPos> textLen || prevCursorPos < 0) {
+                range.setStart(element.childNodes[0], textLen);
+            } else {
+                range.setStart(element.childNodes[0], prevCursorPos);
+            }
+        
+            sel.removeAllRanges();
+            sel.addRange(range);
+            element.focus();
             return prevValue
         }
 
