@@ -13,12 +13,12 @@ const mainChain = {
     rpcUrls: ["https://eth.llamarpc.com"],
     chainName: "Ethereum Mainnet",
     nativeCurrency: {
-      name: "Ethereum",
-      symbol: "ETH",
-      decimals: 18
+        name: "Ethereum",
+        symbol: "ETH",
+        decimals: 18
     },
     //blockExplorerUrls: []
-  }
+}
 
 // const mainChain = {
 //     chainId: "0x7A69",
@@ -124,12 +124,11 @@ export class DropBuilder {
     }
 
     async chainManagement() {
-        
+
         //TODO this will only trigger after the ether.provider is used to interact with the chain
         //which means that the first interaction is with the wrong chain
-        await  this.provider.on("network", (networkId)=>
-        {   
-            if(networkId !== mainChain.chainId) {
+        await this.provider.on("network", (networkId) => {
+            if (networkId !== mainChain.chainId) {
                 this.switchNetwork(mainChain)
                 console.warn("network changed TODO handle this")
             }
@@ -184,24 +183,24 @@ export class DropBuilder {
         await this.#runOnConnectWallet()
     }
 
-    async switchNetwork(network=mainChain) {
+    async switchNetwork(network = mainChain) {
         try {
-            await window.provider.send("wallet_switchEthereumChain",[{ chainId: network.chainId }]);
+            await window.provider.send("wallet_switchEthereumChain", [{ chainId: network.chainId }]);
 
-          } catch (switchError) {
+        } catch (switchError) {
             window.switchError = switchError
             // This error code indicates that the chain has not been added to MetaMask.
             if (switchError.error.code === 4902) {
-              try {
-                await window.provider.send("wallet_addEthereumChain",[network]);
+                try {
+                    await window.provider.send("wallet_addEthereumChain", [network]);
 
-              } catch (addError) {
-                // handle "add" error
-              }
+                } catch (addError) {
+                    // handle "add" error
+                }
             }
             // handle other "switch" errors
-          }
-    
+        }
+
     }
 
     async #runOnConnectWallet() {
@@ -324,7 +323,7 @@ export class DropBuilder {
                 await this.#showDropBuilderPageIndex(currentPage - 1)
             }
 
-        } else if(this.dropBuilderPages[currentPage] === this.deploymentEl) {
+        } else if (this.dropBuilderPages[currentPage] === this.deploymentEl) {
             //TODO if the contract is already deployed and not funded, the user wont be able to fund it and needs to deploy it again
             //TODO make a fix for this. example check if the claimdata hash is the same for the deployed contract
             //but you have to make sure the criteria the user saw on the last page matches the criteria in the contract they are funding
@@ -683,7 +682,7 @@ export class DropBuilder {
      * undo effects from removeConflictingCriteria
      */
     async removeConflictResolutionCriteria() {
-    
+
         for (const collection in this.criteriaForConflictResolution) {
             for (const currentCriterion of this.criteriaForConflictResolution[collection]) {
                 //await this.criteriaBuilder.setCollectionAddress(currentCriterion.collectionAddress, currentCriterion.index)
@@ -901,7 +900,7 @@ export class DropBuilder {
      * @returns {String} number
      */
     formatNumber(number) {
-        return new Intl.NumberFormat('en-EN').format(ethers.formatUnits(number,this.erc20Units))
+        return new Intl.NumberFormat('en-EN').format(ethers.formatUnits(number, this.erc20Units))
     }
 
     // /**
@@ -918,50 +917,51 @@ export class DropBuilder {
         //we doing big numbers B)
         const amountPerItem = ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
         const totalAmount = amountPerItem * BigInt((criterion.ids.length - criterion.excludedIds.length))
-        const percentTotal = 100*(parseFloat(totalAmount)/parseFloat(totalAirdrop))
-        const percentPerItem = 100*(parseFloat(amountPerItem)/parseFloat(totalAirdrop))
+        const percentTotal = 100 * (parseFloat(totalAmount) / parseFloat(totalAirdrop))
+        const percentPerItem = 100 * (parseFloat(amountPerItem) / parseFloat(totalAirdrop))
         let precentPerItem
         console.log(totalAmount)
         if (totalAmount) {
-            precentPerItem = 100*(parseFloat(amountPerItem)/parseFloat(totalAirdrop))
+            precentPerItem = 100 * (parseFloat(amountPerItem) / parseFloat(totalAirdrop))
 
         } else {
             precentPerItem = 0
         }
-       
+
         const totalPercentElement = document.createElement("span")
-        totalPercentElement.contentEditable="true"
+        totalPercentElement.contentEditable = "true"
         totalPercentElement.innerText = `${Math.round(percentTotal * 1000) / 1000}`
         totalPercentElement.className = "amountTotalPercentage"
 
         const perItemPercentElement = document.createElement("span")
-        perItemPercentElement.contentEditable="true"
+        perItemPercentElement.contentEditable = "true"
         perItemPercentElement.innerText = `${Math.round(percentPerItem * 1000) / 1000}`
         perItemPercentElement.className = "amountPerItemPercentage"
 
         const totalElement = document.createElement("span")
-        totalElement.contentEditable="true"
+        totalElement.contentEditable = "true"
         totalElement.innerText = `${this.formatNumber(totalAmount)}`
         totalElement.className = "amountTotal"
 
         const perItemElement = document.createElement("span")
-        perItemElement.contentEditable="true"
+        perItemElement.contentEditable = "true"
         perItemElement.innerText = `${this.formatNumber(amountPerItem)}`
         perItemElement.className = "amountPerItem"
         perItemElement.id = "testTODO"
-        
+
 
         contentElement.append(
-            `total: `,totalElement,` (`,totalPercentElement,`%)`,
+            `total: `, totalElement, ` (`, totalPercentElement, `%)`,
             document.createElement("br"),
-            `per NFT: `,perItemElement,` (`,perItemPercentElement,`%)`
+            `per NFT: `, perItemElement, ` (`, perItemPercentElement, `%)`
         )
         contentElement.className = `amountsCriterion ${criterion.index}`
         const amountElement = document.createElement("div")
         amountElement.append(contentElement)
-        
-        
-        perItemElement.addEventListener("input", (event)=>this.updateCriterionAmountElement(event,criterion,perItemElement,contentElement))
+
+
+        perItemElement.addEventListener("input", (event) => this.updateCriterionAmountPerItemElement(event, criterion, perItemElement, contentElement))
+        totalElement.addEventListener("input", (event) => this.updateCriterionTotalAmount(event, criterion, totalElement, contentElement))
         return amountElement
     }
     /**
@@ -970,70 +970,148 @@ export class DropBuilder {
      * @param {BigInt} newAmount 
      * @param {Element} contentElement 
      */
-    updateCriterionAmountElement(event, criterion, perItemElement, contentElement) {
+    updateCriterionAmountPerItemElement(event, criterion, perItemElement, contentElement) {
+        //remove white spaces
+        const noWhiteSpaces = perItemElement.innerText.replace(/\s/g, '')
+        if (noWhiteSpaces !== perItemElement.innerText) {
+            perItemElement.innerText = noWhiteSpaces
+        }
+
+        if (isNaN(perItemElement.innerText)) {
+            perItemElement.innerText = ""
+        }
+
+        //check if value provided\
+        let newAmount
         if (perItemElement.innerText) {
-            var newAmount = ethers.parseUnits(perItemElement.innerText, this.erc20Units)
+            newAmount = ethers.parseUnits(perItemElement.innerText, this.erc20Units)
         } else {
-            var newAmount = 0n
+            newAmount = 0n
         }
 
-        
-        if (!this.#isValidSubmitEvent(event,{"value":contentElement.innerText})) {
-            return
-        }
-        criterion.amountPerItem = ethers.formatUnits(newAmount,  this.erc20Units)
+        criterion.amountPerItem = ethers.formatUnits(newAmount, this.erc20Units)
 
 
-        const totalAirdrop = this.getTotalAirdrop()
-        const amountPerItem = ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
-        const totalAmount = amountPerItem * BigInt((criterion.ids.length - criterion.excludedIds.length))
+        // const totalAirdrop = this.getTotalAirdrop()
+        // const amountPerItem = ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
+        // const totalAmount = amountPerItem * BigInt((criterion.ids.length - criterion.excludedIds.length))
 
 
-        const percentTotal = 100*(parseFloat(totalAmount)/parseFloat(totalAirdrop))
-        const percentPerItem = 100*(parseFloat(amountPerItem)/parseFloat(totalAirdrop))
+        // const percentTotal = 100 * (parseFloat(totalAmount) / parseFloat(totalAirdrop))
+        // const percentPerItem = 100 * (parseFloat(amountPerItem) / parseFloat(totalAirdrop))
 
-        //contentElement.querySelector(".amountPerItem").innerText = this.formatNumber(amountPerItem)
-        contentElement.querySelector(".amountTotal").innerText = ethers.formatUnits(totalAmount, this.erc20Units)
+        // //contentElement.querySelector(".amountPerItem").innerText = this.formatNumber(amountPerItem)
+        // contentElement.querySelector(".amountTotal").innerText = ethers.formatUnits(totalAmount, this.erc20Units)
 
-        //TODO update all percentages
-        if (totalAmount) {
-            contentElement.querySelector(".amountPerItemPercentage").innerText = (Math.round(percentPerItem * 10000) / 10000)
-        } else {
-            contentElement.querySelector(".amountPerItemPercentage").innerText = 0
-        }
-        
-        contentElement.querySelector(".amountTotalPercentage").innerText = (Math.round(percentTotal * 10000) / 10000)
+        // if (totalAmount) {
+        //     contentElement.querySelector(".amountPerItemPercentage").innerText = (Math.round(percentPerItem * 10000) / 10000)
+        // } else {
+        //     contentElement.querySelector(".amountPerItemPercentage").innerText = 0
+        // }
 
-        const otherCriteria = this.criteriaBuilder.criteria.filter((otherCriterion)=>otherCriterion!==criterion)
-        console.log(otherCriteria)
-        this.updateCriteriaAmounts(otherCriteria)
+        // contentElement.querySelector(".amountTotalPercentage").innerText = (Math.round(percentTotal * 10000) / 10000)
 
+        const otherCriteria = this.criteriaBuilder.criteria.filter((otherCriterion) => otherCriterion !== criterion)
+        this.updateCriteriaAmounts({criteria:otherCriteria})
+        this.updateCriteriaAmounts({criteria:[criterion], skipClasses:["amountPerItem"]})
     }
 
-    updateCriteriaAmounts(criteria = this.criteriaBuilder.criteria) {
+
+
+    /**
+     * 
+     * @param {CriteriaBuilder.criterion} criterion 
+     * @param {BigInt} newAmount 
+     * @param {Element} contentElement 
+     */
+    updateCriterionTotalAmount(event, criterion, totalAmountElement, contentElement) {
+        const noWhiteSpaces = totalAmountElement.innerText.replace(/\s/g, '')
+        if (noWhiteSpaces !== totalAmountElement.innerText) {
+            totalAmountElement.innerText = noWhiteSpaces
+        }
+
+        if (isNaN(totalAmountElement.innerText)) {
+            totalAmountElement.innerText = ""
+        }
+
+        //check if a value is provided
+        let newTotalAmount
+        if (totalAmountElement.innerText) {
+            newTotalAmount = ethers.parseUnits(totalAmountElement.innerText, this.erc20Units)
+        } else {
+            newTotalAmount = 0n
+        }
+
+        const amountOfItems = BigInt((criterion.ids.length - criterion.excludedIds.length))
+        //TODO check edge cases on rounding errors (dividing to bigInts)
+        criterion.amountPerItem = ethers.formatUnits(newTotalAmount / amountOfItems, this.erc20Units)
+
+
+        // const totalAirdrop = this.getTotalAirdrop()
+        // const amountPerItem = ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
+        // const totalAmount = amountPerItem * amountOfItems
+
+
+        // const percentTotal = 100 * (parseFloat(totalAmount) / parseFloat(totalAirdrop))
+        // const percentPerItem = 100 * (parseFloat(amountPerItem) / parseFloat(totalAirdrop))
+
+        // contentElement.querySelector(".amountPerItem").innerText = this.formatNumber(amountPerItem)
+        // //contentElement.querySelector(".amountTotal").innerText = ethers.formatUnits(totalAmount, this.erc20Units)
+
+        // if (totalAmount) {
+        //     contentElement.querySelector(".amountPerItemPercentage").innerText = (Math.round(percentPerItem * 10000) / 10000)
+        // } else {
+        //     contentElement.querySelector(".amountPerItemPercentage").innerText = 0
+        // }
+
+        // contentElement.querySelector(".amountTotalPercentage").innerText = (Math.round(percentTotal * 10000) / 10000)
+
+        const otherCriteria = this.criteriaBuilder.criteria.filter((otherCriterion) => otherCriterion !== criterion)
+        this.updateCriteriaAmounts({criteria:otherCriteria})
+        this.updateCriteriaAmounts({criteria:[criterion], skipClasses:["amountTotal"]})
+    }
+
+    updateCriteriaAmounts({criteria = this.criteriaBuilder.criteria, skipClasses=[]}) {
         for (const criterion of criteria) {
             const totalAirdrop = this.getTotalAirdrop()
 
             //get amounts
             const amountPerItem = ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
             const totalAmount = amountPerItem * BigInt((criterion.ids.length - criterion.excludedIds.length))
-            const percentTotal = 100*(parseFloat(totalAmount)/parseFloat(totalAirdrop))
-            const percentPerItem = 100*(parseFloat(amountPerItem)/parseFloat(totalAirdrop))
-            console.log(amountPerItem, totalAmount, Math.round(percentTotal * 10000) / 10000,  Math.round(percentPerItem * 10000) / 10000)       
-            //update ui
-            const amountsElement = document.getElementsByClassName(`amountsCriterion ${criterion.index}`)[0]
-            amountsElement.getElementsByClassName("amountPerItem")[0].innerText = ethers.formatUnits( amountPerItem, this.erc20Units)
-            amountsElement.getElementsByClassName("amountTotal")[0].innerText = ethers.formatUnits(totalAmount, this.erc20Units)
-            amountsElement.getElementsByClassName("amountTotalPercentage")[0].innerText = (Math.round(percentTotal * 10000) / 10000)
 
-            //amountPerItemPercentage should be 0 if that criterion has no ids
+            let percentTotal
+            let percentPerItem
             if (totalAmount) {
-                amountsElement.getElementsByClassName("amountPerItemPercentage")[0].innerText =  (Math.round(percentPerItem * 10000) / 10000)
+                percentTotal = 100 * (parseFloat(totalAmount) / parseFloat(totalAirdrop))
+                percentPerItem = 100 * (parseFloat(amountPerItem) / parseFloat(totalAirdrop))
             } else {
-                amountsElement.getElementsByClassName("amountPerItemPercentage")[0].innerText = 0
+                percentTotal = 0
+                percentPerItem = 0
             }
-            
+
+            const formattedValuesPerClass = {
+                "amountPerItem": this.#roundNumber(ethers.formatUnits(amountPerItem, this.erc20Units),4),
+                "amountTotal": this.#roundNumber(ethers.formatUnits(totalAmount, this.erc20Units),4),
+                "amountTotalPercentage":  this.#roundNumber(percentTotal,4),
+                "amountPerItemPercentage": this.#roundNumber(percentPerItem,4)
+            }
+
+            //update ui
+            //TODO totall is mispelled as total (amountTotal, amountTotalPercentage)
+            const classNames = ["amountPerItem", "amountTotal", "amountTotalPercentage", "amountPerItemPercentage"]
+            const amountsElement = document.getElementsByClassName(`amountsCriterion ${criterion.index}`)[0]
+            for (const className of classNames) {
+                if (!skipClasses.includes(className)) {
+                    amountsElement.getElementsByClassName(className)[0].innerText = formattedValuesPerClass[className]
+                }
+
+            }
         }
+    }
+
+    #roundNumber(number,decimals){
+        return Math.round(number * 10**decimals) / 10**decimals
+
     }
 
 
@@ -1098,7 +1176,7 @@ export class DropBuilder {
             let tableRows = []
             const totalAirdrop = this.getTotalAirdrop()
             for (const criterion of this.criteriaBuilder.criteria) {
-                const row = this.#createCriterionOverviewTableItems(criterion,totalAirdrop)
+                const row = this.#createCriterionOverviewTableItems(criterion, totalAirdrop)
                 Promise.resolve(row).then((result) => this.criteriaTableEl.append(...result))
                 tableRows.push(row)
             }
@@ -1234,7 +1312,7 @@ export class DropBuilder {
             const reciept = (await this.provider.getTransactionReceipt(confirmedTX));
             console.log(reciept.logs)
             //reciept.logs[0] = version number
-            const deployedDropAddress = await ethers.AbiCoder.defaultAbiCoder().decode(["address"],  reciept.logs[1].data)[0];
+            const deployedDropAddress = await ethers.AbiCoder.defaultAbiCoder().decode(["address"], reciept.logs[1].data)[0];
 
             this.deployedLoveDrop = new ethers.Contract(deployedDropAddress, LoveDropAbi, this.provider);
 
