@@ -964,6 +964,31 @@ export class DropBuilder {
         totalElement.addEventListener("input", (event) => this.updateCriterionTotalAmount(event, criterion, totalElement, contentElement))
         return amountElement
     }
+
+    #cleanNumberInputEditableElement(element, prevValue=0n, units=this.erc20Units) {
+        const noWhiteSpaces = element.innerText.replace(/\s/g, '')
+        if (noWhiteSpaces !== element.innerText) {
+            element.innerText = noWhiteSpaces
+        }
+
+        //wrong value? => reset to prev value
+        if (isNaN(element.innerText)) {
+            element.innerText = this.#roundNumber(ethers.formatUnits(prevValue, units), 4)
+            return prevValue
+        }
+
+        //no value?
+        if (element.innerText) {
+            //use value and parse it
+            return ethers.parseUnits(element.innerText, units)
+        } else {
+            //set to 0
+            element.innerText = "0" 
+            return 0n 
+        }
+
+    }
+
     /**
      * 
      * @param {CriteriaBuilder.criterion} criterion 
@@ -971,45 +996,10 @@ export class DropBuilder {
      * @param {Element} contentElement 
      */
     updateCriterionAmountPerItemElement(event, criterion, perItemElement, contentElement) {
-        //remove white spaces
-        const noWhiteSpaces = perItemElement.innerText.replace(/\s/g, '')
-        if (noWhiteSpaces !== perItemElement.innerText) {
-            perItemElement.innerText = noWhiteSpaces
-        }
-
-        if (isNaN(perItemElement.innerText)) {
-            perItemElement.innerText = ""
-        }
-
-        //check if value provided\
-        let newAmount
-        if (perItemElement.innerText) {
-            newAmount = ethers.parseUnits(perItemElement.innerText, this.erc20Units)
-        } else {
-            newAmount = 0n
-        }
+        const prevAmount = ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
+        const newAmount = this.#cleanNumberInputEditableElement(perItemElement, prevAmount)
 
         criterion.amountPerItem = ethers.formatUnits(newAmount, this.erc20Units)
-
-
-        // const totalAirdrop = this.getTotalAirdrop()
-        // const amountPerItem = ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
-        // const totalAmount = amountPerItem * BigInt((criterion.ids.length - criterion.excludedIds.length))
-
-
-        // const percentTotal = 100 * (parseFloat(totalAmount) / parseFloat(totalAirdrop))
-        // const percentPerItem = 100 * (parseFloat(amountPerItem) / parseFloat(totalAirdrop))
-
-        // //contentElement.querySelector(".amountPerItem").innerText = this.formatNumber(amountPerItem)
-        // contentElement.querySelector(".amountTotal").innerText = ethers.formatUnits(totalAmount, this.erc20Units)
-
-        // if (totalAmount) {
-        //     contentElement.querySelector(".amountPerItemPercentage").innerText = (Math.round(percentPerItem * 10000) / 10000)
-        // } else {
-        //     contentElement.querySelector(".amountPerItemPercentage").innerText = 0
-        // }
-
-        // contentElement.querySelector(".amountTotalPercentage").innerText = (Math.round(percentTotal * 10000) / 10000)
 
         const otherCriteria = this.criteriaBuilder.criteria.filter((otherCriterion) => otherCriterion !== criterion)
         this.updateCriteriaAmounts({criteria:otherCriteria})
@@ -1025,46 +1015,12 @@ export class DropBuilder {
      * @param {Element} contentElement 
      */
     updateCriterionTotalAmount(event, criterion, totalAmountElement, contentElement) {
-        const noWhiteSpaces = totalAmountElement.innerText.replace(/\s/g, '')
-        if (noWhiteSpaces !== totalAmountElement.innerText) {
-            totalAmountElement.innerText = noWhiteSpaces
-        }
-
-        if (isNaN(totalAmountElement.innerText)) {
-            totalAmountElement.innerText = ""
-        }
-
-        //check if a value is provided
-        let newTotalAmount
-        if (totalAmountElement.innerText) {
-            newTotalAmount = ethers.parseUnits(totalAmountElement.innerText, this.erc20Units)
-        } else {
-            newTotalAmount = 0n
-        }
-
         const amountOfItems = BigInt((criterion.ids.length - criterion.excludedIds.length))
+        const prevTotalAmount = amountOfItems * ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
+
+        const newTotalAmount = this.#cleanNumberInputEditableElement(totalAmountElement, prevTotalAmount)
         //TODO check edge cases on rounding errors (dividing to bigInts)
         criterion.amountPerItem = ethers.formatUnits(newTotalAmount / amountOfItems, this.erc20Units)
-
-
-        // const totalAirdrop = this.getTotalAirdrop()
-        // const amountPerItem = ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
-        // const totalAmount = amountPerItem * amountOfItems
-
-
-        // const percentTotal = 100 * (parseFloat(totalAmount) / parseFloat(totalAirdrop))
-        // const percentPerItem = 100 * (parseFloat(amountPerItem) / parseFloat(totalAirdrop))
-
-        // contentElement.querySelector(".amountPerItem").innerText = this.formatNumber(amountPerItem)
-        // //contentElement.querySelector(".amountTotal").innerText = ethers.formatUnits(totalAmount, this.erc20Units)
-
-        // if (totalAmount) {
-        //     contentElement.querySelector(".amountPerItemPercentage").innerText = (Math.round(percentPerItem * 10000) / 10000)
-        // } else {
-        //     contentElement.querySelector(".amountPerItemPercentage").innerText = 0
-        // }
-
-        // contentElement.querySelector(".amountTotalPercentage").innerText = (Math.round(percentTotal * 10000) / 10000)
 
         const otherCriteria = this.criteriaBuilder.criteria.filter((otherCriterion) => otherCriterion !== criterion)
         this.updateCriteriaAmounts({criteria:otherCriteria})
