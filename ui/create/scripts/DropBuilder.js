@@ -250,8 +250,8 @@ export class DropBuilder {
      * 
      * @returns {bigint}
      */
-    getTotalAirdrop() {
-        const totalBigNum = this.criteriaBuilder.criteria.reduce((total, criterion) => {
+    getTotalAirdrop(criteria=this.criteriaBuilder.criteria) {
+        const totalBigNum = criteria.reduce((total, criterion) => {
             const amountPerItem = ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
             const totatAmountCriterion = amountPerItem * BigInt(criterion.ids.length - criterion.excludedIds.length)
             return totatAmountCriterion + total
@@ -960,12 +960,13 @@ export class DropBuilder {
         amountElement.append(contentElement)
 
 
-        perItemElement.addEventListener("input", (event) => this.updateCriterionAmountPerItemElement(event, criterion, perItemElement, contentElement))
-        totalElement.addEventListener("input", (event) => this.updateCriterionTotalAmount(event, criterion, totalElement, contentElement))
+        perItemElement.addEventListener("input", (event) => this.updateCriterionAmountPerItemElement(event, criterion, perItemElement))
+        totalElement.addEventListener("input", (event) => this.updateCriterionTotalAmount(event, criterion, totalElement))
+        totalPercentElement.addEventListener("input", (event)=> this.updateCriterionTotalAmountPercent(event, criterion, totalPercentElement))
         return amountElement
     }
 
-    #cleanNumberInputEditableElement(element, prevValue=0n, units=this.erc20Units) {
+    #cleanNumberInputEditableElement(element, prevValue = 0n, units = this.erc20Units) {
         const noWhiteSpaces = element.innerText.replace(/\s/g, '')
         if (noWhiteSpaces !== element.innerText) {
             element.innerText = noWhiteSpaces
@@ -973,7 +974,7 @@ export class DropBuilder {
 
         //wrong value? => reset to prev value
         if (isNaN(element.innerText)) {
-            const prevCursorPos = window.getSelection().getRangeAt(0).startOffset -1
+            const prevCursorPos = window.getSelection().getRangeAt(0).startOffset - 1
             element.innerText = this.#roundNumber(ethers.formatUnits(prevValue, units), 4)
             //focus is lost once innerText is set
             //const textLen = element.innerText.length
@@ -981,13 +982,13 @@ export class DropBuilder {
             const sel = window.getSelection();
 
             const textLen = element.innerText.length
-            console.log(prevCursorPos, textLen,prevCursorPos> textLen)
-            if (prevCursorPos> textLen || prevCursorPos < 0) {
+            console.log(prevCursorPos, textLen, prevCursorPos > textLen)
+            if (prevCursorPos > textLen || prevCursorPos < 0) {
                 range.setStart(element.childNodes[0], textLen);
             } else {
                 range.setStart(element.childNodes[0], prevCursorPos);
             }
-        
+
             sel.removeAllRanges();
             sel.addRange(range);
             element.focus();
@@ -1000,8 +1001,8 @@ export class DropBuilder {
             return ethers.parseUnits(element.innerText, units)
         } else {
             //set to 0
-            element.innerText = "0" 
-            return 0n 
+            element.innerText = "0"
+            return 0n
         }
 
     }
@@ -1019,19 +1020,14 @@ export class DropBuilder {
         criterion.amountPerItem = ethers.formatUnits(newAmount, this.erc20Units)
 
         const otherCriteria = this.criteriaBuilder.criteria.filter((otherCriterion) => otherCriterion !== criterion)
-        this.updateCriteriaAmounts({criteria:otherCriteria})
-        this.updateCriteriaAmounts({criteria:[criterion], skipClasses:["amountPerItem"]})
+        this.updateCriteriaAmountsTable({ criteria: otherCriteria })
+        this.updateCriteriaAmountsTable({ criteria: [criterion], skipClasses: ["amountPerItem"] })
     }
 
 
 
-    /**
-     * 
-     * @param {CriteriaBuilder.criterion} criterion 
-     * @param {BigInt} newAmount 
-     * @param {Element} contentElement 
-     */
-    updateCriterionTotalAmount(event, criterion, totalAmountElement, contentElement) {
+
+    updateCriterionTotalAmount(event, criterion, totalAmountElement) {
         const amountOfItems = BigInt((criterion.ids.length - criterion.excludedIds.length))
         const prevTotalAmount = amountOfItems * ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
 
@@ -1040,11 +1036,79 @@ export class DropBuilder {
         criterion.amountPerItem = ethers.formatUnits(newTotalAmount / amountOfItems, this.erc20Units)
 
         const otherCriteria = this.criteriaBuilder.criteria.filter((otherCriterion) => otherCriterion !== criterion)
-        this.updateCriteriaAmounts({criteria:otherCriteria})
-        this.updateCriteriaAmounts({criteria:[criterion], skipClasses:["amountTotal"]})
+        this.updateCriteriaAmountsTable({ criteria: otherCriteria })
+        this.updateCriteriaAmountsTable({ criteria: [criterion], skipClasses: ["amountTotal"] })
     }
 
-    updateCriteriaAmounts({criteria = this.criteriaBuilder.criteria, skipClasses=[]}) {
+
+    /**
+     * 
+     * @param {Event} event 
+     * @param {CriteriaBuilder.criterionFormat} criterion TODO criteriontype
+     * @param {HTMLElement} totalAmountPercentElement 
+     */
+    updateCriterionTotalAmountPercent(event, criterion, totalAmountPercentElement) {
+        //get new percentage from input
+        const amountOfItems = BigInt((criterion.ids.length - criterion.excludedIds.length))
+        const prevTotalAmount = amountOfItems * ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
+        const newTotalAmountPercent = parseFloat(ethers.formatUnits(this.#cleanNumberInputEditableElement(totalAmountPercentElement, prevTotalAmount, 18),18))
+        
+
+        //calculate new criterion.amountPerItem 
+        const totalDrop = this.getTotalAirdrop()
+        const newTotalAmount = BigInt(parseFloat(totalDrop) * (newTotalAmountPercent/100))
+        criterion.amountPerItem = ethers.formatUnits(newTotalAmount / amountOfItems, this.erc20Units)
+
+
+        //set other criteria
+        const otherCriteria = this.criteriaBuilder.criteria.filter((otherCriterion) => otherCriterion !== criterion) 
+
+        const totalAmountDifference = (prevTotalAmount - newTotalAmount)       
+        this.#splitAmountOverCriteria({ criteria: otherCriteria , amount:totalAmountDifference})
+
+        //update ui
+        this.updateCriteriaAmountsTable({ criteria: otherCriteria })
+        this.updateCriteriaAmountsTable({ criteria: [criterion], skipClasses: ["amountTotalPercentage"] })
+
+        //TODO the total changes slightly because of rounding error with bigInt
+        //when the user increases the percentage, it creates a slightly higher total
+        //this creates the most annoying ux since the user might not have enought tokens for the drop
+        //distrobuting the difference accross all ids is still not a options since that still creates additional errors
+        //this is issue probably cant be solved since you cant perfectly divide intergers 
+        //
+        //best way to deal with it is to only distribute the difference (maybe 2x it) if its negative (newTotal>oldTotal) 
+        //so the new total is never bigger then the old. But errors can then still build up
+        const newTotalAirdrop = this.getTotalAirdrop()
+        const totalAmountItems = this.criteriaBuilder.criteria.reduce((total,criterion) =>{
+            const amountItems = (criterion.ids.length - criterion.excludedIds.length)
+            return total + amountItems
+        }, 0)
+
+        const difference = totalDrop-newTotalAirdrop
+        console.log("prev totaldrop= ", ethers.formatUnits(totalDrop,this.erc20Units))
+        console.log("new totaldrop= ", ethers.formatUnits(newTotalAirdrop,this.erc20Units))
+        console.log("difference: ", totalDrop-newTotalAirdrop)
+        console.log("difference per item: ",BigInt(Math.round(parseFloat(difference)/totalAmountItems)))
+        console.log("total amount items in drop: ", totalAmountItems)
+    }
+
+
+    #splitAmountOverCriteria({ criteria= this.criteriaBuilder.criteria , amount, units=this.erc20Units}) {
+        //TODO rounding error might be significant
+        const totalAllCriteria = this.getTotalAirdrop(criteria)
+        for (const criterion of criteria) {
+            
+            const amountOfItems = BigInt((criterion.ids.length - criterion.excludedIds.length))
+            const totalAmountCriterion = amountOfItems * ethers.parseUnits(criterion.amountPerItem,units)
+            const amountAddedCriterion = parseFloat(amount)*(parseFloat(totalAmountCriterion)/parseFloat(totalAllCriteria))
+
+            const newAmountPerItem = ethers.parseUnits(criterion.amountPerItem , units) +  (BigInt(amountAddedCriterion)/amountOfItems) 
+            
+            criterion.amountPerItem = ethers.formatUnits(newAmountPerItem, units)
+        }
+    }
+
+    updateCriteriaAmountsTable({ criteria = this.criteriaBuilder.criteria, skipClasses = [] }) {
         for (const criterion of criteria) {
             const totalAirdrop = this.getTotalAirdrop()
 
@@ -1061,12 +1125,12 @@ export class DropBuilder {
                 percentTotal = 0
                 percentPerItem = 0
             }
-
+            //TODO use this.formatnumber and fix that function to round 4 decimals
             const formattedValuesPerClass = {
-                "amountPerItem": this.#roundNumber(ethers.formatUnits(amountPerItem, this.erc20Units),4),
-                "amountTotal": this.#roundNumber(ethers.formatUnits(totalAmount, this.erc20Units),4),
-                "amountTotalPercentage":  this.#roundNumber(percentTotal,4),
-                "amountPerItemPercentage": this.#roundNumber(percentPerItem,4)
+                "amountPerItem": this.#roundNumber(ethers.formatUnits(amountPerItem, this.erc20Units), 4),
+                "amountTotal": this.#roundNumber(ethers.formatUnits(totalAmount, this.erc20Units), 4),
+                "amountTotalPercentage": this.#roundNumber(percentTotal, 4),
+                "amountPerItemPercentage": this.#roundNumber(percentPerItem, 4)
             }
 
             //update ui
@@ -1082,8 +1146,8 @@ export class DropBuilder {
         }
     }
 
-    #roundNumber(number,decimals){
-        return Math.round(number * 10**decimals) / 10**decimals
+    #roundNumber(number, decimals) {
+        return Math.round(number * 10 ** decimals) / 10 ** decimals
 
     }
 
