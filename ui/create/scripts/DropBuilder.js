@@ -966,16 +966,9 @@ export class DropBuilder {
         return amountElement
     }
 
-    #cleanNumberInputEditableElement(element, prevValue = 0n, units = this.erc20Units) {
-        const noWhiteSpaces = element.innerText.replace(/\s/g, '')
-        if (noWhiteSpaces !== element.innerText) {
-            element.innerText = noWhiteSpaces
-        }
-
-        //wrong value? => reset to prev value
-        if (isNaN(element.innerText)) {
-            const prevCursorPos = window.getSelection().getRangeAt(0).startOffset - 1
-            element.innerText = this.#roundNumber(ethers.formatUnits(prevValue, units), 4)
+    #resetInputValue(element, prevValue, units=this.erc20Units){
+        const prevCursorPos = window.getSelection().getRangeAt(0).startOffset - 1
+            element.innerText = prevValue
             //focus is lost once innerText is set
             //const textLen = element.innerText.length
             const range = document.createRange();
@@ -992,17 +985,29 @@ export class DropBuilder {
             sel.removeAllRanges();
             sel.addRange(range);
             element.focus();
+    }
+
+    #cleanNumberInputEditableElement(element, prevValue = 0n, units = this.erc20Units) {
+        const noWhiteSpaces = element.innerText.replace(/\s/g, '')
+        if (noWhiteSpaces !== element.innerText) {
+            element.innerText = noWhiteSpaces
+        }
+
+        //wrong value? => reset to prev value
+        if (isNaN(element.innerText)) {
+            //const formattedPrevValue = (this.#roundNumber(ethers.formatUnits(prevValue, units), 4))
+            this.#resetInputValue(element, prevValue, units)
             return prevValue
         }
 
         //no value?
         if (element.innerText) {
             //use value and parse it
-            return ethers.parseUnits(element.innerText, units)
+            return element.innerHTML
         } else {
             //set to 0
             element.innerText = "0"
-            return 0n
+            return element.innerText
         }
 
     }
@@ -1015,7 +1020,8 @@ export class DropBuilder {
      */
     updateCriterionAmountPerItemElement(event, criterion, perItemElement, contentElement) {
         const prevAmount = ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
-        const newAmount = this.#cleanNumberInputEditableElement(perItemElement, prevAmount)
+        const formattedPrevAmount = this.#roundNumber(ethers.formatUnits(prevAmount, this.erc20Units), 4)
+        const newAmount = ethers.parseUnits(this.#cleanNumberInputEditableElement(perItemElement, formattedPrevAmount.toString()),this.erc20Units)
 
         criterion.amountPerItem = ethers.formatUnits(newAmount, this.erc20Units)
 
@@ -1030,8 +1036,8 @@ export class DropBuilder {
     updateCriterionTotalAmount(event, criterion, totalAmountElement) {
         const amountOfItems = BigInt((criterion.ids.length - criterion.excludedIds.length))
         const prevTotalAmount = amountOfItems * ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
-
-        const newTotalAmount = this.#cleanNumberInputEditableElement(totalAmountElement, prevTotalAmount)
+        const formattedPrevAmount = this.#roundNumber(ethers.formatUnits(prevTotalAmount, this.erc20Units), 4)
+        const newTotalAmount = ethers.parseUnits(this.#cleanNumberInputEditableElement(totalAmountElement, formattedPrevAmount.toString()), this.erc20Units)
         //TODO check edge cases on rounding errors (dividing to bigInts)
         criterion.amountPerItem = ethers.formatUnits(newTotalAmount / amountOfItems, this.erc20Units)
 
@@ -1047,24 +1053,52 @@ export class DropBuilder {
      * @param {CriteriaBuilder.criterionFormat} criterion TODO criteriontype
      * @param {HTMLElement} totalAmountPercentElement 
      */
-    updateCriterionTotalAmountPercent(event, criterion, totalAmountPercentElement) {
+    updateCriterionTotalAmountPercent(event, criterion, totalAmountPercentElement, units=this.erc20Units) {
         //get new percentage from input
         const amountOfItems = BigInt((criterion.ids.length - criterion.excludedIds.length))
         const prevTotalAmount = amountOfItems * ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
-        const newTotalAmountPercent = parseFloat(ethers.formatUnits(this.#cleanNumberInputEditableElement(totalAmountPercentElement, prevTotalAmount, 18),18))
+        const prevTotalDrop = this.getTotalAirdrop()
+        const prevPercentage = this.#roundNumber((parseFloat(prevTotalAmount)/parseFloat(prevTotalDrop))*100,4)
+        console.log("prevPercentage",prevPercentage.toString())
+
+        let newTotalAmountPercent = this.#cleanNumberInputEditableElement(totalAmountPercentElement, prevPercentage.toString(), units)
+        console.log("newTotalAmountPercent",newTotalAmountPercent)
+        
+        //TODO handle if all but one criterion is not set to 0 (should always be 100%)
+        if (newTotalAmountPercent<0) {
+            console.log(newTotalAmountPercent)
+            this.#resetInputValue(totalAmountPercentElement, "0", units)
+            newTotalAmountPercent=0
+        } else if (newTotalAmountPercent>100) {
+            console.log(newTotalAmountPercent)
+            this.#resetInputValue(totalAmountPercentElement, "99.99", units)
+            newTotalAmountPercent=99.99
+        } 
+
         
 
-        //calculate new criterion.amountPerItem 
-        const totalDrop = this.getTotalAirdrop()
-        const newTotalAmount = BigInt(parseFloat(totalDrop) * (newTotalAmountPercent/100))
-        criterion.amountPerItem = ethers.formatUnits(newTotalAmount / amountOfItems, this.erc20Units)
+        
 
 
-        //set other criteria
         const otherCriteria = this.criteriaBuilder.criteria.filter((otherCriterion) => otherCriterion !== criterion) 
 
-        const totalAmountDifference = (prevTotalAmount - newTotalAmount)       
-        this.#splitAmountOverCriteria({ criteria: otherCriteria , amount:totalAmountDifference})
+        //calculate new criterion.amountPerItem 
+        const newTotalAmount = BigInt(parseFloat(prevTotalDrop) * (newTotalAmountPercent/100))
+        const totalAmountDifference = (prevTotalAmount - newTotalAmount)  
+        console.log("prevTotalAmount",prevTotalAmount)
+        console.log("newTotalAmount ",newTotalAmount)
+
+        if (newTotalAmountPercent !== prevPercentage.toString()) {
+            criterion.amountPerItem = ethers.formatUnits(newTotalAmount / amountOfItems, this.erc20Units)
+            //set other criteria
+            this.#splitAmountOverCriteria({ criteria: otherCriteria , amount:totalAmountDifference})
+        }
+    
+
+
+    
+
+        
 
         //update ui
         this.updateCriteriaAmountsTable({ criteria: otherCriteria })
@@ -1084,10 +1118,10 @@ export class DropBuilder {
             return total + amountItems
         }, 0)
 
-        const difference = totalDrop-newTotalAirdrop
-        console.log("prev totaldrop= ", ethers.formatUnits(totalDrop,this.erc20Units))
+        const difference = prevTotalDrop-newTotalAirdrop
+        console.log("prev totaldrop= ", ethers.formatUnits(prevTotalDrop,this.erc20Units))
         console.log("new totaldrop= ", ethers.formatUnits(newTotalAirdrop,this.erc20Units))
-        console.log("difference: ", totalDrop-newTotalAirdrop)
+        console.log("difference: ", prevTotalDrop-newTotalAirdrop)
         console.log("difference per item: ",BigInt(Math.round(parseFloat(difference)/totalAmountItems)))
         console.log("total amount items in drop: ", totalAmountItems)
     }
@@ -1097,14 +1131,24 @@ export class DropBuilder {
         //TODO rounding error might be significant
         const totalAllCriteria = this.getTotalAirdrop(criteria)
         for (const criterion of criteria) {
-            
             const amountOfItems = BigInt((criterion.ids.length - criterion.excludedIds.length))
-            const totalAmountCriterion = amountOfItems * ethers.parseUnits(criterion.amountPerItem,units)
-            const amountAddedCriterion = parseFloat(amount)*(parseFloat(totalAmountCriterion)/parseFloat(totalAllCriteria))
+            //no items nothing to distribute (prevents 0 division error)
+            if (amountOfItems) {
+                //what if some criterion have 0 per item but some dont?
+                if (ethers.parseUnits(criterion.amountPerItem,units) !== 0n ) {                    
+                    const totalAmountCriterion = amountOfItems * ethers.parseUnits(criterion.amountPerItem,units)
+                    const amountAddedCriterion = parseFloat(amount)*(parseFloat(totalAmountCriterion)/parseFloat(totalAllCriteria))
 
-            const newAmountPerItem = ethers.parseUnits(criterion.amountPerItem , units) +  (BigInt(amountAddedCriterion)/amountOfItems) 
-            
-            criterion.amountPerItem = ethers.formatUnits(newAmountPerItem, units)
+        
+                    const newAmountPerItem = ethers.parseUnits(criterion.amountPerItem , units) +  (BigInt(amountAddedCriterion)/amountOfItems) 
+                    
+                    criterion.amountPerItem = ethers.formatUnits(newAmountPerItem, units)
+    
+                }
+
+            }
+ 
+
         }
     }
 
