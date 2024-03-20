@@ -4,8 +4,9 @@
         border-bottom: 1px solid black;
         padding-bottom: 1em;
     }
+
     body {
-        margin: 0; 
+        margin: 0;
         /* TODO fix this issue on chrome */
         /* overflow-x: hidden;     */
     }
@@ -13,7 +14,7 @@
     .mainNav {
         list-style-type: none;
         /* padding-left: 0; */
-        
+
     }
 
     .mainNavItem {
@@ -605,7 +606,7 @@
     }
 
     #deployment {
-        
+
         margin: 6em;
         margin-top: 0.5em;
         margin-bottom: 0.5em;
@@ -616,17 +617,31 @@
         transition: opacity 0.5s;
     }
 
-    .amountsCriterion > *[contenteditable="true"]:hover {
+    .amountsCriterion>*[contenteditable="true"]:hover {
         background-color: lightgray;
         border: black;
         border-style: solid;
     }
 
-    .amountsCriterion > *[contenteditable="true"] {
+    .amountsCriterion>*[contenteditable="true"] {
         text-decoration-style: dotted;
         text-decoration-line: underline;
         text-decoration-color: black;
     }
+
+    .devsMilady {
+        height: 100%;
+    }
+
+    #giveDropToDevsNftDisplay{
+        height: 40vh;
+    }
+
+    #giveDropToDevs {
+        height: fit-content;
+    }
+
+
 </style>
 
 <body>
@@ -804,31 +819,31 @@
         <div id="filterIncludedInputs" class="border">
             <div class="boldTitel">Included</div>
             <div class="filterInputsContent">
-            <div>
-                Attributes: <span id="filterTotalInputs-inputs-attributes">0</span> items
-                <button id="inputs-attributes-edit">edit</button>
-                <div hidden="true" id="inputs-attributes-dropDown" class="inputsDropDown">
-                    <button class="removeAllInputEditor" id="inputs-attributes-removeAllButton">remove
-                        all</button>
+                <div>
+                    Attributes: <span id="filterTotalInputs-inputs-attributes">0</span> items
+                    <button id="inputs-attributes-edit">edit</button>
+                    <div hidden="true" id="inputs-attributes-dropDown" class="inputsDropDown">
+                        <button class="removeAllInputEditor" id="inputs-attributes-removeAllButton">remove
+                            all</button>
+                    </div>
                 </div>
-            </div>
-            <div>
+                <div>
 
-                nft ids: <span id="filterTotalInputs-inputs-idList">0</span> items
-                <button id="inputs-idList-edit">edit</button>
-                <div hidden="true" id="inputs-idList-dropDown" class="inputsDropDown">
-                    <button class="removeAllInputEditor" id="inputs-idList-removeAllButton">remove all</button>
+                    nft ids: <span id="filterTotalInputs-inputs-idList">0</span> items
+                    <button id="inputs-idList-edit">edit</button>
+                    <div hidden="true" id="inputs-idList-dropDown" class="inputsDropDown">
+                        <button class="removeAllInputEditor" id="inputs-idList-removeAllButton">remove all</button>
+                    </div>
                 </div>
-            </div>
-            <div>
+                <div>
 
-                Filters: <span id="filterTotalInputs-inputs-conditions">0</span> items
-                <button id="inputs-conditions-edit">edit</button>
-                <div hidden="true" id="inputs-conditions-dropDown" class="inputsDropDown">
-                    <button class="removeAllInputEditor" id="inputs-conditions-removeAllButton">remove
-                        all</button>
+                    Filters: <span id="filterTotalInputs-inputs-conditions">0</span> items
+                    <button id="inputs-conditions-edit">edit</button>
+                    <div hidden="true" id="inputs-conditions-dropDown" class="inputsDropDown">
+                        <button class="removeAllInputEditor" id="inputs-conditions-removeAllButton">remove
+                            all</button>
+                    </div>
                 </div>
-            </div>
 
             </div>
         </div>
@@ -837,43 +852,43 @@
         <div id="filterExcludedInputs" class="border">
             <div class="boldTitel">Excluded</div>
             <div class="filterInputsContent">
-            <!-- <div id="ExcludedInputsEditor"> -->
-            <div>
-                Attributes: <span id="filterTotalInputs-NOT-attributes">0</span> items
-                <button id="NOT-attributes-edit">edit</button>
-                <div hidden="true" id="NOT-attributes-dropDown" class="inputsDropDown">
-                    <button class="removeAllInputEditor" id="NOT-attributes-removeAllButton">remove all</button>
+                <!-- <div id="ExcludedInputsEditor"> -->
+                <div>
+                    Attributes: <span id="filterTotalInputs-NOT-attributes">0</span> items
+                    <button id="NOT-attributes-edit">edit</button>
+                    <div hidden="true" id="NOT-attributes-dropDown" class="inputsDropDown">
+                        <button class="removeAllInputEditor" id="NOT-attributes-removeAllButton">remove all</button>
+                    </div>
                 </div>
-            </div>
-            <div>
-                nft ids: <span id="filterTotalInputs-NOT-idList">0</span> items
-                <button id="NOT-idList-edit">edit</button>
-                <div hidden="true" id="NOT-idList-dropDown" class="inputsDropDown">
-                    <button class="removeAllInputEditor" id="NOT-idList-removeAllButton">remove all</button>
+                <div>
+                    nft ids: <span id="filterTotalInputs-NOT-idList">0</span> items
+                    <button id="NOT-idList-edit">edit</button>
+                    <div hidden="true" id="NOT-idList-dropDown" class="inputsDropDown">
+                        <button class="removeAllInputEditor" id="NOT-idList-removeAllButton">remove all</button>
+                    </div>
                 </div>
-            </div>
-            <div>
-                Filters: <span id="filterTotalInputs-NOT-conditions">0</span> items
-                <button id="NOT-conditions-edit">edit</button>
-                <div hidden="true" id="NOT-conditions-dropDown" class="inputsDropDown">
-                    <button class="removeAllInputEditor" id="NOT-conditions-removeAllButton">remove all</button>
-                </div>
+                <div>
+                    Filters: <span id="filterTotalInputs-NOT-conditions">0</span> items
+                    <button id="NOT-conditions-edit">edit</button>
+                    <div hidden="true" id="NOT-conditions-dropDown" class="inputsDropDown">
+                        <button class="removeAllInputEditor" id="NOT-conditions-removeAllButton">remove all</button>
+                    </div>
 
-                <!-- </div> -->
+                    <!-- </div> -->
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- </div> -->
+        <!-- </div> -->
 
-    <div id="finalizeDrop" class="border">
-        <button id="finalizeDropButton">criteria overview</button>
+        <div id="finalizeDrop" class="border">
+            <button id="finalizeDropButton">criteria overview</button>
 
-    </div>
+        </div>
 
 
-    <div id="nftDisplay" class="border">
-        <!-- <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div>
+        <div id="nftDisplay" class="border">
+            <!-- <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div>
         <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
         <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
         <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
@@ -892,7 +907,7 @@
         <div class="tempBox"><img class="nftImage" src="http://127.0.0.1:48084/ipfs/bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a/0.jpg"></div> 
             -->
 
-    </div>
+        </div>
 
     </div>
 
@@ -925,6 +940,16 @@
 
                 <div id="duplicatesNftDisplay"></div>
             </div>
+        </div>
+
+        <div id="giveDropToDevs" class="border">
+            <div class="boldTitel">hi give me money pls thansk </div>
+
+            <div id="giveDropToDevsNftDisplay">
+
+            </div>
+            <button id="giveDropToDevsNo">no >:(</button><button id="giveDropToDevsYes">yes :)</button>
+
         </div>
 
         <div id="distrobutionOverView" class="border">
@@ -976,7 +1001,7 @@
                     <span class="ticker">loading..</span>
                     <br>
                     <span class="italic">included collections: </span> <span id="allCollections">
-                       
+
                     </span>
                     <br>
                 </div>
@@ -992,7 +1017,8 @@
                     <span class="italic">Totalsupply: </span><span class="totalsupply">loading..</span> <span
                         class="ticker">loading..</span>
                     <br>
-                    <span class="italic">Token contract: </span><a target="_blank" class="tokenContractHref">loading..</a>
+                    <span class="italic">Token contract: </span><a target="_blank"
+                        class="tokenContractHref">loading..</a>
                     <br>
                 </div>
 
@@ -1000,12 +1026,12 @@
                 <div id="airdropDeployment">
                     <div class="bold">Notice</div>
                     <span id="airdropDeploymentInstructions">
-                        1. The merkle tree is build and claim data will be generated and added to IPFS 
+                        1. The merkle tree is build and claim data will be generated and added to IPFS
                         <br>
                         2. The contract is deployed.
                         <br>
-                        3. Finally you fund the contract with the exact amount of tokens. 
-                        
+                        3. Finally you fund the contract with the exact amount of tokens.
+
                     </span>
 
 
@@ -1014,13 +1040,14 @@
 
                     <div id="notEnoughTokens" hidden>
                         <br>
-                        <div class="boldTitel"> &#10071; You dont have enough tokens to fund the airdrop &#10071;</div> 
-                        You need <span class="totalAirdrop"></span> <span class="ticker">loading..</span> 
+                        <div class="boldTitel"> &#10071; You dont have enough tokens to fund the airdrop &#10071;</div>
+                        You need <span class="totalAirdrop"></span> <span class="ticker">loading..</span>
                         <br>
-                        Your wallet has <span class="erc20UserBalance">loading..</span> <span class="ticker">loading..</span>
+                        Your wallet has <span class="erc20UserBalance">loading..</span> <span
+                            class="ticker">loading..</span>
                         <br>
                         <button id="checkEnoughTokens">refresh balance</button>
-             
+
                     </div>
 
 
@@ -1042,7 +1069,6 @@
 
 
 </body>
-<script src="../scripts/papaparse.min.js"  
-type="application/javascript"></script>
+<script src="../scripts/papaparse.min.js" type="application/javascript"></script>
 <script src="../scripts/cbor.js" type="text/javascript"></script>
 <script type="module" src="./scripts/app.js" type="application/javascript"></script>

@@ -52,10 +52,13 @@ export class DropBuilder {
     dropBuilderConflictsEl = document.getElementById("dropBuilderConflicts")
     distrobutionOverViewEl = document.getElementById("distrobutionOverView")
     deploymentEl = document.getElementById("deployment")
-    dropBuilderPages = [this.dropBuilderConflictsEl, this.distrobutionOverViewEl, this.deploymentEl]
+    giveDropToDevsEl = document.getElementById("giveDropToDevs")
+    dropBuilderPages = [this.giveDropToDevsEl, this.dropBuilderConflictsEl,this.distrobutionOverViewEl, this.deploymentEl]
 
     connectWallletBtn = document.getElementById("connectWalletBtn")
 
+    giveDropToDevsNoBtn = document.getElementById("giveDropToDevsNo")
+    giveDropToDevsYesBtn = document.getElementById("giveDropToDevsYes")
 
     confirmDistrobutionBtn = document.getElementById("confirmDistrobutionBtn")
     airdropTokenContractAddressInput = document.getElementById("airdropTokenContractAddressInput")
@@ -106,11 +109,19 @@ export class DropBuilder {
         //initialize
         this.dropBuilderEl.style.display = "none"
 
-        this.finalizeDropButton.addEventListener("click", (event) => this.toggleFinalizeDropView(event))
+        this.finalizeDropButton.addEventListener("click", (event) => this.#showDropBuilderPageEl(this.giveDropToDevsEl))
+
+        this.giveDropToDevsNoBtn.addEventListener("click", (event) => this.toggleFinalizeDropView(true))
+        this.giveDropToDevsYesBtn.addEventListener("click", (event) => this.toggleFinalizeDropView(true))
+
         this.backButtonEl.addEventListener("click", (event) => this.#dropBuilderBackBtnHandler())
         this.conflictResolutionSelector.addEventListener("change", (event) => this.#conflictResolutionSelectorHandler(event, this.criteriaPerIds))
         this.confirmConflictResolutionButtonEl.addEventListener("click", (event) => this.#confirmConflictResolutionHandler(event))
+        
+
+        
         this.confirmDistrobutionBtn.addEventListener("click", (event) => this.#showDropBuilderPageEl(this.deploymentEl, event))
+        
         this.airdropTokenContractAddressInput.addEventListener("keypress", (event) => this.#setTokenContractHandler(event))
         this.connectWallletBtn.addEventListener("click", () => this.connectSigner())
 
@@ -323,7 +334,11 @@ export class DropBuilder {
                 await this.#showDropBuilderPageIndex(currentPage - 1)
             }
 
-        } else if (this.dropBuilderPages[currentPage] === this.deploymentEl) {
+        } else if(this.dropBuilderPages[currentPage] === this.dropBuilderConflictsEl) {
+            await this.removeConflictResolutionCriteria()
+
+        }
+        if (this.dropBuilderPages[currentPage] === this.deploymentEl) {
             //TODO if the contract is already deployed and not funded, the user wont be able to fund it and needs to deploy it again
             //TODO make a fix for this. example check if the claimdata hash is the same for the deployed contract
             //but you have to make sure the criteria the user saw on the last page matches the criteria in the contract they are funding
@@ -398,6 +413,14 @@ export class DropBuilder {
             this.merkleBuilder = undefined
             this.claimDataIpfs = undefined
         }
+
+        if (this.giveDropToDevsEl.id === element.id) {
+            const devsMiladyId = "6999"
+            const miladyContractAddress = "0x5Af0D9827E0c53E4799BB226655A1de152A425a5"
+            const nftDisplayEl = await this.#createSingleNftDisplay(miladyContractAddress, devsMiladyId)
+            nftDisplayEl.className = "devsMilady"
+            document.getElementById("giveDropToDevsNftDisplay").append(nftDisplayEl)
+        }
     }
 
     async #showDropBuilderPageIndex(page) {
@@ -419,9 +442,9 @@ export class DropBuilder {
 
 
 
-
-    async toggleFinalizeDropView() {
-        if (this.dropBuilderEl.style.display === "none") {
+    //TODO clean this mess up
+    async toggleFinalizeDropView(forceConflictResPage=false) {
+        if (this.dropBuilderEl.style.display === "none" || forceConflictResPage===true) {
             //toggle display
             await this.#showDropBuilderPageEl(this.dropBuilderConflictsEl)
 
@@ -1026,8 +1049,8 @@ export class DropBuilder {
         criterion.amountPerItem = ethers.formatUnits(newAmount, this.erc20Units)
 
         const otherCriteria = this.criteriaBuilder.criteria.filter((otherCriterion) => otherCriterion !== criterion)
-        this.updateCriteriaAmountsTable({ criteria: otherCriteria })
-        this.updateCriteriaAmountsTable({ criteria: [criterion], skipClasses: ["amountPerItem"] })
+        this.#updateCriteriaAmountsTable({ criteria: otherCriteria })
+        this.#updateCriteriaAmountsTable({ criteria: [criterion], skipClasses: ["amountPerItem"] })
     }
 
 
@@ -1042,8 +1065,8 @@ export class DropBuilder {
         criterion.amountPerItem = ethers.formatUnits(newTotalAmount / amountOfItems, this.erc20Units)
 
         const otherCriteria = this.criteriaBuilder.criteria.filter((otherCriterion) => otherCriterion !== criterion)
-        this.updateCriteriaAmountsTable({ criteria: otherCriteria })
-        this.updateCriteriaAmountsTable({ criteria: [criterion], skipClasses: ["amountTotall"] })
+        this.#updateCriteriaAmountsTable({ criteria: otherCriteria })
+        this.#updateCriteriaAmountsTable({ criteria: [criterion], skipClasses: ["amountTotall"] })
     }
 
 
@@ -1090,8 +1113,8 @@ export class DropBuilder {
         }
     
         //update ui
-        this.updateCriteriaAmountsTable({ criteria: otherCriteria })
-        this.updateCriteriaAmountsTable({ criteria: [criterion], skipClasses: ["amountTotallPercentage"] })
+        this.#updateCriteriaAmountsTable({ criteria: otherCriteria })
+        this.#updateCriteriaAmountsTable({ criteria: [criterion], skipClasses: ["amountTotallPercentage"] })
 
         //***************debug********** */
 
@@ -1129,21 +1152,15 @@ export class DropBuilder {
                 if (ethers.parseUnits(criterion.amountPerItem,units) !== 0n ) {                    
                     const totalAmountCriterion = amountOfItems * ethers.parseUnits(criterion.amountPerItem,units)
                     const amountAddedCriterion = parseFloat(amount)*(parseFloat(totalAmountCriterion)/parseFloat(totalAllCriteria))
-
-        
                     const newAmountPerItem = ethers.parseUnits(criterion.amountPerItem , units) +  (BigInt(amountAddedCriterion)/amountOfItems) 
-                    
                     criterion.amountPerItem = ethers.formatUnits(newAmountPerItem, units)
     
                 }
-
             }
- 
-
         }
     }
 
-    updateCriteriaAmountsTable({ criteria = this.criteriaBuilder.criteria, skipClasses = [] }) {
+    #updateCriteriaAmountsTable({ criteria = this.criteriaBuilder.criteria, skipClasses = [] }) {
         for (const criterion of criteria) {
             const totalAirdrop = this.getTotalAirdrop()
 
@@ -1207,7 +1224,7 @@ export class DropBuilder {
 
             landscapeOrientation: landscapeOrientation,
             portraitOrientation: portraitOrientation,
-            displayCollectionInfo: false
+            collectionInfoFlag: false
         })
 
         nftDisplay.displayNames({ redirect: true })
@@ -1488,6 +1505,42 @@ export class DropBuilder {
 
 
         }
+
+    }
+
+    async #createSingleNftDisplay(collectionAddress, id) {
+        collectionAddress = ethers.getAddress(collectionAddress)
+        const contentElement = document.createElement("div")
+        const nftMetaData = this.criteriaBuilder.filterBuilder.getNftMetaData(collectionAddress)
+        contentElement.id = `singleNftDisplay-${collectionAddress}-${id}`
+
+        const landscapeOrientation = { "rowSize": 1, "amountRows": 1 }
+        const portraitOrientation = { "rowSize": 1, "amountRows": 1 }
+        const nftDisplay = new NftDisplay({
+            ids: [id],
+            collectionAddress: collectionAddress,
+            displayElement: contentElement,
+
+            nftMetaData: nftMetaData,
+            provider: this.provider,
+            ipfsGateway: this.ipfsGateway,
+
+            landscapeOrientation: landscapeOrientation,
+            portraitOrientation: portraitOrientation,
+
+            collectionInfoFlag: false,
+            pageSelectorFlag: false
+        })
+
+        nftDisplay.displayNames({ redirect: true })
+        //await nftDisplay.showAttributes()
+        //await nftDisplay.addImageDivsFunction((id, nftDisplay) => this.#showCriteriaNftDisplay(id, nftDisplay), false)
+        await nftDisplay.createDisplay()
+
+        // const nftsEl = document.createElement("div")
+        // nftsEl.append(contentElement)
+        //contentElement.className = "singleNftDisplay"
+        return contentElement
 
     }
 }
