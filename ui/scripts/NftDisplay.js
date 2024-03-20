@@ -618,6 +618,8 @@ export class NftDisplay {
             const infoDiv =  this.#createInfoDiv(this.collectionAddress,this.nftMetaData, ids.length)
             targetElement.append(await infoDiv)
 
+        } else {
+            targetElement.append(document.createElement("div"))
         }
     
 
@@ -628,6 +630,8 @@ export class NftDisplay {
                 this.pageSelectorElement = this.createPageSelector(this.currentPage, rowSize, amountRows, ids)
                 //this.pageSelectorElement.id = `pageSelector-${currentPage}-${this.collectionAddress}`
                 targetElement.append(this.pageSelectorElement)
+            } else {
+                targetElement.append(document.createElement("div"))
             }
 
             let imagesRasterDiv = await this.createImagesRaster(this.currentPage, rowSize, amountRows, ids, borderWidth, borderColor)
