@@ -27,6 +27,9 @@ export class NftDisplay {
 
     imageRasterElement;
 
+    pageSelectorFlag
+    collectionInfoFlag
+
 
     collectionInfoCssClass = "nftdisplayInfo"
     //TODO maybe make a function that calculates a rowsize based on the widht of the images loaded to maximize screen realestate
@@ -44,7 +47,7 @@ export class NftDisplay {
         {collectionAddress,provider, displayElement, ids=[], ipfsGateway = "https://ipfs.io", 
         landscapeOrientation = {["rowSize"]:5,["amountRows"]:2}, 
         portraitOrientation = {["rowSize"]:3,["amountRows"]:4},
-        nftMetaData, displayCollectionInfo = true, initialize=true}
+        nftMetaData, initialize=true, pageSelectorFlag=true, collectionInfoFlag=true}
     ) {
         this.ipfsGateway = ipfsGateway
         this.provider =provider
@@ -52,9 +55,11 @@ export class NftDisplay {
         //TODO change all this.displayElementId to use the whole element and pass whole element in constructor instead of id
         this.displayElement = displayElement
 
+        this.pageSelectorFlag = pageSelectorFlag
+        this.collectionInfoFlag = collectionInfoFlag
+
         this.landscapeOrientation = landscapeOrientation
         this.portraitOrientation = portraitOrientation
-        this.displayCollectionInfo = displayCollectionInfo
 
         if(initialize) {
             this.initialize(collectionAddress, nftMetaData)
@@ -77,17 +82,12 @@ export class NftDisplay {
         this.setImageRasterOrientation()
         this.changeOnRotate()
         await this.setCollectionAddress(collectionAddress)
-
-        
-
-
-
     }
 
     async setCollectionAddress(collectionAddress) {
         collectionAddress = ethers.getAddress(collectionAddress)
        
-        await this.clear()
+        this.clear()
         if (!collectionAddress) {
             console.warn(`collection address is not set`)
             return
@@ -609,7 +609,7 @@ export class NftDisplay {
      * @param {string} borderWidth 
      * @param {string} borderColor 
      */
-    async createDisplay(currentPage=this.currentPage, targetElement=this.displayElement, rowSize=this.rowSize, amountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor,collectionInfo=this.displayCollectionInfo ) {
+    async createDisplay(currentPage=this.currentPage, targetElement=this.displayElement, rowSize=this.rowSize, amountRows=this.amountRows, ids=this.ids, borderWidth=this.borderWidth, borderColor = this.borderColor,collectionInfo=this.collectionInfoFlag ) {
         //TODO apply divFunctions and get image urls in 1 go
         //this.setImageRasterOrientation()
         this.currentPage =  this.#getValidPage(currentPage,this.ids.length, rowSize,amountRows)
@@ -622,13 +622,18 @@ export class NftDisplay {
     
 
         if (ids.length>0) {
+            //single id never needs page selector
+            //TODO detect the amount of pages
+            if(this.pageSelectorFlag) {
+                this.pageSelectorElement = this.createPageSelector(this.currentPage, rowSize, amountRows, ids)
+                //this.pageSelectorElement.id = `pageSelector-${currentPage}-${this.collectionAddress}`
+                targetElement.append(this.pageSelectorElement)
+            }
+
             let imagesRasterDiv = await this.createImagesRaster(this.currentPage, rowSize, amountRows, ids, borderWidth, borderColor)
             imagesRasterDiv.id = `imagesRaster-${this.collectionAddress}`
+            targetElement.append(imagesRasterDiv)
 
-            this.pageSelectorElement = this.createPageSelector(this.currentPage, rowSize, amountRows, ids)
-            //this.pageSelectorElement.id = `pageSelector-${currentPage}-${this.collectionAddress}`
-
-            targetElement.append(this.pageSelectorElement, imagesRasterDiv)
 
         } else {
             let noIdsMessage = document.createElement("div")
