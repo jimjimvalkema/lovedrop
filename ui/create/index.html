@@ -97,7 +97,7 @@
     }
 
     .addressInput {
-        width: 8em;
+        width: fit-content;
         text-overflow: ellipsis;
     }
 
@@ -448,7 +448,7 @@
         -webkit-text-stroke-color: black;
     }
 
-    #dropBuilder {
+    .dropBuilder {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -537,6 +537,7 @@
         margin: 1vw;
         margin-left: 6em;
         margin-right: 6em;
+        width: -webkit-fill-available;
 
     }
 
@@ -607,10 +608,15 @@
 
     #deployment {
 
+
         margin: 6em;
         margin-top: 0.5em;
         margin-bottom: 0.5em;
         min-width: 31em;
+        width: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
 
     #notEnoughTokens {
@@ -639,6 +645,18 @@
 
     #giveDropToDevs {
         height: fit-content;
+    }
+
+    #tokenInputForm{
+        width: 100%;
+    }
+
+    .fitContentFix {
+        width: fit-content;
+    }
+
+    #totalsOverview {
+        width: 100%;
     }
 
 
@@ -912,80 +930,81 @@
     </div>
 
 
-    <div id="dropBuilder">
-        <div id="backButtonDropBuilderDiv">
-            <button id="backButtonDropBuilder">go back</button>
-        </div>
-        <div id="dropBuilderConflicts">
-            <div id="dropBuilderConflictsMessage">
-                <span class="emoji">&#10071;</span>Some nfts have multiple criteria. Choose a method to select what
-                amount they recieve. <span class="emoji">&#10071;</span>
-                <br>
-                <label for="criteriaConflictsResolutionSelection">choose a method:</label>
-                <select name="criteria conflicts resolution options" id="criteriaConflictsResolutionSelection">
-                    <option value="selectMethod">--select method--</option>
-                    <option value="largest">largest amount</option>
-                    <option value="smallest">smallest amount</option>
-                    <option value="first">first criterion made</option>
-                    <option value="last">last criterion made</option>
-                    <option value="add">add together</option>
-                    <option value="remove">set to zero</option>
-                </select>
 
-                <button id="confirmConflictResolutionButton" disabled>confirm</button>
-            </div>
+    <div id="backButtonDropBuilderDiv" class="dropBuilder">
+        <button hidden id="backButtonDropBuilder">go back</button>
+    </div>
+    <div id="dropBuilderConflicts" class="dropBuilder">
+        <div id="dropBuilderConflictsMessage">
+            <span class="emoji">&#10071;</span>Some nfts have multiple criteria. Choose a method to select what
+            amount they recieve. <span class="emoji">&#10071;</span>
+            <br>
+            <label for="criteriaConflictsResolutionSelection">choose a method:</label>
+            <select name="criteria conflicts resolution options" id="criteriaConflictsResolutionSelection">
+                <option value="selectMethod">--select method--</option>
+                <option value="largest">largest amount</option>
+                <option value="smallest">smallest amount</option>
+                <option value="first">first criterion made</option>
+                <option value="last">last criterion made</option>
+                <option value="add">add together</option>
+                <option value="remove">set to zero</option>
+            </select>
 
-            <div id="duplicatesManager">
-                <div class="boldTitel">nfts with conflicting criteria:</div>
-
-                <div id="duplicatesNftDisplay"></div>
-            </div>
+            <button id="confirmConflictResolutionButton" disabled>confirm</button>
         </div>
 
-        <div id="giveDropToDevs" class="border">
-            <div class="boldTitel">hi give me money pls thansk </div>
+        <div id="duplicatesManager">
+            <div class="boldTitel">nfts with conflicting criteria:</div>
 
-            <div id="giveDropToDevsNftDisplay">
+            <div id="duplicatesNftDisplay"></div>
+        </div>
+    </div>
 
-            </div>
-            <button id="giveDropToDevsNo">no >:(</button><button id="giveDropToDevsYes">yes :)</button>
+    <div id="giveDropToDevs" class="border dropBuilder">
+        <div class="boldTitel">hi give me money pls thansk </div>
+
+        <div id="giveDropToDevsNftDisplay">
 
         </div>
+        <button id="giveDropToDevsNo">no >:(</button><button id="giveDropToDevsYes">yes :)</button>
 
-        <div id="distrobutionOverView" class="border">
-            <div class="boldTitel">final distribution </div>
-            <div id="criteriaOverviewTable">
-                <div class="criteriaTableHeader">
-                    <div>criteria</div>
-                </div>
-                <div class="criteriaTableHeader">
-                    <div>amount</div>
-                </div>
-                <div class="criteriaTableHeader">
-                    <div>collection</div>
-                </div>
-                <div class="criteriaTableHeader">
-                    <div>nfts</div>
-                </div>
+    </div>
 
-
-
+    <div id="distrobutionOverView" class="border dropBuilder">
+        <div class="boldTitel">final distribution </div>
+        <div id="criteriaOverviewTable">
+            <div class="criteriaTableHeader">
+                <div>criteria</div>
+            </div>
+            <div class="criteriaTableHeader">
+                <div>amount</div>
+            </div>
+            <div class="criteriaTableHeader">
+                <div>collection</div>
+            </div>
+            <div class="criteriaTableHeader">
+                <div>nfts</div>
             </div>
 
-            <button id="confirmDistrobutionBtn">confirm</button>
+
 
         </div>
 
-        <div id="deployment">
+        <button id="confirmDistrobutionBtn">confirm</button>
+
+    </div>
+
+    <div id="deployment" >
+        <div class="fitContentFix">
             <div id="tokenInputForm" class="border">
                 <div class="boldTitel">Set token</div>
                 <label>Set airdrop token: <input class="addressInput" id="airdropTokenContractAddressInput" type="text"
                         value="0x3AEC26bf9FEDba55a55e970504f439101AbD7327"
                         placeholder="contract address"></input></label>
-
-
+    
+    
             </div>
-
+    
             <br>
             <div id="totalsOverview" class="border" hidden>
                 <div class="boldTitel">Confirm</div>
@@ -1001,12 +1020,12 @@
                     <span class="ticker">loading..</span>
                     <br>
                     <span class="italic">included collections: </span> <span id="allCollections">
-
+    
                     </span>
                     <br>
                 </div>
                 <br>
-
+    
                 <div id="airdropTokenInfoOverview">
                     <div class="bold">Airdrop token</div>
                     <span class="italic">Token: </span> <span class="tokenName"
@@ -1021,7 +1040,7 @@
                         class="tokenContractHref">loading..</a>
                     <br>
                 </div>
-
+    
                 <br>
                 <div id="airdropDeployment">
                     <div class="bold">Notice</div>
@@ -1031,13 +1050,13 @@
                         2. The contract is deployed.
                         <br>
                         3. Finally you fund the contract with the exact amount of tokens.
-
+    
                     </span>
-
-
+    
+    
                     <div id="progressProofGen"></div>
                     <div id="message2"></div>
-
+    
                     <div id="notEnoughTokens" hidden>
                         <br>
                         <div class="boldTitel"> &#10071; You dont have enough tokens to fund the airdrop &#10071;</div>
@@ -1047,22 +1066,25 @@
                             class="ticker">loading..</span>
                         <br>
                         <button id="checkEnoughTokens">refresh balance</button>
-
+    
                     </div>
-
-
+    
+    
                     <br>
                     <button id="confirmAndBuildDrop">build merkle tree</button>
                     <button id="deployAirDrop" disabled>deploy airdrop contract</button>
                     <button id="fundAirdrop" disabled>fund airdrop contract</button>
-
+    
                 </div>
-
-
+    
+    
             </div>
 
         </div>
+        
+
     </div>
+
 
     </div>
 

@@ -80,7 +80,7 @@ async function runOnLoad() {
     const gatewayIpfsIndex = new IpfsIndexer(window.ipfsGateways)
     window.ipfsGateway = await gatewayIpfsIndex.getGatewayUrl()
     //TODO api urls shouldn't be hardcoded
-    window.ipfsIndex = new IpfsIndexer(["http://127.0.0.1:45005"],null,false)
+    window.ipfsIndex = new IpfsIndexer(["http://127.0.0.1:5001"],null,false)
 
 
 

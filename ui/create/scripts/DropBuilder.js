@@ -49,11 +49,11 @@ export class DropBuilder {
 
     criteriaBuilderEl = document.getElementById("criteriaBuilder")
     dropBuilderEl = document.getElementById("dropBuilder")
-    dropBuilderConflictsEl = document.getElementById("dropBuilderConflicts")
+    conflictsResolutionEl = document.getElementById("dropBuilderConflicts")
     distrobutionOverViewEl = document.getElementById("distrobutionOverView")
     deploymentEl = document.getElementById("deployment")
     giveDropToDevsEl = document.getElementById("giveDropToDevs")
-    dropBuilderPages = [this.giveDropToDevsEl, this.dropBuilderConflictsEl,this.distrobutionOverViewEl, this.deploymentEl]
+    dropBuilderPages = [this.criteriaBuilderEl, this.conflictsResolutionEl, this.giveDropToDevsEl, this.distrobutionOverViewEl, this.deploymentEl]
 
     connectWallletBtn = document.getElementById("connectWalletBtn")
 
@@ -79,6 +79,7 @@ export class DropBuilder {
 
 
     notEnoughTokensEl = document.getElementById("notEnoughTokens")
+    amountOfDuplicates=0
 
     //or do conflictResolutionSelectorHandler with a submit button but user might decide to go back anyway
     criteriaForConflictResolution = {}
@@ -87,7 +88,7 @@ export class DropBuilder {
 
     txs = []
 
-    originalElementDisplayValues = this.getDisplayStylesFromElements([this.dropBuilderEl, this.dropBuilderConflictsEl, this.criteriaBuilderEl, this.distrobutionOverViewEl])
+    originalElementDisplayValues = this.getDisplayStylesFromElements(this.dropBuilderPages)
 
 
 
@@ -107,12 +108,15 @@ export class DropBuilder {
         this.loveDropFactoryAddress = loveDropFactoryAddress
 
         //initialize
-        this.dropBuilderEl.style.display = "none"
+        //this.dropBuilderEl.style.display = "none"
+        this.selectDropBuilderPageIndex(0)
+        //this.#setDisplayStyleOfElements(this.dropBuilderPages.slice(1), "none")
 
-        this.finalizeDropButton.addEventListener("click", (event) => this.#showDropBuilderPageEl(this.giveDropToDevsEl))
+        //criteria overview buttpm
+        this.finalizeDropButton.addEventListener("click", (event) => this.#selectDropBuilderPageEl(this.conflictsResolutionEl))//this.#showDropBuilderPageEl(this.dropBuilderConflictsEl))
 
-        this.giveDropToDevsNoBtn.addEventListener("click", (event) => this.toggleFinalizeDropView(true))
-        this.giveDropToDevsYesBtn.addEventListener("click", (event) => this.toggleFinalizeDropView(true))
+        this.giveDropToDevsNoBtn.addEventListener("click", (event) => this.#selectDropBuilderPageEl(this.distrobutionOverViewEl))
+        this.giveDropToDevsYesBtn.addEventListener("click", (event) => this.#selectDropBuilderPageEl(this.distrobutionOverViewEl))
 
         this.backButtonEl.addEventListener("click", (event) => this.#dropBuilderBackBtnHandler())
         this.conflictResolutionSelector.addEventListener("change", (event) => this.#conflictResolutionSelectorHandler(event, this.criteriaPerIds))
@@ -120,7 +124,7 @@ export class DropBuilder {
         
 
         
-        this.confirmDistrobutionBtn.addEventListener("click", (event) => this.#showDropBuilderPageEl(this.deploymentEl, event))
+        this.confirmDistrobutionBtn.addEventListener("click", (event) => this.#selectDropBuilderPageEl(this.deploymentEl, event))
         
         this.airdropTokenContractAddressInput.addEventListener("keypress", (event) => this.#setTokenContractHandler(event))
         this.connectWallletBtn.addEventListener("click", () => this.connectSigner())
@@ -133,6 +137,236 @@ export class DropBuilder {
 
         this.chainManagement()
     }
+
+    async #criteriaBuilderPageFunc(currentPageIndex, selectedPageIndex) {
+        const returnsToPage = currentPageIndex>selectedPageIndex
+        if (returnsToPage) {
+            //remove data created when users goes back and returns
+            this.conflictResolutionSelector.value = "selectMethod"
+            this.confirmConflictResolutionButtonEl.disabled = true
+            await this.removeConflictResolutionCriteria()
+        }
+
+
+        //rerun filter
+        if (this.criteriaBuilder.filterBuilder) {
+            this.criteriaBuilder.filterBuilder.runFilter()
+        }
+    }
+
+    async #conflictResolutionPageFunc(currentPageIndex, selectedPageIndex) {
+        const returnsToPage = currentPageIndex>selectedPageIndex
+        if (returnsToPage) {
+            if (!this.amountOfDuplicates) {
+
+                await this.#selectDropBuilderPageEl(this.criteriaBuilderEl)
+            } else {
+                if(this.conflictResolutionSelector.value === "selectMethod") {
+                    this.confirmConflictResolutionButtonEl.disabled = true
+                    await this.removeConflictResolutionCriteria()
+     
+                }
+            }
+            
+            
+        } else {
+            //remove data created when users goes back and returns
+            this.conflictResolutionSelector.value = "selectMethod"
+            this.confirmConflictResolutionButtonEl.disabled = true
+            await this.removeConflictResolutionCriteria()
+
+
+            //process data
+            const validCriteria = this.criteriaBuilder.criteria.filter((criterion) => this.#isValidCriterion(criterion))
+            this.criteriaPerIds = this.getCriteriaPerId(validCriteria)
+
+            //displayduplicates
+            if (validCriteria.length) {
+                var duplicates = this.getIdsWithDuplicateCriteria(this.criteriaPerIds)
+                this.amountOfDuplicates = Object.keys(duplicates).reduce((total, collection) => total += Object.keys(duplicates[collection]).length, 0)
+            }
+
+            if (validCriteria.length && this.amountOfDuplicates > 0) {
+                await this.displayDuplicates(duplicates)
+            } else {
+                //go to next step
+
+                this.criteriaPerIdNoConflicts = this.criteriaPerIds
+
+                await this.#confirmConflictResolutionHandler()
+            }
+        }
+    }
+
+
+    async #giveDropToDevsPageFunc() {
+        if (!document.getElementById("devsMilady")) {
+            const devsMiladyId = "6999"
+            const miladyContractAddress = "0x5Af0D9827E0c53E4799BB226655A1de152A425a5"
+            const nftDisplayEl = await this.#createSingleNftDisplay(miladyContractAddress, devsMiladyId)
+            nftDisplayEl.className = "devsMilady"
+            nftDisplayEl.id = "devsMilady"
+            document.getElementById("giveDropToDevsNftDisplay").append(nftDisplayEl)
+        }
+    }
+
+    async #distrobutionOverViewPageFunc() {
+        //reset html table
+        this.criteriaTableEl.querySelectorAll(".criteriaTableItem").forEach((el) => el.outerHTML = "")
+            
+        //this.#resetDisplayStyleOfElements([this.giveDropToDevsEl])
+        //this.#setDisplayStyleOfElements([this.conflictsResolutionEl], "none")
+        let tableRows = []
+        const totalAirdrop = this.getTotalAirdrop()
+        for (const criterion of this.criteriaBuilder.criteria) {
+            const row = this.#createCriterionOverviewTableItems(criterion, totalAirdrop)
+            Promise.resolve(row).then((result) => this.criteriaTableEl.append(...result))
+            tableRows.push(row)
+        }
+
+        tableRows = await Promise.all(tableRows)
+    }
+
+    async #deploymentPageFunc() {
+        //TODO if the contract is already deployed and not funded, the user wont be able to fund it and needs to deploy it again
+        //TODO make a fix for this. example check if the claimdata hash is the same for the deployed contract
+        //but you have to make sure the criteria the user saw on the last page matches the criteria in the contract they are funding
+        //maybe handle case if criteria are different but contract is already deployed
+        //or just make a wrapper contract that deploys and send token in 1 tx
+        this.notEnoughTokensEl.hidden = true
+        this.progressProofGenEl.innerText = ""
+        this.merkleBuilder = undefined
+        this.claimDataIpfs = undefined
+        await this.setTotalsOverViewInfo()
+
+    }
+
+    async selectDropBuilderPageIndex(selectedPageIndex) {
+
+        //back: 
+        // at criteriaBuilder: remove conflict res criteria (user shouldnt mess with that since it can get removed)
+        //forward
+        // criteria conflict: remove conflict res criteria, check if conflicts, no conflicts skip to next
+        // criteria overview: reset html
+        // 
+
+        if (selectedPageIndex < 0) {
+            selectedPageIndex=0
+        }else if (selectedPageIndex >= this.dropBuilderPages.length) {
+            selectedPageIndex=this.dropBuilderPages.length-1
+        }
+
+        //TODO cleanup
+        if(selectedPageIndex>0) {this.backButtonEl.hidden=false}
+        else{this.backButtonEl.hidden=true}
+
+
+        const currentPageIndex = this.dropBuilderPages.findIndex((el) => el.style.display !== "none")
+        const selectedPage = this.dropBuilderPages[selectedPageIndex]
+
+        const funcAtPage = {
+            [this.criteriaBuilderEl.id]:async ()=>this.#criteriaBuilderPageFunc(currentPageIndex, selectedPageIndex),
+            [this.conflictsResolutionEl.id]:async ()=>this.#conflictResolutionPageFunc(currentPageIndex, selectedPageIndex),
+            [this.giveDropToDevsEl.id]:()=>this.#giveDropToDevsPageFunc(),
+            [this.distrobutionOverViewEl.id]:()=>this.#distrobutionOverViewPageFunc(),
+            [this.deploymentEl.id]:()=>this.#deploymentPageFunc(),
+        }
+        //just so every page has a function
+        this.dropBuilderPages.forEach((page)=>{if (!(page.id in funcAtPage)) {funcAtPage[page.id]=()=>{};} })
+        
+       
+
+        const otherPages = this.dropBuilderPages.toSpliced(selectedPageIndex, 1)
+        this.#setDisplayStyleOfElements(otherPages, "none")
+        this.#resetDisplayStyleOfElements([selectedPage])
+
+        await funcAtPage[selectedPage.id](currentPageIndex, selectedPageIndex)
+        
+    }
+
+    async #selectDropBuilderPageEl(element) {
+        const pageIndex = this.dropBuilderPages.findIndex((el) => el.id === element.id)
+        if (pageIndex === -1) {
+            throw Error(`element id ${element.id} is not in dropBuilderPages array: ${this.dropBuilderPages.map((x) => x.id)}`)
+        }
+        await this.selectDropBuilderPageIndex(pageIndex)
+    }
+
+    async #dropBuilderBackBtnHandler() {
+        const currentPage = this.dropBuilderPages.findIndex((el) => el.style.display !== "none")
+        await this.selectDropBuilderPageIndex(currentPage - 1)
+        return
+
+        if (this.dropBuilderPages[currentPage - 1] === this.conflictsResolutionEl) {
+            const duplicates = this.getIdsWithDuplicateCriteria(this.criteriaPerIds)
+            const amountOfDuplicates = Object.keys(duplicates).reduce((total, collection) => total += Object.keys(duplicates[collection]).length, 0)
+            if (amountOfDuplicates === 0) {
+                await this.selectDropBuilderPageIndex(currentPage - 2)
+            } else {
+                await this.selectDropBuilderPageIndex(currentPage - 1)
+            }
+
+        } else if(this.dropBuilderPages[currentPage] === this.conflictsResolutionEl) {
+            await this.removeConflictResolutionCriteria()
+
+        }
+        if (this.dropBuilderPages[currentPage] === this.deploymentEl) {
+            //TODO if the contract is already deployed and not funded, the user wont be able to fund it and needs to deploy it again
+            //TODO make a fix for this. example check if the claimdata hash is the same for the deployed contract
+            //but you have to make sure the criteria the user saw on the last page matches the criteria in the contract they are funding
+            //maybe handle case if criteria are different but contract is already deployed
+            //or just make a wrapper contract that deploys and send token in 1 tx
+            this.fundAirdropBtn.disabled = true
+            this.deployAirDropBtn.disabled = true
+            await this.selectDropBuilderPageIndex(currentPage - 1)
+        } else if (currentPage !== -1) {
+            await this.selectDropBuilderPageIndex(currentPage - 1)
+        }
+
+    }
+
+    //TODO clean this mess up
+    async toggleFinalizeDropView(forceConflictResPage=false) {
+        if (this.dropBuilderEl.style.display === "none" || forceConflictResPage===true) {
+            //toggle display
+            await this.#selectDropBuilderPageEl(this.conflictsResolutionEl)
+
+            //remove data created when users goes back and returns
+            this.conflictResolutionSelector.value = "selectMethod"
+            this.removeConflictResolutionCriteria()
+
+            //process data
+            const validCriteria = this.criteriaBuilder.criteria.filter((criterion) => this.#isValidCriterion(criterion))
+            this.criteriaPerIds = this.getCriteriaPerId(validCriteria)
+
+            //displayduplicates
+            if (validCriteria.length) {
+                var duplicates = this.getIdsWithDuplicateCriteria(this.criteriaPerIds)
+                var amountOfDuplicates = Object.keys(duplicates).reduce((total, collection) => total += Object.keys(duplicates[collection]).length, 0)
+            }
+
+            if (validCriteria.length && amountOfDuplicates > 0) {
+                await this.displayDuplicates(duplicates)
+            } else {
+                //go to next step
+                this.criteriaPerIdNoConflicts = this.criteriaPerIds
+                await this.#confirmConflictResolutionHandler()
+            }
+
+        } else {
+            //toggle display
+            await this.#selectDropBuilderPageEl(this.criteriaBuilderEl)
+
+            // this.#setDisplayStyleOfElements([this.dropBuilderEl, this.distrobutionOverViewEl, this.dropBuilderConflictsEl], "none")
+            // this.#resetDisplayStyleOfElements([this.criteriaBuilderEl])
+
+            //rerun filter
+            if (this.criteriaBuilder.filterBuilder) {
+                this.criteriaBuilder.filterBuilder.runFilter()
+            }
+        }
+    }
+
 
     async chainManagement() {
 
@@ -162,7 +396,6 @@ export class DropBuilder {
     }
 
     async #setTokenContractHandler(event) {
-        console.log(event.value)
         const value = this.#isValidSubmitEvent(event, this.airdropTokenContractAddressInput)
         if (value) {
             if (ethers.isAddress(value)) {
@@ -322,37 +555,6 @@ export class DropBuilder {
         }
     }
 
-    async #dropBuilderBackBtnHandler() {
-        const currentPage = this.dropBuilderPages.findIndex((el) => el.style.display !== "none")
-
-        if (this.dropBuilderPages[currentPage - 1] === this.dropBuilderConflictsEl) {
-            const duplicates = this.getIdsWithDuplicateCriteria(this.criteriaPerIds)
-            const amountOfDuplicates = Object.keys(duplicates).reduce((total, collection) => total += Object.keys(duplicates[collection]).length, 0)
-            if (amountOfDuplicates === 0) {
-                await this.#showDropBuilderPageIndex(currentPage - 2)
-            } else {
-                await this.#showDropBuilderPageIndex(currentPage - 1)
-            }
-
-        } else if(this.dropBuilderPages[currentPage] === this.dropBuilderConflictsEl) {
-            await this.removeConflictResolutionCriteria()
-
-        }
-        if (this.dropBuilderPages[currentPage] === this.deploymentEl) {
-            //TODO if the contract is already deployed and not funded, the user wont be able to fund it and needs to deploy it again
-            //TODO make a fix for this. example check if the claimdata hash is the same for the deployed contract
-            //but you have to make sure the criteria the user saw on the last page matches the criteria in the contract they are funding
-            //maybe handle case if criteria are different but contract is already deployed
-            //or just make a wrapper contract that deploys and send token in 1 tx
-            this.fundAirdropBtn.disabled = true
-            this.deployAirDropBtn.disabled = true
-            await this.#showDropBuilderPageIndex(currentPage - 1)
-        } else if (currentPage !== -1) {
-            await this.#showDropBuilderPageIndex(currentPage - 1)
-        }
-
-    }
-
 
 
     /**
@@ -393,97 +595,7 @@ export class DropBuilder {
         elements.forEach((el) => el.style.display = this.originalElementDisplayValues[el.id])
     }
 
-    async #showDropBuilderPageEl(element) {
-        //TODO cleanup and do in showDropBuilderPageIndex
-        if (this.criteriaBuilderEl.id === element.id) {
-            await this.#showDropBuilderPageIndex(-1)
-
-        } else {
-            const pageIndex = this.dropBuilderPages.findIndex((el) => el.id === element.id)
-            if (pageIndex === -1) {
-                throw Error(`element id ${element.id} is not in dropBuilderPages array: ${this.dropBuilderPages.map((x) => x.id)}`)
-            }
-            await this.#showDropBuilderPageIndex(pageIndex)
-        }
-
-        if (this.deploymentEl.id === element.id) {
-            this.setTotalsOverViewInfo()
-            this.notEnoughTokensEl.hidden = true
-            this.progressProofGenEl.innerText = ""
-            this.merkleBuilder = undefined
-            this.claimDataIpfs = undefined
-        }
-
-        if (this.giveDropToDevsEl.id === element.id) {
-            const devsMiladyId = "6999"
-            const miladyContractAddress = "0x5Af0D9827E0c53E4799BB226655A1de152A425a5"
-            const nftDisplayEl = await this.#createSingleNftDisplay(miladyContractAddress, devsMiladyId)
-            nftDisplayEl.className = "devsMilady"
-            document.getElementById("giveDropToDevsNftDisplay").append(nftDisplayEl)
-        }
-    }
-
-    async #showDropBuilderPageIndex(page) {
-        if (this.dropBuilderPages[page] === this.dropBuilderConflictsEl) {
-            this.conflictResolutionSelector.value = "selectMethod"
-            await this.removeConflictResolutionCriteria()
-
-        }
-        if (page === -1) {
-            this.#setDisplayStyleOfElements([this.dropBuilderEl, ...this.dropBuilderPages], "none")
-            this.#resetDisplayStyleOfElements([this.criteriaBuilderEl])
-        } else {
-            const otherPages = this.dropBuilderPages.toSpliced(page, 1)
-            this.#setDisplayStyleOfElements([this.criteriaBuilderEl, ...otherPages], "none")
-            this.#resetDisplayStyleOfElements([this.dropBuilderEl, this.dropBuilderPages[page]])
-        }
-    }
-
-
-
-
-    //TODO clean this mess up
-    async toggleFinalizeDropView(forceConflictResPage=false) {
-        if (this.dropBuilderEl.style.display === "none" || forceConflictResPage===true) {
-            //toggle display
-            await this.#showDropBuilderPageEl(this.dropBuilderConflictsEl)
-
-            //remove data created when users goes back and returns
-            this.conflictResolutionSelector.value = "selectMethod"
-            this.removeConflictResolutionCriteria()
-
-            //process data
-            const validCriteria = this.criteriaBuilder.criteria.filter((criterion) => this.#isValidCriterion(criterion))
-            this.criteriaPerIds = this.getCriteriaPerId(validCriteria)
-
-            //displayduplicates
-            if (validCriteria.length) {
-                var duplicates = this.getIdsWithDuplicateCriteria(this.criteriaPerIds)
-                var amountOfDuplicates = Object.keys(duplicates).reduce((total, collection) => total += Object.keys(duplicates[collection]).length, 0)
-            }
-
-            if (validCriteria.length && amountOfDuplicates > 0) {
-                await this.displayDuplicates(duplicates)
-            } else {
-                //go to next step
-                this.criteriaPerIdNoConflicts = this.criteriaPerIds
-                await this.#confirmConflictResolutionHandler()
-            }
-
-        } else {
-            //toggle display
-            await this.#showDropBuilderPageEl(this.criteriaBuilderEl)
-
-            // this.#setDisplayStyleOfElements([this.dropBuilderEl, this.distrobutionOverViewEl, this.dropBuilderConflictsEl], "none")
-            // this.#resetDisplayStyleOfElements([this.criteriaBuilderEl])
-
-            //rerun filter
-            if (this.criteriaBuilder.filterBuilder) {
-                this.criteriaBuilder.filterBuilder.runFilter()
-            }
-        }
-    }
-
+    
 
     /**
      * returns the criteria that includes a specific id by collection
@@ -521,7 +633,7 @@ export class DropBuilder {
     }
 
     async displayDuplicates(duplicates) {
-        await this.#showDropBuilderPageEl(this.dropBuilderConflictsEl)
+        //await this.#selectDropBuilderPageEl(this.conflictsResolutionEl)
 
         //display
         for (const rawCollectionAddress in duplicates) {
@@ -763,7 +875,6 @@ export class DropBuilder {
             for (const collection of Object.keys(criteriaPerIdsOnlyDuplicates)) {
                 this.criteriaForConflictResolution[collection] = []
                 const ids = Object.keys(criteriaPerIdsOnlyDuplicates[collection]).map((id) => parseInt(id))
-                console.log(ids)
 
                 for (const id of ids) {
                     //track excluded ids and criteria indexes
@@ -787,7 +898,6 @@ export class DropBuilder {
                         const allCriterionNames = criteriaIndexesOfId.reduce((name, index) => {
                             return name += `${this.criteriaBuilder.criteria[index].name}-`
                         }, "").slice(0, -1)
-                        console.log(allCriterionNames)
                         const name = `overlappingCriteria-${allCriterionNames}`
                         await this.criteriaBuilder.updateCriterionName(newCriterion.index, name)
                         this.criteriaBuilder.filterBuilder.changeFilterName(name, newCriterion.selectedFilter.index)
@@ -943,7 +1053,6 @@ export class DropBuilder {
         const percentTotal = 100 * (parseFloat(totalAmount) / parseFloat(totalAirdrop))
         const percentPerItem = 100 * (parseFloat(amountPerItem) / parseFloat(totalAirdrop))
         let precentPerItem
-        console.log(totalAmount)
         if (totalAmount) {
             precentPerItem = 100 * (parseFloat(amountPerItem) / parseFloat(totalAirdrop))
 
@@ -998,7 +1107,6 @@ export class DropBuilder {
             const sel = window.getSelection();
 
             const textLen = element.innerText.length
-            console.log(prevCursorPos, textLen, prevCursorPos > textLen)
             if (prevCursorPos > textLen || prevCursorPos < 0) {
                 range.setStart(element.childNodes[0], textLen);
             } else {
@@ -1259,18 +1367,8 @@ export class DropBuilder {
     async #confirmConflictResolutionHandler() {
         if (this.criteriaPerIdNoConflicts) {
             //clear previous elements incase there are some
-            this.criteriaTableEl.querySelectorAll(".criteriaTableItem").forEach((el) => el.outerHTML = "")
-            this.#resetDisplayStyleOfElements([this.distrobutionOverViewEl])
-            this.#setDisplayStyleOfElements([this.dropBuilderConflictsEl], "none")
-            let tableRows = []
-            const totalAirdrop = this.getTotalAirdrop()
-            for (const criterion of this.criteriaBuilder.criteria) {
-                const row = this.#createCriterionOverviewTableItems(criterion, totalAirdrop)
-                Promise.resolve(row).then((result) => this.criteriaTableEl.append(...result))
-                tableRows.push(row)
-            }
+            this.#selectDropBuilderPageEl(this.giveDropToDevsEl)
 
-            tableRows = await Promise.all(tableRows)
             //this.criteriaTableEl.append(...tableRows.flat())
         } else {
             throw new Error(`whoops tried to go to the next step but this.criteriaPerIdNoConflicts was set to: ${this.criteriaPerIdNoConflicts}`)
