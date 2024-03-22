@@ -641,6 +641,7 @@
 
     #giveDropToDevsNftDisplay{
         height: 40vh;
+        width: calc(40vh* 0.8);
     }
 
     #giveDropToDevs {
@@ -659,6 +660,19 @@
         width: 100%;
     }
 
+    #amountDevGiftPercentSlider {
+        width: 17em;
+        display: inline-block;
+    }
+
+    #amountDevGiftForm {
+        min-width: fit-content;
+
+    }
+    
+    #devGiftAmount {
+        width: 8em;
+    }
 
 </style>
 
@@ -966,7 +980,34 @@
         <div id="giveDropToDevsNftDisplay">
 
         </div>
-        <button id="giveDropToDevsNo">no >:(</button><button id="giveDropToDevsYes">yes :)</button>
+        <div id="amountDevGiftForm">
+            <div id="amountDevGiftPercentSlider">
+                <label>set percent: 
+                    <input type="range" id="devGiftPercentRange" value="0.5" min="0.1" max="2" step="0.01" oninput="devGiftPercentRangeDisplay.value = devGiftPercentRange.value">
+                    <output id="devGiftPercentRangeDisplay">0.5</output>%
+                </label>
+            </div>
+            <br>
+            <div disabled>
+                <label >set amount:  
+                    <input type="number" id="devGiftAmount" name="devGiftAmount" min="0"/>
+                </label>
+            </div>
+            <label>
+
+                <select name="devGiftAddingMethod" id="devGiftAddingMethod" value="add">
+                <option value="add">add to total</option>
+                <option value="dog">take from total</option>
+                </select>
+            </label>
+                            
+            <br>
+
+            <button id="giveDropToDevsNo">no >:(</button><button id="giveDropToDevsYes">yes :)</button>
+        </div>
+
+        
+        
 
     </div>
 

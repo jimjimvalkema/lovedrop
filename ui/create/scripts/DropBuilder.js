@@ -77,6 +77,9 @@ export class DropBuilder {
 
     checkEnoughTokensBtn = document.getElementById("checkEnoughTokens")
 
+    devGiftPercentInput = document.getElementById("devGiftPercentRange")
+    devGiftAmountInput = document.getElementById("devGiftAmount")
+
 
     notEnoughTokensEl = document.getElementById("notEnoughTokens")
     amountOfDuplicates=0
@@ -115,6 +118,8 @@ export class DropBuilder {
         //criteria overview buttpm
         this.finalizeDropButton.addEventListener("click", (event) => this.#selectDropBuilderPageEl(this.conflictsResolutionEl))//this.#showDropBuilderPageEl(this.dropBuilderConflictsEl))
 
+        this.devGiftPercentInput.addEventListener("change", (event)=>this.#giftDevPercentSliderHandler(event))
+        this.devGiftAmountInput.addEventListener("change", (event)=>this.#giftDevAmountHandler(event))
         this.giveDropToDevsNoBtn.addEventListener("click", (event) => this.#selectDropBuilderPageEl(this.distrobutionOverViewEl))
         this.giveDropToDevsYesBtn.addEventListener("click", (event) => this.#selectDropBuilderPageEl(this.distrobutionOverViewEl))
 
@@ -1094,7 +1099,7 @@ export class DropBuilder {
 
         perItemElement.addEventListener("input", (event) => this.#updateCriterionAmountPerItemElement(event, criterion, perItemElement))
         totalElement.addEventListener("input", (event) => this.#updateCriterionTotalAmount(event, criterion, totalElement))
-        totalPercentElement.addEventListener("input", (event)=> this.#updateCriterionTotalAmountPercent(event, criterion, totalPercentElement))
+        totalPercentElement.addEventListener("input", (event)=> this.#updateCriterionTotalAmountPercentHandler(event, criterion, totalPercentElement))
         return amountElement
     }
 
@@ -1184,8 +1189,10 @@ export class DropBuilder {
      * @param {CriteriaBuilder.criterionFormat} criterion TODO criteriontype
      * @param {HTMLElement} totalAmountPercentElement 
      */
-    #updateCriterionTotalAmountPercent(event, criterion, totalAmountPercentElement, units=this.erc20Units) {
+    #updateCriterionTotalAmountPercentHandler(event, criterion, totalAmountPercentElement, units=this.erc20Units) {
         //get prevPercentage
+        //TODO this is calculated twice (also inside updateCriterionTotalAmountByPercent())
+        //but not that its not that intense (accept for the getTotalAirdrop() call)
         const amountOfItems = BigInt((criterion.ids.length - criterion.excludedIds.length))
         const prevTotalAmount = amountOfItems * ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
         const prevTotalDrop = this.getTotalAirdrop()
@@ -1202,7 +1209,18 @@ export class DropBuilder {
         } else if (newTotalAmountPercent>99.999) {
             this.#resetInputValue(totalAmountPercentElement, "99.99", units)
             newTotalAmountPercent=99.99
-        } 
+        }   
+
+        this.updateCriterionTotalAmountByPercent(newTotalAmountPercent, criterion)
+
+        
+    }
+
+    updateCriterionTotalAmountByPercent(newTotalAmountPercent, criterion) {
+        const amountOfItems = BigInt((criterion.ids.length - criterion.excludedIds.length))
+        const prevTotalAmount = amountOfItems * ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
+        const prevTotalDrop = this.getTotalAirdrop()
+        const prevPercentage = this.#roundNumber((parseFloat(prevTotalAmount)/parseFloat(prevTotalDrop))*100,4)
 
         //calculate new criterion.amountPerItem 
         const newTotalAmount = BigInt(parseFloat(prevTotalDrop) * (newTotalAmountPercent/100))
@@ -1212,7 +1230,7 @@ export class DropBuilder {
 
         const otherCriteria = this.criteriaBuilder.criteria.filter((otherCriterion) => otherCriterion !== criterion) 
         //make sure it's a new value 
-        //(some times can still be different because of rounding error totalAmountDifference)
+        //(sometimes can still be different because of rounding error totalAmountDifference)
         if (newTotalAmountPercent !== prevPercentage.toString()) {
             //set selected criterion
             criterion.amountPerItem = ethers.formatUnits(newTotalAmount / amountOfItems, this.erc20Units)
@@ -1248,6 +1266,33 @@ export class DropBuilder {
         console.log("total amount items in drop: ", totalAmountItems)
     }
 
+
+    #giftDevPercentSliderHandler(event) {
+        const percentage = parseFloat(event.target.value)
+        const totalDrop = ethers.formatUnits(this.getTotalAirdrop(), this.erc20Units)
+        console.log(totalDrop)
+        this.devGiftAmountInput.value = totalDrop * percentage/100
+
+    }
+
+    #giftDevAmountHandler(event) {
+        const amount = parseFloat(event.target.value)
+        const totalDrop = ethers.formatUnits(this.getTotalAirdrop(), this.erc20Units)
+        const percent = amount/totalDrop*100
+        if (percent < 2) {
+            this.devGiftPercentInput.value = percent
+
+        } else {
+            this.devGiftAmountInput.value = totalDrop * 2/100
+            this.devGiftPercentInput.value =  "2"
+        
+
+        }
+        document.getElementById("devGiftPercentRangeDisplay").innerText = this.devGiftPercentInput.value 
+        //this.devGiftAmountInput.dispatchEvent(new Event("change"))
+
+        
+    }
 
     #splitAmountOverCriteria({ criteria= this.criteriaBuilder.criteria , amount, units=this.erc20Units}) {
         //TODO rounding error might be significant
@@ -1297,12 +1342,18 @@ export class DropBuilder {
             //TODO totall is mispelled as total (amountTotal, amountTotallPercentage)
             const classNames = ["amountPerItem", "amountTotall", "amountTotallPercentage", "amountPerItemPercentage"]
             const amountsElement = document.getElementsByClassName(`amountsCriterion ${criterion.index}`)[0]
-            for (const className of classNames) {
-                if (!skipClasses.includes(className)) {
-                    amountsElement.getElementsByClassName(className)[0].innerText = formattedValuesPerClass[className]
+            if (amountsElement) {
+                for (const className of classNames) {
+                    if (!skipClasses.includes(className)) {
+                        amountsElement.getElementsByClassName(className)[0].innerText = formattedValuesPerClass[className]
+                    }
+    
                 }
 
+            } else {
+                console.info(`"amountsCriterion ${criterion.index}" element wasn't found`)
             }
+
         }
     }
 
