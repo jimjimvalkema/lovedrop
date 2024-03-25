@@ -304,7 +304,7 @@ export class NftDisplay {
         for (const [index, id] of idsCurrentPage.entries()) {
             
             const imageDiv = this.imageRasterElement.querySelectorAll(`.rootDiv-${id}-${this.collectionAddress}`)[0]
-            let results = divFunctions.map((x)=>x(id, this))
+            let results = divFunctions.map(async (x)=>x(id, this))
             for (const result of results) {
                 allResults.push(result)
                 Promise.resolve(result).then((r) => {
@@ -395,7 +395,7 @@ export class NftDisplay {
 
     }
 
-    async #cancelLoadingImage(imgElement) {
+    #cancelLoadingImage(imgElement) {
         //TODO maybe cancel nftMetaDataCollector.getImage() with signals?
         //getImage can be slow which means the img.src isnt set for a while
         //let imgElement = document.getElementById(elementId) 
@@ -529,6 +529,7 @@ export class NftDisplay {
         max-height: calc(100% - ${imagesBorderWidth} * 2 - 0.4em); 
         width: calc(100% - ${imagesBorderWidth} * 2 - 0.4em); 
         height: fit-content;
+        min-width: fit-content;
         
        
         `//css seems to think a 100% max-height is larger then it actually is. i think it forgets to add the borders and margin but not sure 
@@ -559,6 +560,7 @@ export class NftDisplay {
             imgRootDiv.append(imageDiv)
             this.imageRasterElement.append(imgRootDiv)
         }
+
 
         const remainder = idsCurrentPage.length%rowSize
         let emptyItems = 0
@@ -738,10 +740,10 @@ export class NftDisplay {
 
     displayNames({redirect}={redirect:false}) {
         if (redirect) {
-            const nftNameWithOpenSeaProRedirect = (id)=>this.#nftNameWithOpenSeaProRedirect(id)
+            const nftNameWithOpenSeaProRedirect = async (id)=>this.#nftNameWithOpenSeaProRedirect(id)
             this.divFunctions.push(nftNameWithOpenSeaProRedirect)
         } else {
-            const nftName = (id)=>this.#nftName(id)
+            const nftName = async (id)=>this.#nftName(id)
             this.divFunctions.push(nftName)
         }
     }
