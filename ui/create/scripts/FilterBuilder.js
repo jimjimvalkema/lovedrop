@@ -137,10 +137,12 @@ export class FilterBuilder {
     }
 
     async setCollectionAddress(addres, updateUi=false) {
+        
         if (!addres) {
             console.warn("collection address not set")
             return
         }
+        console.warn("filter builder has new collection address ",  ethers.getAddress(addres), "prev: ", this.collectionAddress)
         //set defaults if not exist
         this.collectionAddress = ethers.getAddress(addres)
         if (!(this.collectionAddress in this.filtersPerCollection)) {
@@ -164,7 +166,7 @@ export class FilterBuilder {
                 ipfsGateway: this.ipfsGateway,
                 nftMetaData: nftMetaData
             })
-            this.NftDisplay.displayNames({redirect:true})
+            await this.NftDisplay.displayNames({redirect:true})
             await this.NftDisplay.showAttributes()
 
             await this.reinitializeUi()
@@ -189,7 +191,7 @@ export class FilterBuilder {
             const currentFilter = this.getCurrentFilter()
     
             for (const func of this.onfilterChangeFunc) {
-                func(currentFilter, ids)
+                await func(currentFilter, ids)
             }
 
         }
@@ -715,7 +717,13 @@ export class FilterBuilder {
         }
         let filters = this.getFiltersOfCollection()
         filters = this.#setFilterIndexes(filters)
-        this.changeCurrentFilter(currentFilters.length-1)
+        if (currentFilters.length) {
+            await this.changeCurrentFilter(currentFilters.length-1)
+        } else {
+            const newFilter = await this.createNewFilter("AND")
+            await this.changeCurrentFilter(newFilter.index)
+        }
+        
 
         await this.#onFilterChange()
     }
@@ -728,6 +736,7 @@ export class FilterBuilder {
 
         if(updateUi) {
             document.getElementById("filterSelectorInput").value = index
+            console.log("waaa filtername", currentFilter)
             document.getElementById("filterNameInput").value = currentFilter.filterName
             document.getElementById("filterTypeSelectorInput").value = currentFilter.type
             this.#updateAllFilterTotalsUi()
@@ -1001,7 +1010,7 @@ export class FilterBuilder {
             numberInput.min = idsPerAttribute[traitType].min
             numberInput.max = idsPerAttribute[traitType].max
             numberInput.id = `${traitType}-${this.collectionAddress}`
-            numberInput.addEventListener("keypress", (event) => this.#attributeAddButtonHandler(traitType, numberInput.value, dropDownDiv, event));
+            numberInput.addEventListener("keypress", async (event) => this.#attributeAddButtonHandler(traitType, numberInput.value, dropDownDiv, event));
             
             const label = document.createElement("label")
             label.for = numberInput.id
@@ -1009,7 +1018,7 @@ export class FilterBuilder {
 
             const button = document.createElement("button")
             button.innerText = "add"
-            button.addEventListener("click", (event)=>this.#attributeAddButtonHandler(traitType, numberInput.value, dropDownDiv, event))
+            button.addEventListener("click", async (event)=>this.#attributeAddButtonHandler(traitType, numberInput.value, dropDownDiv, event))
             dropDownDiv.append(label, numberInput, button)
 
         } else if(dataType === "string") {

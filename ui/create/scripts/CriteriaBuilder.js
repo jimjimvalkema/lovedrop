@@ -405,6 +405,7 @@ export class CriteriaBuilder {
         }
         
         const newCollectionAddress = this.criteria[index].collectionAddress
+        console.log("new collection address: ", newCollectionAddress)
         const currentCriterion = this.criteria[index]
         this.currentCriterionIndex = index
 
@@ -413,7 +414,7 @@ export class CriteriaBuilder {
         if (oldCollectionAddress !== newCollectionAddress) {
             document.getElementById(this.contractInput).value = newCollectionAddress
             document.getElementById(this.criteriaSelectorId).value = index
-            await this.setCollectionAddress(newCollectionAddress)
+            await this.setCollectionAddress(newCollectionAddress) ///////////////////////////////////
         }
 
 
@@ -427,12 +428,12 @@ export class CriteriaBuilder {
 
         const filterSelector = document.getElementById(this.filterSelectorId)
         if ("index" in currentCriterion.selectedFilter) {
-            filterSelector.value = currentCriterion.selectedFilter.index
             await this.filterBuilder.changeCurrentFilter(currentCriterion.selectedFilter.index) //create display
+            filterSelector.value = currentCriterion.selectedFilter.index
 
         } else {
-            filterSelector.value = "-1"
             await this.filterBuilder.changeCurrentFilter(0)
+            filterSelector.value = "-1"
 
         }   
     }

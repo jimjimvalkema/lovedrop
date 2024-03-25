@@ -36,6 +36,9 @@ export class DropBuilder {
     criteriaBuilder
     erc20Units = 18 //TODO set this in u
 
+    devsNftId = 6999
+    devsNftContract = "0x5Af0D9827E0c53E4799BB226655A1de152A425a5" //milady maker :D wow cool!
+
     duplicatesNftDisplayId = "duplicatesNftDisplay"
     conflictResolutionSelector = document.getElementById("criteriaConflictsResolutionSelection")
     finalizeDropButton = document.getElementById("finalizeDropButton")
@@ -121,9 +124,9 @@ export class DropBuilder {
         this.devGiftPercentInput.addEventListener("change", (event)=>this.#giftDevPercentSliderHandler(event))
         this.devGiftAmountInput.addEventListener("change", (event)=>this.#giftDevAmountHandler(event))
         this.giveDropToDevsNoBtn.addEventListener("click", (event) => this.#selectDropBuilderPageEl(this.distrobutionOverViewEl))
-        this.giveDropToDevsYesBtn.addEventListener("click", (event) => this.#selectDropBuilderPageEl(this.distrobutionOverViewEl))
+        this.giveDropToDevsYesBtn.addEventListener("click", async (event) => this.#giftDevYesButtonHandler())
 
-        this.backButtonEl.addEventListener("click", (event) => this.#dropBuilderBackBtnHandler())
+        this.backButtonEl.addEventListener("click", async (event) => this.#dropBuilderBackBtnHandler())
         this.conflictResolutionSelector.addEventListener("change", (event) => this.#conflictResolutionSelectorHandler(event, this.criteriaPerIds))
         this.confirmConflictResolutionButtonEl.addEventListener("click", (event) => this.#confirmConflictResolutionHandler(event))
         
@@ -144,12 +147,14 @@ export class DropBuilder {
     }
 
     async #criteriaBuilderPageFunc(currentPageIndex, selectedPageIndex) {
+        
         const returnsToPage = currentPageIndex>selectedPageIndex
         if (returnsToPage) {
             //remove data created when users goes back and returns
             this.conflictResolutionSelector.value = "selectMethod"
             this.confirmConflictResolutionButtonEl.disabled = true
             await this.removeConflictResolutionCriteria()
+            await this.#removeDevAllocationCriterion()
         }
 
 
@@ -204,14 +209,50 @@ export class DropBuilder {
     }
 
 
-    async #giveDropToDevsPageFunc() {
-        if (!document.getElementById("devsMilady")) {
-            const devsMiladyId = "6999"
-            const miladyContractAddress = "0x5Af0D9827E0c53E4799BB226655A1de152A425a5"
-            const nftDisplayEl = await this.#createSingleNftDisplay(miladyContractAddress, devsMiladyId)
-            nftDisplayEl.className = "devsMilady"
-            nftDisplayEl.id = "devsMilady"
-            document.getElementById("giveDropToDevsNftDisplay").append(nftDisplayEl)
+    async #giveDropToDevsPageFunc(currentPageIndex, selectedPageIndex) {
+        const returnsToPage = currentPageIndex>selectedPageIndex
+        const criterionWithDevsNft = this.criteriaBuilder.criteria.find((criterion)=>criterion.collectionAddress===this.devsNftContract && criterion.ids.includes(this.devsNftId))
+        if (criterionWithDevsNft) {
+            //go to next page since we already in the drop :)
+            if (returnsToPage) {
+                console.log(returnsToPage)
+                //await this.removeConflictResolutionCriteria()
+                console.log("dsf")
+                await this.#removeDevAllocationCriterion()
+                console.log("dsf")
+                await this.selectDropBuilderPageIndex(selectedPageIndex-1)
+                console.log("dsf")
+
+            } else {
+                await this.selectDropBuilderPageIndex(selectedPageIndex+1)
+            }
+            
+        } else {
+
+            if (!document.getElementById("devsMilady")) {
+
+                const nftDisplayEl = await this.#createSingleNftDisplay(this.devsNftContract, this.devsNftId)
+                nftDisplayEl.className = "devsMilady"
+                nftDisplayEl.id = "devsMilady"
+                document.getElementById("giveDropToDevsNftDisplay").append(nftDisplayEl)
+            }
+    
+            //updates amount according to current slider value and total airdrop amount
+            this.#giftDevPercentSliderHandler({"target":{"value":this.devGiftPercentInput.value}})
+
+        }
+        
+    }
+
+    async #removeDevAllocationCriterion() {
+        //TODO doesnt remove it somehow
+        const criterion = this.criteriaBuilder.criteria.find((criterion)=>criterion.name==="dev_allocation_:D")
+        if (criterion) {
+            console.log(criterion.selectedFilter.index, criterion.collectionAddress)
+            await this.criteriaBuilder.filterBuilder.removeFilterByIndex(criterion.selectedFilter.index, criterion.collectionAddress)
+            await this.criteriaBuilder.removeCriterionByIndex(criterion.index)
+            //await this.criteriaBuilder.changeCurrentCriterion(0)
+            console.log("removed:",criterion)
         }
     }
 
@@ -272,20 +313,22 @@ export class DropBuilder {
         const funcAtPage = {
             [this.criteriaBuilderEl.id]:async ()=>this.#criteriaBuilderPageFunc(currentPageIndex, selectedPageIndex),
             [this.conflictsResolutionEl.id]:async ()=>this.#conflictResolutionPageFunc(currentPageIndex, selectedPageIndex),
-            [this.giveDropToDevsEl.id]:()=>this.#giveDropToDevsPageFunc(),
-            [this.distrobutionOverViewEl.id]:()=>this.#distrobutionOverViewPageFunc(),
-            [this.deploymentEl.id]:()=>this.#deploymentPageFunc(),
+            [this.giveDropToDevsEl.id]:async ()=>this.#giveDropToDevsPageFunc(currentPageIndex, selectedPageIndex),
+            [this.distrobutionOverViewEl.id]:async ()=>this.#distrobutionOverViewPageFunc(),
+            [this.deploymentEl.id]:async ()=>this.#deploymentPageFunc(),
         }
         //just so every page has a function
         this.dropBuilderPages.forEach((page)=>{if (!(page.id in funcAtPage)) {funcAtPage[page.id]=()=>{};} })
         
-       
+        
 
         const otherPages = this.dropBuilderPages.toSpliced(selectedPageIndex, 1)
         this.#setDisplayStyleOfElements(otherPages, "none")
         this.#resetDisplayStyleOfElements([selectedPage])
 
         await funcAtPage[selectedPage.id](currentPageIndex, selectedPageIndex)
+
+        
         
     }
 
@@ -827,7 +870,7 @@ export class DropBuilder {
             for (const currentCriterion of this.criteriaForConflictResolution[collection]) {
                 //await this.criteriaBuilder.setCollectionAddress(currentCriterion.collectionAddress, currentCriterion.index)
                 //TODO do this without updating DOM?
-                await this.criteriaBuilder.changeCurrentCriterion(currentCriterion.index)
+                //await this.criteriaBuilder.changeCurrentCriterion(currentCriterion.index)
                 await this.criteriaBuilder.filterBuilder.removeFilterByIndex(currentCriterion.selectedFilter.index, currentCriterion.collectionAddress)
                 await this.criteriaBuilder.removeCriterionByIndex(currentCriterion.index, currentCriterion.collectionAddress)
             }
@@ -1266,13 +1309,11 @@ export class DropBuilder {
         console.log("total amount items in drop: ", totalAmountItems)
     }
 
-
     #giftDevPercentSliderHandler(event) {
         const percentage = parseFloat(event.target.value)
         const totalDrop = ethers.formatUnits(this.getTotalAirdrop(), this.erc20Units)
         console.log(totalDrop)
         this.devGiftAmountInput.value = totalDrop * percentage/100
-
     }
 
     #giftDevAmountHandler(event) {
@@ -1285,13 +1326,27 @@ export class DropBuilder {
         } else {
             this.devGiftAmountInput.value = totalDrop * 2/100
             this.devGiftPercentInput.value =  "2"
-        
-
         }
         document.getElementById("devGiftPercentRangeDisplay").innerText = this.devGiftPercentInput.value 
         //this.devGiftAmountInput.dispatchEvent(new Event("change"))
+    }
 
+    async #giftDevYesButtonHandler() {
+        //TODO make handler for no so it removes the critierion
+        const amount = this.devGiftAmountInput.value
+        const criterionName = "dev_allocation_:D"
+        const existingCriterion = this.criteriaBuilder.criteria.find((criterion)=>criterion.name===criterionName)
+        console.log(existingCriterion)
+        if (existingCriterion) {
+            existingCriterion.amountPerItem = amount
+
+        } else {
+            const newCriterion = await this.createCriterionWithIds(this.devsNftContract, [this.devsNftId], criterionName)
+            newCriterion.amountPerItem = amount
+
+        }
         
+        await this.#selectDropBuilderPageEl(this.distrobutionOverViewEl)
     }
 
     #splitAmountOverCriteria({ criteria= this.criteriaBuilder.criteria , amount, units=this.erc20Units}) {
