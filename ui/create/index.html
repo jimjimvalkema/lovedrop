@@ -138,10 +138,10 @@
         width: 98%; */
 
         grid-template-rows: minmax(auto, max-content) minmax(auto, max-content);
-        grid-template-columns: minmax(auto, 17em) minmax(auto, max-content) minmax(auto, max-content) minmax(auto, max-content) 1fr;
+        grid-template-columns: minmax(15em, auto) minmax(auto, auto) minmax(auto, max-content) minmax(auto, max-content) minmax(auto, max-content) 1fr;
         grid-template-areas:
-            "criteriaManager filterselector  filterIncludedInputs filterExcludedInputs finalizeDrop"
-            "filterInputSelecter nftDisplay nftDisplay nftDisplay nftDisplay"
+            "criteriaManager criteriaManager filterselector  filterIncludedInputs filterExcludedInputs finalizeDrop"
+            "filterInputSelecter nftDisplay nftDisplay nftDisplay nftDisplay nftDisplay"
 
         ;
 
@@ -160,6 +160,7 @@
         grid-area: filterselector;
         border: solid;
         width: fit-content;
+        min-width: max-content;
     }
 
 
@@ -294,7 +295,7 @@
         position: relative;
         height: 1em;
         /* min-width: 8em; */
-        width: 12em;
+        width: calc( var(--criteriaInputWidth) + 4.5em);
         /* overflow: hidden; */
         text-align: left;
 
@@ -324,14 +325,20 @@
         line-height: 1.5em;
     }
 
+    :root {
+        --criteriaInputWidth: max(11vw, 7em);
+    }
+
     #criteriaManager input {
-        width: 7.05em;
+        /* width: 14.05em; */
+        width: calc(var(--criteriaInputWidth) );
         text-overflow: ellipsis;
         overflow: hidden;
     }
 
     #criteriaManager select {
-        width: 7.45em;
+        /* width: 14.45em; */
+        width: calc(var(--criteriaInputWidth) + 0.44em);
         text-overflow: ellipsis;
         overflow: hidden;
     }
@@ -350,7 +357,7 @@
     .alignTextRight {
         float: right;
         text-align: right;
-        width: fit-content;
+        width: max-content;
 
     }
 
@@ -377,10 +384,11 @@
     #finalizeDrop {
         display: grid;
         border-style: solid;
+        max-width: 20em;
     }
 
     #finalizeDropButton {
-        font-size: 1.5em;
+        font-size: 2em;
         place-self: center;
 
     }
@@ -801,30 +809,6 @@
 
         </div>
 
-        <div id="filterInputSelecter" class="border">
-            <div id="inputTypeSelecter">
-                <div class="boldTitel">Inputs</div>
-                <select name="inclusionSelectionInput" id="inclusionSelectionInput">
-                    <option value="inputs">include</option>
-                    <option value="NOT">exclude</option>
-                </select>
-
-                <select name="inputTypeSelecterInput" id="inputTypeSelecterInput">
-
-                    <option value="attributes">attribute</option>
-                    <option value="conditions">filter</option>
-                    <option value="idList">id</option>
-
-
-
-                </select>
-
-            </div>
-            <span hidden id="messageProgress"></span>
-            <div id="inputSelecter">
-            </div>
-        </div>
-
         <div id="filterselector" class="border">
             <span class="boldTitel">Filters</span><br>
             <label>name: <input class="nameInput" id="filterNameInput" type="text" value=""
@@ -914,8 +898,33 @@
         <!-- </div> -->
 
         <div id="finalizeDrop" class="border">
-            <button id="finalizeDropButton">criteria overview</button>
+            <div class="boldTitel">Overview</div>
+            <button id="finalizeDropButton" disabled title="please give every criterion a nft contract address">next</button>
 
+        </div>
+
+        <div id="filterInputSelecter" class="border">
+            <div id="inputTypeSelecter">
+                <div class="boldTitel">Inputs</div>
+                <select name="inclusionSelectionInput" id="inclusionSelectionInput">
+                    <option value="inputs">include</option>
+                    <option value="NOT">exclude</option>
+                </select>
+
+                <select name="inputTypeSelecterInput" id="inputTypeSelecterInput">
+
+                    <option value="attributes">attribute</option>
+                    <option value="conditions">filter</option>
+                    <option value="idList">id</option>
+
+
+
+                </select>
+
+            </div>
+            <span hidden id="messageProgress"></span>
+            <div id="inputSelecter">
+            </div>
         </div>
 
 
@@ -1012,7 +1021,7 @@
     </div>
 
     <div id="distrobutionOverView" class="border dropBuilder">
-        <div class="boldTitel">final distribution </div>
+        <div class="boldTitel">Final distribution </div>
         <div id="criteriaOverviewTable">
             <div class="criteriaTableHeader">
                 <div>criteria</div>
@@ -1048,7 +1057,7 @@
     
             <br>
             <div id="totalsOverview" class="border" hidden>
-                <div class="boldTitel">Confirm</div>
+                <div class="boldTitel">Deployment</div>
                 <br>
                 <div id="airdropDistrobutionOverview">
                     <div class="bold">Airdrop</div>
