@@ -29,6 +29,8 @@ export class CriteriaBuilder {
 
     filterSelectorId = "criteriaFilterSelectorInput"
 
+    nextButton = document.getElementById("finalizeDropButton")
+
 
     criteriaMade = 0
 
@@ -208,6 +210,9 @@ export class CriteriaBuilder {
         
         }
 
+    
+
+
     async #setCollectionAddressHandler(event, inputId) {
         const value = this.#isValidSubmitEvent(event, inputId)
         //TODO check if nft contract
@@ -222,6 +227,8 @@ export class CriteriaBuilder {
         } 
 
     }
+
+    
 
     async setCollectionAddress(collectionAddress,criterionIndex=this.currentCriterionIndex, updateUi=true){
         collectionAddress = this.#handleAddressUserInput(collectionAddress)
@@ -253,7 +260,21 @@ export class CriteriaBuilder {
         }
 
         await this.updateCriterionName()
+        this.#toggleNextButton()
         
+    }
+
+    #toggleNextButton() {
+        const allCriterionAreValid = !Boolean(this.criteria.find((criterion)=>!this.isERC721(criterion.collectionAddress) || !criterion.collectionAddress ) )
+        console.log("toggling", allCriterionAreValid)
+        if (allCriterionAreValid) {
+            this.nextButton.disabled = false
+            this.nextButton.title = "Go to overview of all criteria (you can go back and make changes)"
+            console.log(this.nextButton)
+        } else {
+            this.nextButton.disabled = true
+        }
+
     }
 
     getCurrentCollectionAddress() {
@@ -365,7 +386,8 @@ export class CriteriaBuilder {
         this.currentCriterionIndex = newCriterionIndex
         this.criteriaMade += 1
         
-        newCriterion.name =  `NewCriterion#${this.criteriaMade}`
+        newCriterion.name =  `Criterion#${this.criteriaMade}`
+        //newCriterion.amountPerItem = "0"
         //newCriterion.collectionAddress = collectionAddress
         this.criteria.push(newCriterion)
 
@@ -473,6 +495,21 @@ export class CriteriaBuilder {
 
         const optionsToBeShifted = optionElements.filter((x)=>x.value>criterionIndex)
         optionsToBeShifted.forEach((x)=>x.value-=1)
+    }
+
+    async cleanupCriteria() {
+
+        //this.criteriaBuilder.criteria.filter((criterion)=>ethers.getAddress(criterion.collectionAddress))
+        
+        //set all criterion with no amountPerItem to 0
+        for (const criterion of this.criteria) {
+            console.log(criterion)
+            if (!this.isERC721(criterion.collectionAddress) || !criterion.collectionAddress) {
+                await this.removeCriterionByIndex(criterion.index)
+            } else if (isNaN(criterion.amountPerItem) || criterion.amountPerItem === "") {
+                criterion.amountPerItem = "0"
+            }
+        }
     }
 
 }

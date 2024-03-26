@@ -612,7 +612,7 @@ export class FilterBuilder {
         filter.index = index
         if (!("filterName" in filter) || !filter.filterName) {
             let filterCount = this.filtersMadePerCollectionCount[this.collectionAddress] +=1
-            filter.filterName = `NewFilter#${filterCount}`
+            filter.filterName = `Filter#${filterCount}`
         }
         return filter
     }

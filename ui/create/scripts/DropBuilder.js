@@ -180,6 +180,8 @@ export class DropBuilder {
             
             
         } else {
+            this.criteriaBuilder.cleanupCriteria()
+
             //remove data created when users goes back and returns
             this.conflictResolutionSelector.value = "selectMethod"
             this.confirmConflictResolutionButtonEl.disabled = true
