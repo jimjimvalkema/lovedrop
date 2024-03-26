@@ -142,7 +142,6 @@ export class FilterBuilder {
             console.warn("collection address not set")
             return
         }
-        console.warn("filter builder has new collection address ",  ethers.getAddress(addres), "prev: ", this.collectionAddress)
         //set defaults if not exist
         this.collectionAddress = ethers.getAddress(addres)
         if (!(this.collectionAddress in this.filtersPerCollection)) {
@@ -736,7 +735,6 @@ export class FilterBuilder {
 
         if(updateUi) {
             document.getElementById("filterSelectorInput").value = index
-            console.log("waaa filtername", currentFilter)
             document.getElementById("filterNameInput").value = currentFilter.filterName
             document.getElementById("filterTypeSelectorInput").value = currentFilter.type
             this.#updateAllFilterTotalsUi()
@@ -1112,9 +1110,9 @@ export class FilterBuilder {
                 checkBox.checked = true
 
             } else {
-                console.log(`attributeDropdown-${trait_type}-${this.collectionAddress}`)
+                //console.log(`attributeDropdown-${trait_type}-${this.collectionAddress}`)
                 const dropDownDiv = document.getElementById(`attributeDropdown-${trait_type}-${this.collectionAddress}`)
-                console.log(dropDownDiv)
+                //console.log(dropDownDiv)
                 if (dropDownDiv) {
                     const wrapper = this.#createAttributeCheckBox(idsPerAttribute,trait_type,value)
                     dropDownDiv.insertBefore(wrapper, dropDownDiv.lastElementChild)

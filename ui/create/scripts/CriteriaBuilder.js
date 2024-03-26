@@ -140,7 +140,6 @@ export class CriteriaBuilder {
         const value = document.getElementById(inputId).value
         //if ((event.key!=="Enter" && event.key!==undefined && value!==undefined)) {
         if ((event.key!=="Enter" && event.key!==undefined || value===undefined)) {
-            console.log(false)
             return false
         }else {
             return value
@@ -189,8 +188,7 @@ export class CriteriaBuilder {
 
     async isERC721(address) {
         //TODO move this to NftMetadataCollector)
-        console.log(ethers.isAddress(address))
-        console.log(ethers.isAddress(address))
+
         if(ethers.isAddress(address) && await this.isContract(address)) {
             const contract = new ethers.Contract(address, ERC721ABI, this.provider)
             try {
@@ -405,7 +403,6 @@ export class CriteriaBuilder {
         }
         
         const newCollectionAddress = this.criteria[index].collectionAddress
-        console.log("new collection address: ", newCollectionAddress)
         const currentCriterion = this.criteria[index]
         this.currentCriterionIndex = index
 
