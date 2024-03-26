@@ -62,6 +62,7 @@ export class DropBuilder {
 
     giveDropToDevsNoBtn = document.getElementById("giveDropToDevsNo")
     giveDropToDevsYesBtn = document.getElementById("giveDropToDevsYes")
+    devGiftMethodSelector = document.getElementById("devGiftAddingMethod")
 
     confirmDistrobutionBtn = document.getElementById("confirmDistrobutionBtn")
     airdropTokenContractAddressInput = document.getElementById("airdropTokenContractAddressInput")
@@ -154,7 +155,6 @@ export class DropBuilder {
             this.conflictResolutionSelector.value = "selectMethod"
             this.confirmConflictResolutionButtonEl.disabled = true
             await this.removeConflictResolutionCriteria()
-            await this.#removeDevAllocationCriterion()
         }
 
 
@@ -211,44 +211,43 @@ export class DropBuilder {
 
     async #giveDropToDevsPageFunc(currentPageIndex, selectedPageIndex) {
         const returnsToPage = currentPageIndex>selectedPageIndex
-        const criterionWithDevsNft = this.criteriaBuilder.criteria.find((criterion)=>criterion.collectionAddress===this.devsNftContract && criterion.ids.includes(this.devsNftId))
-        if (criterionWithDevsNft) {
-            //go to next page since we already in the drop :)
-            if (returnsToPage) {
-                console.log(returnsToPage)
-                //await this.removeConflictResolutionCriteria()
-                console.log("dsf")
-                await this.#removeDevAllocationCriterion()
-                console.log("dsf")
-                await this.selectDropBuilderPageIndex(selectedPageIndex-1)
-                console.log("dsf")
-
-            } else {
-                await this.selectDropBuilderPageIndex(selectedPageIndex+1)
-            }
-            
-        } else {
-
-            if (!document.getElementById("devsMilady")) {
-
-                const nftDisplayEl = await this.#createSingleNftDisplay(this.devsNftContract, this.devsNftId)
-                nftDisplayEl.className = "devsMilady"
-                nftDisplayEl.id = "devsMilady"
-                document.getElementById("giveDropToDevsNftDisplay").append(nftDisplayEl)
-            }
+        if (returnsToPage) {
+            const devAllocCriterion = this.criteriaBuilder.criteria.find((criterion)=>criterion.name==="dev_allocation_:D")
     
-            //updates amount according to current slider value and total airdrop amount
-            this.#giftDevPercentSliderHandler({"target":{"value":this.devGiftPercentInput.value}})
-
+            //await this.removeConflictResolutionCriteria()
+            if (devAllocCriterion) {
+                await this.#removeDevAllocationCriterion()
+            } else {
+                const criterionWithDevsNft = this.criteriaBuilder.criteria.find((criterion)=>criterion.collectionAddress===this.devsNftContract && criterion.ids.includes(this.devsNftId))
+                if (criterionWithDevsNft) {
+                    await this.selectDropBuilderPageIndex(selectedPageIndex-1)
+                }
+                
+            }
+        } else {
+            const criterionWithDevsNft = this.criteriaBuilder.criteria.find((criterion)=>criterion.collectionAddress===this.devsNftContract && criterion.ids.includes(this.devsNftId))
+            if (criterionWithDevsNft) {
+                //go to next page since we already in the drop :)
+                await this.selectDropBuilderPageIndex(selectedPageIndex+1)
+            } else {
+                // add devs milady image to page if not there
+                if (!document.getElementById("devsMilady")) {
+    
+                    const nftDisplayEl = await this.#createSingleNftDisplay(this.devsNftContract, this.devsNftId)
+                    nftDisplayEl.className = "devsMilady"
+                    nftDisplayEl.id = "devsMilady"
+                    document.getElementById("giveDropToDevsNftDisplay").append(nftDisplayEl)
+                }
+                //updates amount according to current slider value and total airdrop amount
+                this.#giftDevPercentSliderHandler({"target":{"value":this.devGiftPercentInput.value}})
+            }
         }
-        
     }
 
     async #removeDevAllocationCriterion() {
         //TODO doesnt remove it somehow
         const criterion = this.criteriaBuilder.criteria.find((criterion)=>criterion.name==="dev_allocation_:D")
         if (criterion) {
-            console.log(criterion.selectedFilter.index, criterion.collectionAddress)
             await this.criteriaBuilder.filterBuilder.removeFilterByIndex(criterion.selectedFilter.index, criterion.collectionAddress)
             await this.criteriaBuilder.removeCriterionByIndex(criterion.index)
             //await this.criteriaBuilder.changeCurrentCriterion(0)
@@ -1312,7 +1311,6 @@ export class DropBuilder {
     #giftDevPercentSliderHandler(event) {
         const percentage = parseFloat(event.target.value)
         const totalDrop = ethers.formatUnits(this.getTotalAirdrop(), this.erc20Units)
-        console.log(totalDrop)
         this.devGiftAmountInput.value = totalDrop * percentage/100
     }
 
@@ -1335,16 +1333,25 @@ export class DropBuilder {
         //TODO make handler for no so it removes the critierion
         const amount = this.devGiftAmountInput.value
         const criterionName = "dev_allocation_:D"
-        const existingCriterion = this.criteriaBuilder.criteria.find((criterion)=>criterion.name===criterionName)
-        console.log(existingCriterion)
-        if (existingCriterion) {
-            existingCriterion.amountPerItem = amount
+        let otherCriteria = []
+        const existingCriterionIndex = this.criteriaBuilder.criteria.findIndex((criterion)=>criterion.name===criterionName)
+        const oldTotal = this.getTotalAirdrop()
 
+        if (existingCriterionIndex!==-1) {
+            otherCriteria = this.criteriaBuilder.criteria.toSpliced(existingCriterionIndex,1)
+            const existingCriterion =  this.criteriaBuilder.criteria[existingCriterionIndex]
+            existingCriterion.amountPerItem = amount
         } else {
             const newCriterion = await this.createCriterionWithIds(this.devsNftContract, [this.devsNftId], criterionName)
             newCriterion.amountPerItem = amount
-
+            otherCriteria = this.criteriaBuilder.criteria.toSpliced(newCriterion.index,1)
         }
+
+        if (this.devGiftMethodSelector.value === "take") {
+            const amountOther = oldTotal - ethers.parseUnits(amount, this.erc20Units)
+            this.#splitAmountOverCriteria({criteria: otherCriteria, amount: amountOther})
+        }
+
         
         await this.#selectDropBuilderPageEl(this.distrobutionOverViewEl)
     }
