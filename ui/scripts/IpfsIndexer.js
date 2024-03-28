@@ -1,4 +1,4 @@
-export class IpfsIndexer{
+export class IpfsIndexer {
     dropsRootHash = null;
     index = null;
     isGateway = null;
@@ -6,11 +6,11 @@ export class IpfsIndexer{
     MiladyDropClaimDataHash;
     allProofsIndex;
 
-    constructor(urls, auth=null, isGateway=true) {
+    constructor(urls, auth = null, isGateway = true) {
         this.auth = auth;
         this.gateways = urls;
-        this.isGateway=isGateway;
-        this.indexes=[];
+        this.isGateway = isGateway;
+        this.indexes = [];
         // let urlobj = new URL(url);
         // let options = {
         //     host: urlobj.hostname,
@@ -33,7 +33,7 @@ export class IpfsIndexer{
             return this.currentGateway
         } else {
             //TODO separate gateways and rpc and remove this hacky if statement
-            if (this.isGateway===false) {
+            if (this.isGateway === false) {
                 this.currentGateway = this.gateways[0]
                 return this.currentGateway
             }
@@ -45,7 +45,7 @@ export class IpfsIndexer{
     }
 
     async getFirstWorkingGateway(gateways) {
-        const workingGatwaysBools = await Promise.all(gateways.map((gateway)=>this.isGatewayWorking(gateway)))
+        const workingGatwaysBools = await Promise.all(gateways.map((gateway) => this.isGatewayWorking(gateway)))
         return gateways[workingGatwaysBools.indexOf(true)]
     }
 
@@ -58,9 +58,9 @@ export class IpfsIndexer{
             } else {
                 return false
             }
-    
+
         } catch (error) {
-            return false 
+            return false
         }
     }
 
@@ -71,14 +71,14 @@ export class IpfsIndexer{
         }
         return result
     };
-    
+
     message(message) {
         console.log(message);
         //TODO dont use hardoced element ids and dont use elements at all if they arent set at constructor
         document.getElementById("message2").innerHTML = message;
     }
 
-    async addToIpfs(data, filename, pin=true, cidVersion=1) {
+    async addToIpfs(data, filename, pin = true, cidVersion = 1) {
         const form = new FormData();
         form.append('file', new File([data], `/${filename}`));
         let reqObj = {
@@ -88,45 +88,45 @@ export class IpfsIndexer{
             },
             body: form
         }
-        if (this.auth==null) {
+        if (this.auth == null) {
             delete reqObj.headers
         }
         let r = await fetch(`${await this.getGatewayUrl()}/api/v0/add?pin=${pin}&cid-version=${cidVersion}`, reqObj);
         return r.json();
     }
 
-    splitObject(obj, amountItems=750) {
+    splitObject(obj, amountItems = 750) {
         let result = {};//TODO make start stop the last key not a int
         let keys = Object.keys(obj);
         let start = 0;
         let stop = amountItems;
-        let amountOfSplits = Math.ceil(keys.length/amountItems);
+        let amountOfSplits = Math.ceil(keys.length / amountItems);
         for (let i = 0; i < (amountOfSplits); i++) {
-            if(!keys[start]){console.log("whoops"); continue}//
-        
+            if (!keys[start]) { console.log("whoops"); continue }//
+
             this.message(`Splitting up claims ${i}/${amountOfSplits}`);
             let stopKey;
             if (keys[stop]) {
                 stopKey = keys[stop]
 
             } else {
-                stopKey = keys[keys.length-1]
+                stopKey = keys[keys.length - 1]
             }
             let name = `${keys[start]}-${stopKey}`;
-            result[name] = this.getValues(obj, keys.slice(start,stop));
-            start=stop;
-            stop+=amountItems 
+            result[name] = this.getValues(obj, keys.slice(start, stop));
+            start = stop;
+            stop += amountItems
 
         }
         this.message("");
         return result
     };
 
-    async addObjectsToIpfs(objects, jsonPrettyLevel=2) {
+    async addObjectsToIpfs(objects, jsonPrettyLevel = 2) {
 
         let cids = []; //name:hash
         const keys = Object.keys(objects)
-        for(let i=0; i<keys.length; i ++) {
+        for (let i = 0; i < keys.length; i++) {
             this.message(`adding objects to ipfs ${i}/${keys.length}`);
             let filename = `${keys[i]}.json`
             // cids[filename] = await this.ipfsClient.add(
@@ -134,8 +134,8 @@ export class IpfsIndexer{
             //     , {"cidVersion":1})
             cids[filename] = await this.addToIpfs(
                 JSON.stringify(objects[keys[i]], null, jsonPrettyLevel),
-                filename,1
-                )
+                filename, 1
+            )
         }
         this.message("");
         return cids
@@ -143,9 +143,9 @@ export class IpfsIndexer{
 
     dagFromCids(cids) {
         // dag format tempelate
-        let dag = {"Data": {"/":{"bytes": "CAE"}},"Links":[]}
+        let dag = { "Data": { "/": { "bytes": "CAE" } }, "Links": [] }
         const keys = Object.keys(cids);
-        for(let i=0; i<keys.length; i++) {
+        for (let i = 0; i < keys.length; i++) {
             let name = keys[i];
             let hash = cids[name]["Hash"];
             dag.Links.push(
@@ -171,7 +171,7 @@ export class IpfsIndexer{
             },
             body: form
         }
-        if (this.auth==null) {
+        if (this.auth == null) {
             delete reqObj.headers
         }
 
@@ -188,17 +188,17 @@ export class IpfsIndexer{
                 'Authorization': this.auth
             }
         }
-        if (this.auth==null) {
+        if (this.auth == null) {
             delete reqObj.headers
         }
 
         //yes i have given up on ipfshttpclient at this point lmao
         let r = await fetch(`${await this.getGatewayUrl()}/api/v0/dag/get?arg=${hash}`, reqObj);
         let rjson = await r.json();
-    
+
         //shit breaks when tsize=null :(
         if ("Links" in rjson) {
-            for (let i=0; i<rjson.Links.length; i++) {
+            for (let i = 0; i < rjson.Links.length; i++) {
                 if (rjson.Links[i].Tsize == null) {
                     delete rjson.Links[i].Tsize
                 }
@@ -212,17 +212,17 @@ export class IpfsIndexer{
     indexFromCids(cids) {
         let index = [];
         const keys = Object.keys(cids);
-        for(let i=0; i<keys.length; i++) {
+        for (let i = 0; i < keys.length; i++) {
             let key = keys[i];
             let startStop = key.split(".")[0].split("-");
-            index.push({"start":startStop[0], "stop":startStop[1], "hash":cids[key]["Hash"]})
-        } 
+            index.push({ "start": startStop[0], "stop": startStop[1], "hash": cids[key]["Hash"] })
+        }
         return index;
     }
 
     async addObjectToDag(dag, obj, fileNameObj) {
         //let r = await ipfsIndex.ipfsClient.add(JSON.stringify(obj, null, 2), {"cidVersion":1})
-        let r = await this.addToIpfs(JSON.stringify(obj, null, 2), fileNameObj,1)
+        let r = await this.addToIpfs(JSON.stringify(obj, null, 2), fileNameObj, 1)
         let hash = r['Hash']
         dag.Links.push(
             {
@@ -235,14 +235,14 @@ export class IpfsIndexer{
         return dag
     }
 
-    async addHashToDag(hash,name,dag) {
-        dag.Links.push({"Hash":{"/":hash},"Name":name})
+    async addHashToDag(hash, name, dag) {
+        dag.Links.push({ "Hash": { "/": hash }, "Name": name })
         return dag
 
     }
 
     async wrapInDirectory(hash, dirName) {
-        let dirDag = {"Data": {"/":{"bytes": "CAE"}},"Links":[{"Hash":{"/":hash},"Name":dirName}]}
+        let dirDag = { "Data": { "/": { "bytes": "CAE" } }, "Links": [{ "Hash": { "/": hash }, "Name": dirName }] }
         return await this.putDag(dirDag)
 
     }
@@ -254,7 +254,7 @@ export class IpfsIndexer{
                 'Authorization': this.auth
             }
         }
-        if (this.auth==null) {
+        if (this.auth == null) {
             delete reqObj.headers
         }
         let r = await fetch(`${await this.getGatewayUrl()}/api/v0/cat?arg=${hash}&archive=true`, reqObj);
@@ -262,22 +262,22 @@ export class IpfsIndexer{
     }
 
     async getHashFromIpfsPath(path) {
-        
+
         //TODO doesnt work for sharded hashes
         //maybe use resolve??
         let pathArr = path.split("/");
         const rootHash = pathArr[0];
         console.log("path", path, pathArr.length)
-        if (pathArr.length===1){return rootHash}
+        if (pathArr.length === 1) { return rootHash }
 
         const currentDag = await this.getDag(rootHash);
 
         const nextItem = pathArr[1]
-        const linksIndex = currentDag['Links'].findIndex((x)=>x.Name===nextItem)
-        if (linksIndex===-1) {throw console.error(`item ${nextItem} not found in Links of ${rootHash}`);}
+        const linksIndex = currentDag['Links'].findIndex((x) => x.Name === nextItem)
+        if (linksIndex === -1) { throw console.error(`item ${nextItem} not found in Links of ${rootHash}`); }
         const newHash = currentDag["Links"][linksIndex]["Hash"]["/"]
-        console.log("newHash", newHash,"linksIndex", linksIndex, "links", currentDag["Links"])
-        pathArr = pathArr.toSpliced(0,1)
+        console.log("newHash", newHash, "linksIndex", linksIndex, "links", currentDag["Links"])
+        pathArr = pathArr.toSpliced(0, 1)
         pathArr[0] = newHash
         const newPath = pathArr.join("/")
         console.log(newPath)
@@ -298,18 +298,18 @@ export class IpfsIndexer{
 
     async loadIndex(dropsRootHash) {
         this.dropsRootHash = dropsRootHash;
-        if (this.isGateway==true) {
-            this.index = await this.getWithGateWayIpfs(dropsRootHash+"/index.json");
+        if (this.isGateway == true) {
+            this.index = await this.getWithGateWayIpfs(dropsRootHash + "/index.json");
         } else {
-            this.index = await this.getWithCatIpfs(await this.getHashFromIpfsPath(dropsRootHash+"/index.json"));
+            this.index = await this.getWithCatIpfs(await this.getHashFromIpfsPath(dropsRootHash + "/index.json"));
         }
     }
 
-    async getIdFromIndex(id, index=this.index) {
+    async getIdFromIndex(id, index = this.index) {
         console.log(`getting id: ${id}`)
         let obj = {};
-        for (let i=0; i<index.length; i++) {
-            if (parseInt(index[i].start) <= id &&  parseInt(index[i].stop) >= id ) {
+        for (let i = 0; i < index.length; i++) {
+            if (parseInt(index[i].start) <= id && parseInt(index[i].stop) >= id) {
                 console.log(`fetching id: ${id} from index at ${index[i].hash}`)
                 obj = await this.getIpfs(index[i].hash)
                 return obj[id.toString()];
@@ -333,16 +333,16 @@ export class IpfsIndexer{
         return r.json();
     }
 
-    async createMiladyDropClaimData(treeDump, allProofs,balancesAsCsv,idsPerCollection,dropMetaData={},splitSize=500, uiHash="Qmd9khr3UjLjvYNZoLZnd7W2yeDXDQhp1pdh5hb6KGrBro") {//uiHash:oct7
+    async createMiladyDropClaimData(treeDump, allProofs, balancesAsCsv, idsPerCollection, dropMetaData = {}, splitSize = 500, uiHash = "Qmd9khr3UjLjvYNZoLZnd7W2yeDXDQhp1pdh5hb6KGrBro") {//uiHash:oct7
         const treeDumpHash = (await this.addToIpfs(JSON.stringify(treeDump), "treeDump.json"))["Hash"]
         const rootDirHash = await this.wrapInDirectory(treeDumpHash, "treeDump.json")
         let rootDirDag = await this.getDag(rootDirHash);
-        rootDirDag = await this.addHashToDag(uiHash,"ui", rootDirDag)
-        let allProofsDag = {"Data": {"/":{"bytes": "CAE"}},"Links":[]}
+        rootDirDag = await this.addHashToDag(uiHash, "ui", rootDirDag)
+        let allProofsDag = { "Data": { "/": { "bytes": "CAE" } }, "Links": [] }
         //console.log(allProofs.proofPerAddress)
         let indexHasPerNftAddr = {}
         for (const nftAddr in allProofs.proofPerAddress) {
-            const split = this.splitObject(allProofs.proofPerAddress[nftAddr].ids,splitSize)
+            const split = this.splitObject(allProofs.proofPerAddress[nftAddr].ids, splitSize)
             const cids = await this.addObjectsToIpfs(split);
             let dag = this.dagFromCids(cids);
             let hash = await this.putDag(dag)
@@ -355,20 +355,20 @@ export class IpfsIndexer{
 
             //add to ipfs
             dag = await this.addObjectToDag(dag, index, "index.json");
-            
+
             const newHashWithIndex = await this.putDag(dag)
             indexHasPerNftAddr[nftAddr] = newHashWithIndex;
-            this.addHashToDag(newHashWithIndex,`${nftAddr}`,allProofsDag)
+            this.addHashToDag(newHashWithIndex, `${nftAddr}`, allProofsDag)
         }
-        
-        allProofsDag = await this.addObjectToDag(allProofsDag,indexHasPerNftAddr,"index.json")
-        
-        rootDirDag = await this.addHashToDag(await this.putDag(allProofsDag),"allProofs", rootDirDag)
-        rootDirDag = await this.addHashToDag((await this.addToIpfs(balancesAsCsv))["Hash"],"balances.csv", rootDirDag)
-        rootDirDag = await this.addHashToDag((await this.addToIpfs(JSON.stringify(dropMetaData,null,2)))["Hash"],"dropMetaData.json", rootDirDag)
-        rootDirDag = await this.addHashToDag((await this.addToIpfs(idsPerCollection))["Hash"],"idsPerCollection.json", rootDirDag)
+
+        allProofsDag = await this.addObjectToDag(allProofsDag, indexHasPerNftAddr, "index.json")
+
+        rootDirDag = await this.addHashToDag(await this.putDag(allProofsDag), "allProofs", rootDirDag)
+        rootDirDag = await this.addHashToDag((await this.addToIpfs(balancesAsCsv))["Hash"], "balances.csv", rootDirDag)
+        rootDirDag = await this.addHashToDag((await this.addToIpfs(JSON.stringify(dropMetaData, null, 2)))["Hash"], "dropMetaData.json", rootDirDag)
+        rootDirDag = await this.addHashToDag((await this.addToIpfs(idsPerCollection))["Hash"], "idsPerCollection.json", rootDirDag)
         this.MiladyDropClaimDataHash = await this.putDag(rootDirDag)
-        
+
         //infura doesnt pin it because i used putDag so we need to pin it here in order for it to propegate
         await this.pinHash(this.MiladyDropClaimDataHash)
         return this.MiladyDropClaimDataHash
@@ -395,12 +395,12 @@ export class IpfsIndexer{
                         //100-200.json      <= {"100":{"proof":["bytes32",etc]}, etc }
 
 
-    }   
+    }
 
-    async getIpfs(hashPath){
+    async getIpfs(hashPath) {
         let jsonObj
-        if (this.isGateway==true) {
-            jsonObj= await this.getWithGateWayIpfs(hashPath);
+        if (this.isGateway == true) {
+            jsonObj = await this.getWithGateWayIpfs(hashPath);
         } else {
             jsonObj = await this.getWithCatIpfs((await this.getHashFromIpfsPath(hashPath)));
         }
@@ -409,7 +409,7 @@ export class IpfsIndexer{
 
     async loadIndexMiladyDropClaimData(dropsRootHash) {
         this.MiladyDropClaimDataHash = dropsRootHash;
-        this.allProofsIndex = await this.getIpfs(dropsRootHash+"/allProofs/index.json");
+        this.allProofsIndex = await this.getIpfs(dropsRootHash + "/allProofs/index.json");
     }
 
     getAllNftAddrs() {
@@ -417,15 +417,15 @@ export class IpfsIndexer{
     }
 
     async getProof(nftAddr, id) {
-        const proofsIndex = await this.getIpfs(this.allProofsIndex[nftAddr]+"/index.json")
+        const proofsIndex = await this.getIpfs(this.allProofsIndex[nftAddr] + "/index.json")
         return await this.getIdFromIndex(id, proofsIndex)
     }
 
     async getIdsPerCollection() {
-        return await this.getIpfs(this.MiladyDropClaimDataHash+"/idsPerCollection.json")
+        return await this.getIpfs(this.MiladyDropClaimDataHash + "/idsPerCollection.json")
     }
 
     async getTreeDump() {
-        return await this.getIpfs(this.MiladyDropClaimDataHash+"/treeDump.json")
+        return await this.getIpfs(this.MiladyDropClaimDataHash + "/treeDump.json")
     }
 }
