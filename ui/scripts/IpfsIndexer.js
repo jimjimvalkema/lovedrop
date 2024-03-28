@@ -319,6 +319,20 @@ export class IpfsIndexer{
         return null;
     }
 
+    async pinHash(hash) {
+        let reqObj = {
+            method: 'POST',
+            headers: {
+                'Authorization': this.auth
+            }
+        }
+        if (this.auth == null) {
+            delete reqObj.headers
+        }
+        let r = await fetch(`${await this.getGatewayUrl()}/api/v0/pin/add?arg=${hash}`, reqObj);
+        return r.json();
+    }
+
     async createMiladyDropClaimData(treeDump, allProofs,balancesAsCsv,idsPerCollection,dropMetaData={},splitSize=500, uiHash="Qmd9khr3UjLjvYNZoLZnd7W2yeDXDQhp1pdh5hb6KGrBro") {//uiHash:oct7
         const treeDumpHash = (await this.addToIpfs(JSON.stringify(treeDump), "treeDump.json"))["Hash"]
         const rootDirHash = await this.wrapInDirectory(treeDumpHash, "treeDump.json")
@@ -354,6 +368,9 @@ export class IpfsIndexer{
         rootDirDag = await this.addHashToDag((await this.addToIpfs(JSON.stringify(dropMetaData,null,2)))["Hash"],"dropMetaData.json", rootDirDag)
         rootDirDag = await this.addHashToDag((await this.addToIpfs(idsPerCollection))["Hash"],"idsPerCollection.json", rootDirDag)
         this.MiladyDropClaimDataHash = await this.putDag(rootDirDag)
+        
+        //infura doesnt pin it because i used putDag so we need to pin it here in order for it to propegate
+        await this.pinHash(this.MiladyDropClaimDataHash)
         return this.MiladyDropClaimDataHash
 
         //root
