@@ -128,7 +128,7 @@
 
     #criteriaBuilder {
         display: grid;
-        grid-gap: 1em;
+        grid-gap: var(--gridGap);
         bottom: 1em;
         height: -webkit-fill-available;
         width: calc(100%-1em);
@@ -327,6 +327,7 @@
 
     :root {
         --criteriaInputWidth: max(11vw, 7em);
+        --gridGap: 1em
     }
 
     #criteriaManager input {
@@ -382,15 +383,34 @@
     }
 
     #finalizeDrop {
-        display: grid;
-        border-style: solid;
-        max-width: 20em;
+        height: 100%;
+        margin: 0;
+        width: 100%;
+
+
+    }
+
+
+    #finalizeDropContainer {     
+        width: min(100%, 20em);
+        float: right;
+        margin: 0;
+
+        /*TODO margin is still effecting it */
+        height: calc(100% - var(--gridGap));
     }
 
     #finalizeDropButton {
-        font-size: 2em;
-        place-self: center;
+        font-size: 1.8em;
+    }
 
+    .center {
+        height: inherit;
+        width: 100%;
+        min-width: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
 
     .nftImagesDiv {
@@ -897,10 +917,18 @@
 
         <!-- </div> -->
 
-        <div id="finalizeDrop" class="border">
-            <div class="boldTitel">Overview</div>
-            <button id="finalizeDropButton" disabled title="please give every criterion a nft contract address">next</button>
+        
+        <div id="finalizeDrop" >
+            <div id="finalizeDropContainer" class="border">
+                <div class="boldTitel">Overview</div>
+                <div class="center">
+                    <button id="finalizeDropButton" disabled title="please give every criterion a nft contract address">next</button>
 
+                </div>    
+    
+                
+
+            </div>
         </div>
 
         <div id="filterInputSelecter" class="border">
