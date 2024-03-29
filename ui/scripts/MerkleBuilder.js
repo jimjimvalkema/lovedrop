@@ -11783,7 +11783,9 @@ export class MerkleBuilder {
   ipfsForExports = false;
   tree;
   provider;
-  constructor(balances = [], provider, dataTypes = ["address", "uint256", "uint256"], ipfsForExports = false) {
+
+
+  constructor(balances = [], provider,messageEl=undefined, dataTypes = ["address", "uint256", "uint256"], ipfsForExports = false, ) {
     this.provider = provider;
     this.ipfsForExports = ipfsForExports;
     this.dataTypes = dataTypes;
@@ -11793,6 +11795,7 @@ export class MerkleBuilder {
       this.buildTree();
       this.merkleRoot = this.tree.root;
     }
+    this.messageEl = messageEl
   }
   formatAddressInBalances(balances) {
     return balances.map((x) => [
@@ -11856,8 +11859,11 @@ export class MerkleBuilder {
       proofs.push(this.getProof(chunkedBalances[i][0], chunkedBalances[i][1]))
       }
     const message = `processed proofs till id: ${chunkedBalances[chunkedBalances.length-1][1]} of nft ${chunkedBalances[chunkedBalances.length-1][0]}`
-    //console.log(message)
-    document.getElementById("progressProofGen").innerText = message
+    console.log(message, this.messageEl)
+    if (this.messageEl) {
+      this.messageEl.innerText = message
+    }
+    
     return proofs 
   }
 

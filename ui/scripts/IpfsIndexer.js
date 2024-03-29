@@ -5,12 +5,16 @@ export class IpfsIndexer {
     metaData = null;
     MiladyDropClaimDataHash;
     allProofsIndex;
+    messageElement = undefined;
 
-    constructor(urls, auth = null, isGateway = true) {
+    constructor(urls, auth = null, isGateway = true, messageElementId="") {
         this.auth = auth;
         this.gateways = urls;
         this.isGateway = isGateway;
         this.indexes = [];
+        if (messageElementId) {
+            this.messageElement = document.getElementById(messageElementId)
+        } 
         // let urlobj = new URL(url);
         // let options = {
         //     host: urlobj.hostname,
@@ -75,7 +79,10 @@ export class IpfsIndexer {
     message(message) {
         console.log(message);
         //TODO dont use hardoced element ids and dont use elements at all if they arent set at constructor
-        document.getElementById("message2").innerHTML = message;
+        if (this.messageElement) {
+            this.messageElement.innerText = message;
+        }
+
     }
 
     async addToIpfs(data, filename, pin = true, cidVersion = 1) {
