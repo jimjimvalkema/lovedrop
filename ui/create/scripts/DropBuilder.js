@@ -1766,11 +1766,13 @@ export class DropBuilder {
                     The airdrop is now ready! Wow cool! :D \n
                     View this drop at: 
                     `
-    
                     const dropUrl = DropBuilder.getUrlToPath(new URL(window.location.href),"drop",{"lovedrop":this.deployedDropAddress})
                     const urlNoSearch = new URL(window.location.href)
                     urlNoSearch.search = ""
                     const cleanDropUrl =  DropBuilder.getUrlToPath(urlNoSearch,"drop",{"lovedrop":this.deployedDropAddress})
+
+                    const paramsToRemove = ["ipfsApi", "infuraProjectId", "infuraProjectSecret"]
+                    DropBuilder.removeParamsFromUrl(dropUrl, paramsToRemove)
 
 
 
@@ -1846,7 +1848,7 @@ export class DropBuilder {
 
     }
 
-    static getUrlToPath(url,pathName, addParams={}, removeParamNames=[]) {
+    static getUrlToPath(url,pathName, addParams={}) {
 
         url.pathname = pathName
 
@@ -1860,6 +1862,16 @@ export class DropBuilder {
                 url.searchParams.set(paramName, addParams[paramName])
             }
         }
+        return url
+    }
+
+    static removeParamsFromUrl(url, paramNames=[]) {
+        [...url.searchParams].forEach((param)=>{
+            if (paramNames.includes(param[0])) {
+                url.searchParams.delete(param[0], param[1])
+            }
+            
+        })
         return url
     }
 }
