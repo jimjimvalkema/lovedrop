@@ -3,22 +3,10 @@ import { ethers } from "../../scripts/ethers-6.7.0.min.js";
 import { NftDisplay } from "../../scripts/NftDisplay.js";
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
-// const mainChain = {
-//     chainId: "0x1",
-//     rpcUrls: ["https://eth.llamarpc.com"],
-//     chainName: "Ethereum Mainnet",
-//     nativeCurrency: {
-//       name: "Ethereum",
-//       symbol: "ETH",
-//       decimals: 18
-//     },
-//     //blockExplorerUrls: []
-//   }
-
 const mainChain = {
-    chainId: "0x7A69",
-    rpcUrls: ["http://localhost:8555/"],
-    chainName: "local fork Ethereum Mainnet",
+    chainId: "0x1",
+    rpcUrls: ["https://eth.llamarpc.com"],
+    chainName: "Ethereum Mainnet",
     nativeCurrency: {
       name: "Ethereum",
       symbol: "ETH",
@@ -26,6 +14,18 @@ const mainChain = {
     },
     //blockExplorerUrls: []
   }
+
+// const mainChain = {
+//     chainId: "0x7A69",
+//     rpcUrls: ["http://localhost:8555/"],
+//     chainName: "local fork Ethereum Mainnet",
+//     nativeCurrency: {
+//       name: "Ethereum",
+//       symbol: "ETH",
+//       decimals: 18
+//     },
+//     //blockExplorerUrls: []
+//   }
 
 
   async function switchNetwork(network=mainChain) {
@@ -354,8 +354,11 @@ async function addTokenToMetamask(tokenAddress, tokenSymbol, tokenDecimals, toke
 async function loadAllContracts() {
     window.urlVars = await getUrlVars();
 
+    const claimPageUrl = new URL(window.location.href)
+    claimPageUrl.pathname = "drop"
+
     document.getElementById("loading").innerText = "loading"
-    document.getElementById("dropInfo").innerHTML = `Claim at: <a href=../claim/?lovedrop=${window.urlVars["lovedrop"]}>claim page</a><br>`
+    document.getElementById("dropInfo").innerHTML = `Claim at: <a href=${decodeURIComponent(claimPageUrl.toString())}}>claim page</a><br>`
     window.nftDisplays = {}
 
 
@@ -406,7 +409,7 @@ async function loadAllContracts() {
     Airdrop size: ${new Intl.NumberFormat('en-EN').format(dropSize)} ${await window.ticker} <br>
     Total supply: ${new Intl.NumberFormat('en-EN').format(await totalSupply)} ${await window.ticker}<br>
     ${await window.ticker} on etherscan: <a href="https://etherscan.io/token/${window.airdropTokenContract.target}">${window.airdropTokenContract.target}</a><br>
-    Claim at: <a href=../claim/?lovedrop=${window.urlVars["lovedrop"]}>claim page</a> <br>
+    Claim at: <a href=${decodeURIComponent(claimPageUrl.toString())}>claim page</a> <br>
     `
     dropInfo.insertBefore(await addDropTokenToMetamaskButton(), dropInfo.childNodes[3]);
     document.getElementById("loading").innerText = ""

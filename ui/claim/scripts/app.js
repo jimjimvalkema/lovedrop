@@ -5,22 +5,10 @@ import { NftDisplay } from "../../scripts/NftDisplay.js";
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 
-const mainChain = {
-    chainId: "0x1",
-    rpcUrls: ["https://eth.llamarpc.com"],
-    chainName: "Ethereum Mainnet",
-    nativeCurrency: {
-      name: "Ethereum",
-      symbol: "ETH",
-      decimals: 18
-    },
-    //blockExplorerUrls: []
-  }
-
 // const mainChain = {
-//     chainId: "0x7A69",
-//     rpcUrls: ["http://localhost:8555/"],
-//     chainName: "local fork Ethereum Mainnet",
+//     chainId: "0x1",
+//     rpcUrls: ["https://eth.llamarpc.com"],
+//     chainName: "Ethereum Mainnet",
 //     nativeCurrency: {
 //       name: "Ethereum",
 //       symbol: "ETH",
@@ -28,6 +16,18 @@ const mainChain = {
 //     },
 //     //blockExplorerUrls: []
 //   }
+
+const mainChain = {
+    chainId: "0x7A69",
+    rpcUrls: ["http://localhost:8555/"],
+    chainName: "local fork Ethereum Mainnet",
+    nativeCurrency: {
+      name: "Ethereum",
+      symbol: "ETH",
+      decimals: 18
+    },
+    //blockExplorerUrls: []
+  }
 
 async function getUrlVars() {
     var vars = {};
@@ -229,7 +229,7 @@ async function addDropTokenToMetamaskButton() {
 
 async function addTokenToMetamask(tokenAddress, tokenSymbol, tokenDecimals, tokenImage="") {
     //TODO get image from drop info from ipfs or somewhere else?
-    if (await window.ticker === "CAKE") {
+    if (ethers.getAddress(tokenAddress) === "0x3AEC26bf9FEDba55a55e970504f439101AbD7327") {
         tokenImage = "https://ipfs.io/ipfs/QmZZs6Y3ToYRkfMdi3jrU5QXSqNf6vk3j8Dxwvtf55vKvw"
     }
 
@@ -595,7 +595,11 @@ async function loadAllContracts() {
 
     document.getElementById("loading").innerText = "loading"
     window.urlVars = await getUrlVars();
-    document.getElementById("dropInfo").innerHTML = `See all nfts: <a href=../drop/?lovedrop=${window.urlVars["lovedrop"]}>drop page</a>`
+
+
+    const dropPageUrl = new URL(window.location.href)
+    dropPageUrl.pathname = "drop"
+    document.getElementById("dropInfo").innerHTML = `See all nfts: <a href=${decodeURIComponent(dropPageUrl.toString())}}>drop page</a>`
 
     if (!window.urlVars["ipfsGateway"]) {
         window.ipfsGateways = ["https://.mypinata.cloud","http://127.0.0.1:48084","http://127.0.0.1:8080","https://ipfs.io"] //no grifting pls thank :)
@@ -633,11 +637,12 @@ async function loadAllContracts() {
     const dropTokenName = (await window.airdropTokenContract).name()
     const dropSize = getTotalDrop()
     totalSupply = ethers.formatEther((await totalSupply).toString())
+
     dropInfo.innerHTML = `<span class="titel">${await dropTokenName}</span> <br> <br>
     Airdrop size: ${new Intl.NumberFormat('en-EN').format(dropSize)} ${await window.ticker} <br>
     Total supply: ${new Intl.NumberFormat('en-EN').format(await totalSupply)} ${await window.ticker}<br>
     ${await window.ticker} on etherscan: <a href="https://etherscan.io/token/${window.airdropTokenContract.target}">${window.airdropTokenContract.target}<a><br>
-    See all nfts: <a href=../drop/?lovedrop=${window.urlVars["lovedrop"]}>drop page</a> <br>
+    See all nfts: <a href=${decodeURIComponent(dropPageUrl.toString())}>drop page</a> <br>
     `
     dropInfo.insertBefore(await addDropTokenToMetamaskButton(), dropInfo.childNodes[3]);
     document.getElementById("loading").innerText = ""
