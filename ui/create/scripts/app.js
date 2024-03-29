@@ -80,11 +80,32 @@ async function runOnLoad() {
     const gatewayIpfsIndex = new IpfsIndexer(window.ipfsGateways)
     window.ipfsGateway = await gatewayIpfsIndex.getGatewayUrl()
     //TODO api urls shouldn't be hardcoded
-    const projectId = ""
-    const projectSecret = ""
-    const auth = "Basic " + btoa(projectId + ":" + projectSecret);
-    //window.ipfsIndex = new IpfsIndexer(["https://ipfs.infura.io:5001"],auth,false)
-    window.ipfsIndex = new IpfsIndexer(["http://127.0.0.1:5001"],null,false,"progressProofGen")
+    const messageElementId = "dropBuilderMessageContent"
+
+
+    const ipfsApiUrl = window.urlVars["ipfsApi"]
+    if (ipfsApiUrl) {
+        
+        if (window.urlVars["infuraProjectId"] && window.urlVars["infuraProjectSecret"] ) {
+            const projectId = window.urlVars["infuraProjectId"]
+            const projectSecret = window.urlVars["infuraProjectSecret"] 
+            const auth = "Basic " + btoa(projectId + ":" + projectSecret);
+            window.ipfsIndex = new IpfsIndexer([ipfsApiUrl],auth,false,messageElementId)
+        } else {
+            window.ipfsIndex = new IpfsIndexer([ipfsApiUrl],null,false,messageElementId)
+        }
+
+    } else {
+        const projectId = "TODO"
+        const projectSecret = "TODO"
+        const auth = "Basic " + btoa(projectId + ":" + projectSecret);
+        window.ipfsIndex = new IpfsIndexer(["https://ipfs.infura.io:5001"],auth,false,messageElementId)
+
+    }
+    
+
+    
+   
     
 
 
