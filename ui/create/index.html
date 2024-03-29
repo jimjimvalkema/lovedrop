@@ -702,6 +702,10 @@
         width: 8em;
     }
 
+    #dropBuilderMessage {
+        display: none;
+    }
+
 </style>
 
 <body>
@@ -1094,10 +1098,10 @@
                     <span class="italic">Airdrop: </span> <span class="totalAirdrop">loading..</span> <span
                         class="ticker">loading..</span>
                     <br>
-                    <span class="italic">Wallet ballance: </span> <span class="erc20UserBalance">loading..</span>
+                    <span class="italic">Wallet: </span> <span class="erc20UserBalance">loading..</span>
                     <span class="ticker">loading..</span>
                     <br>
-                    <span class="italic">included collections: </span> <span id="allCollections">
+                    <span class="italic">collections: </span> <span id="allCollections">
     
                     </span>
                     <br>
@@ -1130,10 +1134,14 @@
                         3. Finally you fund the contract with the exact amount of tokens.
     
                     </span>
-    
-    
-                    <div id="progressProofGen"></div>
-                    <div id="message2"></div>
+                    <br>
+
+
+                    <div id="dropBuilderMessage">
+                        <br>
+                        <div class="boldTitel">Message</div>
+                        <div id="dropBuilderMessageContent"></div>
+                    </div>
     
                     <div id="notEnoughTokens" hidden>
                         <br>

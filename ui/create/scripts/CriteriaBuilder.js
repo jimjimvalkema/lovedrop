@@ -1,6 +1,7 @@
 import { ERC721ABI } from "../../abi/ERC721ABI.js"
 import { ethers } from "../../scripts/ethers-6.7.0.min.js"
 import { FilterBuilder } from "./FilterBuilder.js"
+import { DropBuilder } from "./DropBuilder.js"
 const ERC721InterFaceId = "0x01ffc9a7"
 
 export const criterionFormat = {"name":"", "amountPerItem":"", "ids":[],"excludedIds":[], "selectedFilter":{}, "collectionAddress":undefined}       
@@ -214,6 +215,7 @@ export class CriteriaBuilder {
 
 
     async #setCollectionAddressHandler(event, inputId) {
+        await DropBuilder.switchNetwork()
         const value = this.#isValidSubmitEvent(event, inputId)
         //TODO check if nft contract
         if(value){

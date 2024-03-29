@@ -8,29 +8,9 @@ import { MerkleBuilder } from "../../scripts/MerkleBuilder.js"
 import { IpfsIndexer } from "../../scripts/IpfsIndexer.js"
 import { LoveDropFactoryAbi } from "../../abi/LoveDropFactoryAbi.js"
 import { LoveDropAbi } from "../../abi/LoveDropAbi.js"
-const mainChain = {
-    chainId: "0x1",
-    rpcUrls: ["https://eth.llamarpc.com"],
-    chainName: "Ethereum Mainnet",
-    nativeCurrency: {
-        name: "Ethereum",
-        symbol: "ETH",
-        decimals: 18
-    },
-    //blockExplorerUrls: []
-}
 
-// const mainChain = {
-//     chainId: "0x7A69",
-//     rpcUrls: ["http://localhost:8555/"],
-//     chainName: "local fork Ethereum Mainnet",
-//     nativeCurrency: {
-//       name: "Ethereum",
-//       symbol: "ETH",
-//       decimals: 18
-//     },
-//     //blockExplorerUrls: []
-//   }
+
+
 
 export class DropBuilder {
     criteriaBuilder
@@ -75,10 +55,6 @@ export class DropBuilder {
     deployAirDropBtn = document.getElementById("deployAirDrop")
     fundAirdropBtn = document.getElementById("fundAirdrop")
 
-    progressProofGenEl = document.getElementById("progressProofGen")
-
-    messageEl = document.getElementById("message2")
-
     checkEnoughTokensBtn = document.getElementById("checkEnoughTokens")
 
     devGiftPercentInput = document.getElementById("devGiftPercentRange")
@@ -86,7 +62,10 @@ export class DropBuilder {
 
 
     notEnoughTokensEl = document.getElementById("notEnoughTokens")
-    amountOfDuplicates=0
+    dropBuilderMessageParent = document.getElementById("dropBuilderMessage")
+    dropBuilderMessageContentEl = document.getElementById("dropBuilderMessageContent")
+
+    amountOfDuplicates = 0
 
     //or do conflictResolutionSelectorHandler with a submit button but user might decide to go back anyway
     criteriaForConflictResolution = {}
@@ -96,6 +75,30 @@ export class DropBuilder {
     txs = []
 
     originalElementDisplayValues = this.getDisplayStylesFromElements(this.dropBuilderPages)
+
+    // static mainChain = {
+    //     chainId: "0x1",
+    //     rpcUrls: ["https://eth.llamarpc.com"],
+    //     chainName: "Ethereum Mainnet",
+    //     nativeCurrency: {
+    //         name: "Ethereum",
+    //         symbol: "ETH",
+    //         decimals: 18
+    //     },
+    //     //blockExplorerUrls: []
+    // }
+
+    static mainChain = {
+        chainId: "0x7A69",
+        rpcUrls: ["http://localhost:8555/"],
+        chainName: "local fork Ethereum Mainnet",
+        nativeCurrency: {
+            name: "Ethereum",
+            symbol: "ETH",
+            decimals: 18
+        },
+        //blockExplorerUrls: []
+    }
 
 
 
@@ -113,7 +116,7 @@ export class DropBuilder {
         this.ipfsIndexer = ipfsIndexer
         this.nftDisplayElementCriteriaBuilder = nftDisplayElementCriteriaBuilder
         this.loveDropFactoryAddress = loveDropFactoryAddress
-
+        console.log(this.dropBuilderMessageContentEl)
         //initialize
         //this.dropBuilderEl.style.display = "none"
         this.selectDropBuilderPageIndex(0)
@@ -122,19 +125,19 @@ export class DropBuilder {
         //criteria overview buttpm
         this.finalizeDropButton.addEventListener("click", (event) => this.#selectDropBuilderPageEl(this.conflictsResolutionEl))//this.#showDropBuilderPageEl(this.dropBuilderConflictsEl))
 
-        this.devGiftPercentInput.addEventListener("change", (event)=>this.#giftDevPercentSliderHandler(event))
-        this.devGiftAmountInput.addEventListener("change", (event)=>this.#giftDevAmountHandler(event))
+        this.devGiftPercentInput.addEventListener("change", (event) => this.#giftDevPercentSliderHandler(event))
+        this.devGiftAmountInput.addEventListener("change", (event) => this.#giftDevAmountHandler(event))
         this.giveDropToDevsNoBtn.addEventListener("click", (event) => this.#selectDropBuilderPageEl(this.distrobutionOverViewEl))
         this.giveDropToDevsYesBtn.addEventListener("click", async (event) => this.#giftDevYesButtonHandler())
 
         this.backButtonEl.addEventListener("click", async (event) => this.#dropBuilderBackBtnHandler())
         this.conflictResolutionSelector.addEventListener("change", (event) => this.#conflictResolutionSelectorHandler(event, this.criteriaPerIds))
         this.confirmConflictResolutionButtonEl.addEventListener("click", (event) => this.#confirmConflictResolutionHandler(event))
-        
 
-        
+
+
         this.confirmDistrobutionBtn.addEventListener("click", (event) => this.#selectDropBuilderPageEl(this.deploymentEl, event))
-        
+
         this.airdropTokenContractAddressInput.addEventListener("keypress", (event) => this.#setTokenContractHandler(event))
         this.connectWallletBtn.addEventListener("click", () => this.connectSigner())
 
@@ -148,8 +151,8 @@ export class DropBuilder {
     }
 
     async #criteriaBuilderPageFunc(currentPageIndex, selectedPageIndex) {
-        
-        const returnsToPage = currentPageIndex>selectedPageIndex
+
+        const returnsToPage = currentPageIndex > selectedPageIndex
         if (returnsToPage) {
             //remove data created when users goes back and returns
             this.conflictResolutionSelector.value = "selectMethod"
@@ -165,20 +168,20 @@ export class DropBuilder {
     }
 
     async #conflictResolutionPageFunc(currentPageIndex, selectedPageIndex) {
-        const returnsToPage = currentPageIndex>selectedPageIndex
+        const returnsToPage = currentPageIndex > selectedPageIndex
         if (returnsToPage) {
             if (!this.amountOfDuplicates) {
 
                 await this.#selectDropBuilderPageEl(this.criteriaBuilderEl)
             } else {
-                if(this.conflictResolutionSelector.value === "selectMethod") {
+                if (this.conflictResolutionSelector.value === "selectMethod") {
                     this.confirmConflictResolutionButtonEl.disabled = true
                     await this.removeConflictResolutionCriteria()
-     
+
                 }
             }
-            
-            
+
+
         } else {
             this.criteriaBuilder.cleanupCriteria()
 
@@ -212,55 +215,55 @@ export class DropBuilder {
 
 
     async #giveDropToDevsPageFunc(currentPageIndex, selectedPageIndex) {
-        const returnsToPage = currentPageIndex>selectedPageIndex
+        const returnsToPage = currentPageIndex > selectedPageIndex
         if (returnsToPage) {
-            const devAllocCriterion = this.criteriaBuilder.criteria.find((criterion)=>criterion.name==="dev_allocation_:D")
-    
+            const devAllocCriterion = this.criteriaBuilder.criteria.find((criterion) => criterion.name === "dev_allocation_:D")
+
             //await this.removeConflictResolutionCriteria()
             if (devAllocCriterion) {
                 await this.#removeDevAllocationCriterion()
             } else {
-                const criterionWithDevsNft = this.criteriaBuilder.criteria.find((criterion)=>criterion.collectionAddress===this.devsNftContract && criterion.ids.includes(this.devsNftId))
+                const criterionWithDevsNft = this.criteriaBuilder.criteria.find((criterion) => criterion.collectionAddress === this.devsNftContract && criterion.ids.includes(this.devsNftId))
                 if (criterionWithDevsNft) {
-                    await this.selectDropBuilderPageIndex(selectedPageIndex-1)
+                    await this.selectDropBuilderPageIndex(selectedPageIndex - 1)
                 }
-                
+
             }
         } else {
-            const criterionWithDevsNft = this.criteriaBuilder.criteria.find((criterion)=>criterion.collectionAddress===this.devsNftContract && criterion.ids.includes(this.devsNftId))
+            const criterionWithDevsNft = this.criteriaBuilder.criteria.find((criterion) => criterion.collectionAddress === this.devsNftContract && criterion.ids.includes(this.devsNftId))
             if (criterionWithDevsNft) {
                 //go to next page since we already in the drop :)
-                await this.selectDropBuilderPageIndex(selectedPageIndex+1)
+                await this.selectDropBuilderPageIndex(selectedPageIndex + 1)
             } else {
                 // add devs milady image to page if not there
                 if (!document.getElementById("devsMilady")) {
-    
+
                     const nftDisplayEl = await this.#createSingleNftDisplay(this.devsNftContract, this.devsNftId)
                     nftDisplayEl.className = "devsMilady"
                     nftDisplayEl.id = "devsMilady"
                     document.getElementById("giveDropToDevsNftDisplay").append(nftDisplayEl)
                 }
                 //updates amount according to current slider value and total airdrop amount
-                this.#giftDevPercentSliderHandler({"target":{"value":this.devGiftPercentInput.value}})
+                this.#giftDevPercentSliderHandler({ "target": { "value": this.devGiftPercentInput.value } })
             }
         }
     }
 
     async #removeDevAllocationCriterion() {
         //TODO doesnt remove it somehow
-        const criterion = this.criteriaBuilder.criteria.find((criterion)=>criterion.name==="dev_allocation_:D")
+        const criterion = this.criteriaBuilder.criteria.find((criterion) => criterion.name === "dev_allocation_:D")
         if (criterion) {
             await this.criteriaBuilder.filterBuilder.removeFilterByIndex(criterion.selectedFilter.index, criterion.collectionAddress)
             await this.criteriaBuilder.removeCriterionByIndex(criterion.index)
             //await this.criteriaBuilder.changeCurrentCriterion(0)
-            console.log("removed:",criterion)
+            console.log("removed:", criterion)
         }
     }
 
     async #distrobutionOverViewPageFunc() {
         //reset html table
         this.criteriaTableEl.querySelectorAll(".criteriaTableItem").forEach((el) => el.outerHTML = "")
-            
+
         //this.#resetDisplayStyleOfElements([this.giveDropToDevsEl])
         //this.#setDisplayStyleOfElements([this.conflictsResolutionEl], "none")
         let tableRows = []
@@ -281,7 +284,9 @@ export class DropBuilder {
         //maybe handle case if criteria are different but contract is already deployed
         //or just make a wrapper contract that deploys and send token in 1 tx
         this.notEnoughTokensEl.hidden = true
-        this.progressProofGenEl.innerText = ""
+        this.dropBuilderMessageContentEl.innerText = ""
+        this.dropBuilderMessageParent.style.display = "none"
+
         this.merkleBuilder = undefined
         this.claimDataIpfs = undefined
         await this.setTotalsOverViewInfo()
@@ -289,48 +294,53 @@ export class DropBuilder {
     }
 
     async selectDropBuilderPageIndex(selectedPageIndex) {
+        //cant go anywhere till user switches to the right network
+        if (await DropBuilder.switchNetwork()) {
 
-        //back: 
-        // at criteriaBuilder: remove conflict res criteria (user shouldnt mess with that since it can get removed)
-        //forward
-        // criteria conflict: remove conflict res criteria, check if conflicts, no conflicts skip to next
-        // criteria overview: reset html
-        // 
 
-        if (selectedPageIndex < 0) {
-            selectedPageIndex=0
-        }else if (selectedPageIndex >= this.dropBuilderPages.length) {
-            selectedPageIndex=this.dropBuilderPages.length-1
+
+            //back: 
+            // at criteriaBuilder: remove conflict res criteria (user shouldnt mess with that since it can get removed)
+            //forward
+            // criteria conflict: remove conflict res criteria, check if conflicts, no conflicts skip to next
+            // criteria overview: reset html
+            // 
+
+            if (selectedPageIndex < 0) {
+                selectedPageIndex = 0
+            } else if (selectedPageIndex >= this.dropBuilderPages.length) {
+                selectedPageIndex = this.dropBuilderPages.length - 1
+            }
+
+            //TODO cleanup
+            if (selectedPageIndex > 0) { this.backButtonEl.hidden = false }
+            else { this.backButtonEl.hidden = true }
+
+
+            const currentPageIndex = this.dropBuilderPages.findIndex((el) => el.style.display !== "none")
+            const selectedPage = this.dropBuilderPages[selectedPageIndex]
+
+            const funcAtPage = {
+                [this.criteriaBuilderEl.id]: async () => this.#criteriaBuilderPageFunc(currentPageIndex, selectedPageIndex),
+                [this.conflictsResolutionEl.id]: async () => this.#conflictResolutionPageFunc(currentPageIndex, selectedPageIndex),
+                [this.giveDropToDevsEl.id]: async () => this.#giveDropToDevsPageFunc(currentPageIndex, selectedPageIndex),
+                [this.distrobutionOverViewEl.id]: async () => this.#distrobutionOverViewPageFunc(),
+                [this.deploymentEl.id]: async () => this.#deploymentPageFunc(),
+            }
+            //just so every page has a function
+            this.dropBuilderPages.forEach((page) => { if (!(page.id in funcAtPage)) { funcAtPage[page.id] = () => { }; } })
+
+
+
+            const otherPages = this.dropBuilderPages.toSpliced(selectedPageIndex, 1)
+            this.#setDisplayStyleOfElements(otherPages, "none")
+            this.#resetDisplayStyleOfElements([selectedPage])
+
+            await funcAtPage[selectedPage.id](currentPageIndex, selectedPageIndex)
         }
 
-        //TODO cleanup
-        if(selectedPageIndex>0) {this.backButtonEl.hidden=false}
-        else{this.backButtonEl.hidden=true}
 
 
-        const currentPageIndex = this.dropBuilderPages.findIndex((el) => el.style.display !== "none")
-        const selectedPage = this.dropBuilderPages[selectedPageIndex]
-
-        const funcAtPage = {
-            [this.criteriaBuilderEl.id]:async ()=>this.#criteriaBuilderPageFunc(currentPageIndex, selectedPageIndex),
-            [this.conflictsResolutionEl.id]:async ()=>this.#conflictResolutionPageFunc(currentPageIndex, selectedPageIndex),
-            [this.giveDropToDevsEl.id]:async ()=>this.#giveDropToDevsPageFunc(currentPageIndex, selectedPageIndex),
-            [this.distrobutionOverViewEl.id]:async ()=>this.#distrobutionOverViewPageFunc(),
-            [this.deploymentEl.id]:async ()=>this.#deploymentPageFunc(),
-        }
-        //just so every page has a function
-        this.dropBuilderPages.forEach((page)=>{if (!(page.id in funcAtPage)) {funcAtPage[page.id]=()=>{};} })
-        
-        
-
-        const otherPages = this.dropBuilderPages.toSpliced(selectedPageIndex, 1)
-        this.#setDisplayStyleOfElements(otherPages, "none")
-        this.#resetDisplayStyleOfElements([selectedPage])
-
-        await funcAtPage[selectedPage.id](currentPageIndex, selectedPageIndex)
-
-        
-        
     }
 
     async #selectDropBuilderPageEl(element) {
@@ -355,7 +365,7 @@ export class DropBuilder {
                 await this.selectDropBuilderPageIndex(currentPage - 1)
             }
 
-        } else if(this.dropBuilderPages[currentPage] === this.conflictsResolutionEl) {
+        } else if (this.dropBuilderPages[currentPage] === this.conflictsResolutionEl) {
             await this.removeConflictResolutionCriteria()
 
         }
@@ -375,8 +385,8 @@ export class DropBuilder {
     }
 
     //TODO clean this mess up
-    async toggleFinalizeDropView(forceConflictResPage=false) {
-        if (this.dropBuilderEl.style.display === "none" || forceConflictResPage===true) {
+    async toggleFinalizeDropView(forceConflictResPage = false) {
+        if (this.dropBuilderEl.style.display === "none" || forceConflictResPage === true) {
             //toggle display
             await this.#selectDropBuilderPageEl(this.conflictsResolutionEl)
 
@@ -421,15 +431,25 @@ export class DropBuilder {
 
         //TODO this will only trigger after the ether.provider is used to interact with the chain
         //which means that the first interaction is with the wrong chain
-        await this.provider.on("network", (networkId) => {
-            if (networkId !== mainChain.chainId) {
-                this.switchNetwork(mainChain)
-                console.warn("network changed TODO handle this")
-            }
-        })
+        //await this.provider["provider"].on("chainChanged",async (networkId) => {
+        //new ethers.BrowserProvider(window.ethereum).provider["provider"].on('chainChanged', async (networkId) => {
+        if (window.ethereum) {
+            window.ethereum.on('chainChanged', async (networkId) => {
+                console.log(networkId, "hi hello hi :)")
+                console.log(networkId, DropBuilder.mainChain.chainId)
+                console.log(networkId !== DropBuilder.mainChain.chainId)
+                if (networkId !== DropBuilder.mainChain.chainId) {
+                    await DropBuilder.switchNetwork(DropBuilder.mainChain)
+                    console.warn("network changed TODO handle this")
+                }
+            })
+        } else {
+            console.warn("window.ethereum not found. cant prevent network switching. this may cause error")
+        }
 
 
-        await this.switchNetwork(mainChain)
+
+        await DropBuilder.switchNetwork(DropBuilder.mainChain)
 
 
     }
@@ -445,6 +465,7 @@ export class DropBuilder {
     }
 
     async #setTokenContractHandler(event) {
+        await DropBuilder.switchNetwork()
         const value = this.#isValidSubmitEvent(event, this.airdropTokenContractAddressInput)
         if (value) {
             if (ethers.isAddress(value)) {
@@ -470,29 +491,50 @@ export class DropBuilder {
 
     async connectSigner() {
         // MetaMask requires requesting permission to connect users accounts
-        await this.switchNetwork(mainChain)
+        await DropBuilder.switchNetwork(DropBuilder.mainChain)
         await this.provider.send("eth_requestAccounts", []);
         this.signer = await window.provider.getSigner();
         await this.#runOnConnectWallet()
     }
 
-    async switchNetwork(network = mainChain) {
+    static async switchNetwork(network = DropBuilder.mainChain) {
+        let result
         try {
-            await window.provider.send("wallet_switchEthereumChain", [{ chainId: network.chainId }]);
+            result = await window.provider.send("wallet_switchEthereumChain", [{ chainId: network.chainId }]);
 
         } catch (switchError) {
+            if (switchError.code === 'ACTION_REJECTED') {
+                console.warn("user rejected switching network")
+                return false
+            }
             window.switchError = switchError
             // This error code indicates that the chain has not been added to MetaMask.
-            if (switchError.error.code === 4902) {
-                try {
-                    await window.provider.send("wallet_addEthereumChain", [network]);
+            if ("error" in switchError) {
+                if (switchError.error.code === -32002) {
+                    console.warn("user is already switching chains")
+                    return false
+                }
 
-                } catch (addError) {
-                    // handle "add" error
+
+                if (switchError.error.code === 4902) {
+                    try {
+                        result = await window.provider.send("wallet_addEthereumChain", [network]);
+
+                    } catch (addError) {
+                        //TODO assumes error is the same as switch network (prob not metamask is inconsistent :( ))
+                        if (switchError.code === 'ACTION_REJECTED') {
+                            console.warn("user rejected adding network")
+                            return false
+                        }
+
+                        // handle "add" error
+                    }
                 }
             }
             // handle other "switch" errors
         }
+        console.log(result)
+        return true
 
     }
 
@@ -543,7 +585,7 @@ export class DropBuilder {
      * 
      * @returns {bigint}
      */
-    getTotalAirdrop(criteria=this.criteriaBuilder.criteria) {
+    getTotalAirdrop(criteria = this.criteriaBuilder.criteria) {
         const totalBigNum = criteria.reduce((total, criterion) => {
             const amountPerItem = ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
             const totatAmountCriterion = amountPerItem * BigInt(criterion.ids.length - criterion.excludedIds.length)
@@ -644,7 +686,7 @@ export class DropBuilder {
         elements.forEach((el) => el.style.display = this.originalElementDisplayValues[el.id])
     }
 
-    
+
 
     /**
      * returns the criteria that includes a specific id by collection
@@ -1143,28 +1185,28 @@ export class DropBuilder {
 
         perItemElement.addEventListener("input", (event) => this.#updateCriterionAmountPerItemElement(event, criterion, perItemElement))
         totalElement.addEventListener("input", (event) => this.#updateCriterionTotalAmount(event, criterion, totalElement))
-        totalPercentElement.addEventListener("input", (event)=> this.#updateCriterionTotalAmountPercentHandler(event, criterion, totalPercentElement))
+        totalPercentElement.addEventListener("input", (event) => this.#updateCriterionTotalAmountPercentHandler(event, criterion, totalPercentElement))
         return amountElement
     }
 
-    #resetInputValue(element, prevValue, units=this.erc20Units){
+    #resetInputValue(element, prevValue, units = this.erc20Units) {
         const prevCursorPos = window.getSelection().getRangeAt(0).startOffset - 1
-            element.innerText = prevValue
-            //focus is lost once innerText is set
-            //const textLen = element.innerText.length
-            const range = document.createRange();
-            const sel = window.getSelection();
+        element.innerText = prevValue
+        //focus is lost once innerText is set
+        //const textLen = element.innerText.length
+        const range = document.createRange();
+        const sel = window.getSelection();
 
-            const textLen = element.innerText.length
-            if (prevCursorPos > textLen || prevCursorPos < 0) {
-                range.setStart(element.childNodes[0], textLen);
-            } else {
-                range.setStart(element.childNodes[0], prevCursorPos);
-            }
+        const textLen = element.innerText.length
+        if (prevCursorPos > textLen || prevCursorPos < 0) {
+            range.setStart(element.childNodes[0], textLen);
+        } else {
+            range.setStart(element.childNodes[0], prevCursorPos);
+        }
 
-            sel.removeAllRanges();
-            sel.addRange(range);
-            element.focus();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        element.focus();
     }
 
     #cleanNumberInputEditableElement(element, prevValue = 0n, units = this.erc20Units) {
@@ -1201,7 +1243,7 @@ export class DropBuilder {
     #updateCriterionAmountPerItemElement(event, criterion, perItemElement, contentElement) {
         const prevAmount = ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
         const formattedPrevAmount = this.#roundNumber(ethers.formatUnits(prevAmount, this.erc20Units), 4)
-        const newAmount = ethers.parseUnits(this.#cleanNumberInputEditableElement(perItemElement, formattedPrevAmount.toString()),this.erc20Units)
+        const newAmount = ethers.parseUnits(this.#cleanNumberInputEditableElement(perItemElement, formattedPrevAmount.toString()), this.erc20Units)
 
         criterion.amountPerItem = ethers.formatUnits(newAmount, this.erc20Units)
 
@@ -1233,55 +1275,55 @@ export class DropBuilder {
      * @param {CriteriaBuilder.criterionFormat} criterion TODO criteriontype
      * @param {HTMLElement} totalAmountPercentElement 
      */
-    #updateCriterionTotalAmountPercentHandler(event, criterion, totalAmountPercentElement, units=this.erc20Units) {
+    #updateCriterionTotalAmountPercentHandler(event, criterion, totalAmountPercentElement, units = this.erc20Units) {
         //get prevPercentage
         //TODO this is calculated twice (also inside updateCriterionTotalAmountByPercent())
         //but not that its not that intense (accept for the getTotalAirdrop() call)
         const amountOfItems = BigInt((criterion.ids.length - criterion.excludedIds.length))
         const prevTotalAmount = amountOfItems * ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
         const prevTotalDrop = this.getTotalAirdrop()
-        const prevPercentage = this.#roundNumber((parseFloat(prevTotalAmount)/parseFloat(prevTotalDrop))*100,4)
+        const prevPercentage = this.#roundNumber((parseFloat(prevTotalAmount) / parseFloat(prevTotalDrop)) * 100, 4)
 
         //get newPercentage
         let newTotalAmountPercent = this.#cleanNumberInputEditableElement(totalAmountPercentElement, prevPercentage.toString(), units)
-        
+
         //handle <0% and >100% inputs
-        if (newTotalAmountPercent<0) {
+        if (newTotalAmountPercent < 0) {
             this.#resetInputValue(totalAmountPercentElement, "0", units)
-            newTotalAmountPercent=0
-        //100% causes some criteria to go negative due to rounding error
-        } else if (newTotalAmountPercent>99.999) {
+            newTotalAmountPercent = 0
+            //100% causes some criteria to go negative due to rounding error
+        } else if (newTotalAmountPercent > 99.999) {
             this.#resetInputValue(totalAmountPercentElement, "99.99", units)
-            newTotalAmountPercent=99.99
-        }   
+            newTotalAmountPercent = 99.99
+        }
 
         this.updateCriterionTotalAmountByPercent(newTotalAmountPercent, criterion)
 
-        
+
     }
 
     updateCriterionTotalAmountByPercent(newTotalAmountPercent, criterion) {
         const amountOfItems = BigInt((criterion.ids.length - criterion.excludedIds.length))
         const prevTotalAmount = amountOfItems * ethers.parseUnits(criterion.amountPerItem, this.erc20Units)
         const prevTotalDrop = this.getTotalAirdrop()
-        const prevPercentage = this.#roundNumber((parseFloat(prevTotalAmount)/parseFloat(prevTotalDrop))*100,4)
+        const prevPercentage = this.#roundNumber((parseFloat(prevTotalAmount) / parseFloat(prevTotalDrop)) * 100, 4)
 
         //calculate new criterion.amountPerItem 
-        const newTotalAmount = BigInt(parseFloat(prevTotalDrop) * (newTotalAmountPercent/100))
-        const totalAmountDifference = (prevTotalAmount - newTotalAmount)  
-        console.log("prevTotalAmount",prevTotalAmount)
-        console.log("newTotalAmount ",newTotalAmount)
+        const newTotalAmount = BigInt(parseFloat(prevTotalDrop) * (newTotalAmountPercent / 100))
+        const totalAmountDifference = (prevTotalAmount - newTotalAmount)
+        console.log("prevTotalAmount", prevTotalAmount)
+        console.log("newTotalAmount ", newTotalAmount)
 
-        const otherCriteria = this.criteriaBuilder.criteria.filter((otherCriterion) => otherCriterion !== criterion) 
+        const otherCriteria = this.criteriaBuilder.criteria.filter((otherCriterion) => otherCriterion !== criterion)
         //make sure it's a new value 
         //(sometimes can still be different because of rounding error totalAmountDifference)
         if (newTotalAmountPercent !== prevPercentage.toString()) {
             //set selected criterion
             criterion.amountPerItem = ethers.formatUnits(newTotalAmount / amountOfItems, this.erc20Units)
             //set other criteria
-            this.#splitAmountOverCriteria({ criteria: otherCriteria , amount:totalAmountDifference})
+            this.#splitAmountOverCriteria({ criteria: otherCriteria, amount: totalAmountDifference })
         }
-    
+
         //update ui
         this.#updateCriteriaAmountsTable({ criteria: otherCriteria })
         this.#updateCriteriaAmountsTable({ criteria: [criterion], skipClasses: ["amountTotallPercentage"] })
@@ -1297,37 +1339,37 @@ export class DropBuilder {
         //best way to deal with it is to only distribute the difference (maybe 2x it) if its negative (newTotal>oldTotal) 
         //so the new total is never bigger then the old. But errors can then still build up
         const newTotalAirdrop = this.getTotalAirdrop()
-        const totalAmountItems = this.criteriaBuilder.criteria.reduce((total,criterion) =>{
+        const totalAmountItems = this.criteriaBuilder.criteria.reduce((total, criterion) => {
             const amountItems = (criterion.ids.length - criterion.excludedIds.length)
             return total + amountItems
         }, 0)
 
-        const difference = prevTotalDrop-newTotalAirdrop
-        console.log("prev totaldrop= ", ethers.formatUnits(prevTotalDrop,this.erc20Units))
-        console.log("new totaldrop= ", ethers.formatUnits(newTotalAirdrop,this.erc20Units))
-        console.log("difference: ", prevTotalDrop-newTotalAirdrop)
-        console.log("difference per item: ",BigInt(Math.round(parseFloat(difference)/totalAmountItems)))
+        const difference = prevTotalDrop - newTotalAirdrop
+        console.log("prev totaldrop= ", ethers.formatUnits(prevTotalDrop, this.erc20Units))
+        console.log("new totaldrop= ", ethers.formatUnits(newTotalAirdrop, this.erc20Units))
+        console.log("difference: ", prevTotalDrop - newTotalAirdrop)
+        console.log("difference per item: ", BigInt(Math.round(parseFloat(difference) / totalAmountItems)))
         console.log("total amount items in drop: ", totalAmountItems)
     }
 
     #giftDevPercentSliderHandler(event) {
         const percentage = parseFloat(event.target.value)
         const totalDrop = ethers.formatUnits(this.getTotalAirdrop(), this.erc20Units)
-        this.devGiftAmountInput.value = totalDrop * percentage/100
+        this.devGiftAmountInput.value = totalDrop * percentage / 100
     }
 
     #giftDevAmountHandler(event) {
         const amount = parseFloat(event.target.value)
         const totalDrop = ethers.formatUnits(this.getTotalAirdrop(), this.erc20Units)
-        const percent = amount/totalDrop*100
+        const percent = amount / totalDrop * 100
         if (percent < 2) {
             this.devGiftPercentInput.value = percent
 
         } else {
-            this.devGiftAmountInput.value = totalDrop * 2/100
-            this.devGiftPercentInput.value =  "2"
+            this.devGiftAmountInput.value = totalDrop * 2 / 100
+            this.devGiftPercentInput.value = "2"
         }
-        document.getElementById("devGiftPercentRangeDisplay").innerText = this.devGiftPercentInput.value 
+        document.getElementById("devGiftPercentRangeDisplay").innerText = this.devGiftPercentInput.value
         //this.devGiftAmountInput.dispatchEvent(new Event("change"))
     }
 
@@ -1336,29 +1378,29 @@ export class DropBuilder {
         const amount = this.devGiftAmountInput.value
         const criterionName = "dev_allocation_:D"
         let otherCriteria = []
-        const existingCriterionIndex = this.criteriaBuilder.criteria.findIndex((criterion)=>criterion.name===criterionName)
+        const existingCriterionIndex = this.criteriaBuilder.criteria.findIndex((criterion) => criterion.name === criterionName)
         const oldTotal = this.getTotalAirdrop()
 
-        if (existingCriterionIndex!==-1) {
-            otherCriteria = this.criteriaBuilder.criteria.toSpliced(existingCriterionIndex,1)
-            const existingCriterion =  this.criteriaBuilder.criteria[existingCriterionIndex]
+        if (existingCriterionIndex !== -1) {
+            otherCriteria = this.criteriaBuilder.criteria.toSpliced(existingCriterionIndex, 1)
+            const existingCriterion = this.criteriaBuilder.criteria[existingCriterionIndex]
             existingCriterion.amountPerItem = amount
         } else {
             const newCriterion = await this.createCriterionWithIds(this.devsNftContract, [this.devsNftId], criterionName)
             newCriterion.amountPerItem = amount
-            otherCriteria = this.criteriaBuilder.criteria.toSpliced(newCriterion.index,1)
+            otherCriteria = this.criteriaBuilder.criteria.toSpliced(newCriterion.index, 1)
         }
 
         if (this.devGiftMethodSelector.value === "take") {
             const amountOther = oldTotal - ethers.parseUnits(amount, this.erc20Units)
-            this.#splitAmountOverCriteria({criteria: otherCriteria, amount: amountOther})
+            this.#splitAmountOverCriteria({ criteria: otherCriteria, amount: amountOther })
         }
 
-        
+
         await this.#selectDropBuilderPageEl(this.distrobutionOverViewEl)
     }
 
-    #splitAmountOverCriteria({ criteria= this.criteriaBuilder.criteria , amount, units=this.erc20Units}) {
+    #splitAmountOverCriteria({ criteria = this.criteriaBuilder.criteria, amount, units = this.erc20Units }) {
         //TODO rounding error might be significant
         const totalAllCriteria = this.getTotalAirdrop(criteria)
         for (const criterion of criteria) {
@@ -1366,12 +1408,12 @@ export class DropBuilder {
             //no items nothing to distribute (prevents 0 division error)
             if (amountOfItems) {
                 //what if some criterion have 0 per item but some dont?
-                if (ethers.parseUnits(criterion.amountPerItem,units) !== 0n ) {                    
-                    const totalAmountCriterion = amountOfItems * ethers.parseUnits(criterion.amountPerItem,units)
-                    const amountAddedCriterion = parseFloat(amount)*(parseFloat(totalAmountCriterion)/parseFloat(totalAllCriteria))
-                    const newAmountPerItem = ethers.parseUnits(criterion.amountPerItem , units) +  (BigInt(amountAddedCriterion)/amountOfItems) 
+                if (ethers.parseUnits(criterion.amountPerItem, units) !== 0n) {
+                    const totalAmountCriterion = amountOfItems * ethers.parseUnits(criterion.amountPerItem, units)
+                    const amountAddedCriterion = parseFloat(amount) * (parseFloat(totalAmountCriterion) / parseFloat(totalAllCriteria))
+                    const newAmountPerItem = ethers.parseUnits(criterion.amountPerItem, units) + (BigInt(amountAddedCriterion) / amountOfItems)
                     criterion.amountPerItem = ethers.formatUnits(newAmountPerItem, units)
-    
+
                 }
             }
         }
@@ -1411,7 +1453,7 @@ export class DropBuilder {
                     if (!skipClasses.includes(className)) {
                         amountsElement.getElementsByClassName(className)[0].innerText = formattedValuesPerClass[className]
                     }
-    
+
                 }
 
             } else {
@@ -1500,15 +1542,27 @@ export class DropBuilder {
         return balancesPerCriteria.flat()
     }
 
+    async runFuncInTimout(func, timeOutTime, funcVars = []) {
+        return await new Promise((resolve) => {
+            setTimeout(async () => {
+                resolve(await func(...funcVars));
+            }, timeOutTime);
+        });
+
+    }
+
     async buildTreeAndProofsIpfs() {
+        this.dropBuilderMessageContentEl.innerText = `Building merkle tree`
         //TODO update the ui hash that is hardcoded in IpfsIndexer (and also dont harcode those things)
         const balances = this.convertCriteriaToBalances(this.criteriaBuilder.criteria)
-        console.log(balances)
-        //TODO ipfs :p
-        //setTimeout(function(){(document.getElementById("progressProofGen").innerText = (`building merkle tree on: ${balances.length} claims.`))},100)
-        const merkleBuilder = new MerkleBuilder(balances, this.provider)
+
+        //to make sure the message `Building merkle tree` is rendered since initializing MerkleBuilder can take a long time
+        const merkleBuilder = await this.runFuncInTimout(() => new MerkleBuilder(balances, this.provider, this.dropBuilderMessageContentEl), 100)
+
+        this.dropBuilderMessageContentEl.innerText = `generating proofs`
+
         //setTimeout(function(){(document.getElementById("progressProofGen").innerText = (`done building tree, calculating all ${balances.length} proofs`))},100)
-        await merkleBuilder.getAllProofsInChunks()
+        await this.runFuncInTimout(async () => await merkleBuilder.getAllProofsInChunks(), 100)
         //document.getElementById("progressProofGen").innerText = "done calculating proofs adding to ipfs"
 
         //add to ipfs
@@ -1537,7 +1591,7 @@ export class DropBuilder {
         return { claimDataHash: claimDataHash, merkleBuilder: merkleBuilder }
     }
 
-    isWalletConnected(messageEl = this.messageEl) {
+    isWalletConnected(messageEl = this.dropBuilderMessageContentEl) {
         let message = "";
         if (!this.signer) {
             message = "wallet not connected";
@@ -1567,13 +1621,18 @@ export class DropBuilder {
 
 
     async #buildDropBtnHandler() {
+        this.dropBuilderMessageParent.style.display = "block"
+        await DropBuilder.switchNetwork()
         const { claimDataHash: claimDataHash, merkleBuilder: merkleBuilder } = await this.buildTreeAndProofsIpfs()
 
 
         this.claimDataIpfs = claimDataHash
         this.merkleBuilder = merkleBuilder
 
-        this.progressProofGenEl.innerText = `claim data at: ipfs://${claimDataHash}`
+        this.dropBuilderMessageContentEl.innerText = `
+        Succefully data uploaded at: ipfs://${claimDataHash}\n
+        You can now deploy the contract! :)
+        `
 
         await this.connectSigner()
         const totalAirdrop = this.getTotalAirdrop()
@@ -1597,6 +1656,8 @@ export class DropBuilder {
 
 
     async #deployDropHandler() {
+        this.dropBuilderMessageParent.style.display = "block"
+        await DropBuilder.switchNetwork()
         if (await this.checkEnoughTokens()) {
             const merkleRoot = this.merkleBuilder.merkleRoot//ipfsIndex.metaData.merkleRoot;
             const claimDataIpfs = this.claimDataIpfs//ipfsIndex.dropsRootHash;
@@ -1618,7 +1679,10 @@ export class DropBuilder {
 
             this.deployedLoveDrop = new ethers.Contract(deployedDropAddress, LoveDropAbi, this.provider);
 
-            this.progressProofGenEl.innerText = `Contract deployed at: ${deployedDropAddress}. At tx: ${confirmedTX}`
+            this.dropBuilderMessageContentEl.innerText = `
+            Contract deployed at: ${deployedDropAddress}. At tx: ${confirmedTX} \n
+            Please send the tokens to the contract (click the button below)
+            `
             this.deployedDropAddress = deployedDropAddress
             // message(`confirmed transaction at: ${(await tx).hash}, deployed at: ${window.deployedDropAddress}`);
             this.fundAirdropBtn.disabled = false
@@ -1675,8 +1739,11 @@ export class DropBuilder {
 
 
     async #fundAirdropBtnHandler() {
+        this.dropBuilderMessageParent.style.display = "block"
+        await DropBuilder.switchNetwork()
         if (await this.checkEnoughTokens()) {
             const tokenAddressFromDrop = await this.deployedLoveDrop.airdropTokenAddress()
+            this.dropBuilderMessageContentEl.innerText = `checking uploaded ipfs data from contract ${this.deployedLoveDrop.target}`
             const amountInDrop = BigInt(await this.getTotalAirdropFromDeployedDrop(this.deployedLoveDrop)) //ethers.BigNumber.from(await this.getTotalAirdropFromDeployedDrop(this.deployedLoveDrop))
 
             await this.connectSigner()
@@ -1685,17 +1752,39 @@ export class DropBuilder {
             //TODO check merkle root but maybe that over doing it
             if (airdropTokenWithSigner.target === tokenAddressFromDrop) {
                 if (amountInDrop === this.getTotalAirdrop()) {
+                    this.dropBuilderMessageContentEl.innerText = "checking uploaded ipfs data"
                     const tx = await airdropTokenWithSigner.transfer(this.deployedDropAddress, amountInDrop)
                     //TODO figure out how make sure user doesnt fun it twice
                     //this.fundAirdropBtn.disabled
                     this.txs.push(tx)
                     const confirmedTX = (await (await (await tx).wait(1)).hash);
-                    this.progressProofGenEl.innerText = `funded contract: ${this.deployedDropAddress}. At tx: ${confirmedTX}\nThe airdrop is now ready!`
+
+                    //TODO reset inner html in other functions and maybe make a function
+                    this.dropBuilderMessageContentEl.innerHTML = ""
+                    this.dropBuilderMessageContentEl.innerText = `
+                    funded contract: ${this.deployedDropAddress}. At tx: ${confirmedTX}\n
+                    The airdrop is now ready! Wow cool! :D \n
+                    View this drop at: 
+                    `
+    
+                    const dropUrl = DropBuilder.getUrlToPath(new URL(window.location.href),"drop",{"lovedrop":this.deployedDropAddress})
+                    const urlNoSearch = new URL(window.location.href)
+                    urlNoSearch.search = ""
+                    const cleanDropUrl =  DropBuilder.getUrlToPath(urlNoSearch,"drop",{"lovedrop":this.deployedDropAddress})
+
+
+
+                    const dropLink = document.createElement("a")
+                    dropLink.href = decodeURIComponent(dropUrl.toString())
+                    dropLink.innerText = decodeURIComponent(cleanDropUrl.toString())
+
+                    this.dropBuilderMessageContentEl.append(dropLink)
+
                     this.fundAirdropBtn.disabled = true
                     this.deployAirDropBtn.disabled = true
                 } else {
                     const errorMsg = `
-                    Total airdrop amount from the contract: ${this.deployedLoveDrop.target} as the amount build locally.
+                    Total airdrop amount from the contract: ${this.deployedLoveDrop.target} is NOT the same as the amount calculated locally.
                     `
                     messageEl.innerText = errorMsg
 
@@ -1755,5 +1844,22 @@ export class DropBuilder {
         //contentElement.className = "singleNftDisplay"
         return contentElement
 
+    }
+
+    static getUrlToPath(url,pathName, addParams={}, removeParamNames=[]) {
+
+        url.pathname = pathName
+
+        const searchParamsObj = Object.fromEntries(url.searchParams)
+        if (Object.keys(addParams).length) {
+            for (const paramName in addParams) {
+                //prevent duplicates and overwrites existing
+                if (paramName in searchParamsObj) {
+                    url.searchParams.delete(paramName)
+                }
+                url.searchParams.set(paramName, addParams[paramName])
+            }
+        }
+        return url
     }
 }
