@@ -23,7 +23,7 @@ export class CriteriaBuilder {
     submitAmountId = "submitAmountPerNft"
 
     criteriaNameInputId = "criteriaNameInput"
-    submitCriterionNameId = "submitCriterionName"
+    //submitCriterionNameId = "submitCriterionName"
 
     criteriaSelectorId = "criteriaSelectorInput"
     deleteCriterionId = "deleteCriterion"
@@ -49,7 +49,7 @@ export class CriteriaBuilder {
         document.getElementById(this.submitAmountId).addEventListener(("click"), (event)=>this.#setAmountPerItemHandler(event, this.amountInputId))
 
         document.getElementById(this.criteriaNameInputId).addEventListener("keypress", (event)=>this.#setCriterionNameHandler(event, this.criteriaNameInputId))
-        document.getElementById(this.submitCriterionNameId).addEventListener(("click"), (event)=>this.#setCriterionNameHandler(event, this.criteriaNameInputId))
+        //document.getElementById(this.submitCriterionNameId).addEventListener(("click"), (event)=>this.#setCriterionNameHandler(event, this.criteriaNameInputId))
 
         document.getElementById(this.criteriaSelectorId).addEventListener("change", (event)=>this.#criteriaSelectorHandler(event))
         document.getElementById(this.filterSelectorId).addEventListener("change", (event)=>this.#filterSelectorHandler(event))

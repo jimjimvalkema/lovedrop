@@ -186,7 +186,7 @@
         overflow-y: scroll;
         overflow-x: hidden;
         min-height: 25em;
-        max-height: 70vh;
+        max-height: 73vh;
 
         scrollbar-width: none;
         /* Firefox */
@@ -233,7 +233,7 @@
         grid-template-rows: max-content max-content 1fr;
         /* height: 62vh; */
         min-height: 25em;
-        max-height: 70vh;
+        max-height: 73vh;
         width: -webkit-fill-available;
         overflow: hidden;
 
@@ -326,33 +326,46 @@
     }
 
     :root {
-        --criteriaInputWidth: max(11vw, 7em);
+        --criteriaInputWidth: max(10vw, 5em);
         --gridGap: 1em
     }
 
-    #criteriaManager input {
+    #criteriaManager input:not(.criteriaManagerInputWithSelector) {
         /* width: 14.05em; */
         width: calc(var(--criteriaInputWidth) );
         text-overflow: ellipsis;
         overflow: hidden;
     }
 
-    #criteriaManager select {
+    #criteriaManager select:not(#preIndexedCollectionsSelector, #criteriaSelectorInput) {
         /* width: 14.45em; */
         width: calc(var(--criteriaInputWidth) + 0.44em);
         text-overflow: ellipsis;
         overflow: hidden;
     }
 
-    #criteriaSelectorInput {
-        width: -webkit-fill-available;
-    }
 
-    .criteriaManagerInput select:not(#criteriaSelectorInput) {
+    /* #criteriaSelectorInput {
+        width: -webkit-fill-available;
+    } */
+
+    .criteriaManagerInput select:not(#criteriaSelectorInput, #preIndexedCollectionsSelector) {
         width: 13em;
         width: min-content;
         text-overflow: ellipsis;
         overflow: hidden;
+    }
+
+
+    .criteriaManagerInputWithSelector {
+        width: calc(var(--criteriaInputWidth) -  1.14em);
+        float: left;
+        margin: 1px;
+        
+    }
+
+    .tinySelector {
+        width: 1em
     }
 
     .alignTextRight {
@@ -786,39 +799,52 @@
             <div class="alignTextRight">
 
 
-                <label for="criteriaSelectorInput">select:</label>
+                <!-- <label for="criteriaSelectorInput">select:</label>
                 <span class="floatRightBlock">
                     <select name="criteriaSelectorInput" id="criteriaSelectorInput">
                         <option title="Tooltip" value="-1">add new</option>
                     </select>
                     <button id="deleteCriterion">delete</button>
                 </span>
+                <br> -->
+
+                <!-- <label for="criteriaNameInput">name:</label> -->
+                <label for="criteriaSelectorInput">criterion:</label>
+                    <span class="floatRightBlock">
+                        <input id="criteriaNameInput" class="criteriaManagerInputWithSelector" type="text" placeholder="criterion name"></input>
+                        
+                        <select name="criteriaSelectorInput" class="tinySelector" id="criteriaSelectorInput">
+                            <option title="Tooltip" value="-1">add new</option>
+                        </select>
+
+                        <button id="deleteCriterion">delete</button>
+                    </span>
                 <br>
 
-                <label for="criteriaNameInput">name:</label>
-                <span class="floatRightBlock">
-                    <input id="criteriaNameInput" type="text" placeholder="criterion name"></input>
-                    <button id="submitCriterionName">set</button>
-                </span>
+
+                <label for="nftContractAddressInput">NFT:</label> 
+                    <span class="floatRightBlock">
+                        <input id="nftContractAddressInput" class="criteriaManagerInputWithSelector" type="text" value="0x5af0d9827e0c53e4799bb226655a1de152a425a5"
+                            placeholder="contract address">
+                        </input>
+                        <select id="preIndexedCollectionsSelector" class="tinySelector">
+                            <option value=""></option>
+                            <option value="milady">milady</option>
+                        </select>
+                        <button id="submitNftContract">set</button>
+
+                    </span>
                 <br>
 
-                <label for="nftContractAddressInput">NFT:</label> <span class="floatRightBlock">
-                    <input id="nftContractAddressInput" type="text" value="0x5af0d9827e0c53e4799bb226655a1de152a425a5"
-                        placeholder="contract address"></input>
-                    <button id="submitNftContract">set</button>
-                </span>
 
-                <br>
-
-
-                <label for="amountPerNftInput"> amount: <span class="floatRightBlock">
+                <label for="amountPerNftInput"> amount:      </label>
+                    <span class="floatRightBlock">
                         <input id="amountPerNftInput" type="number" value="" placeholder="amount per nft"></input>
                         <button id="submitAmountPerNft">set</button>
                     </span>
-                </label>
                 <br>
 
-                <label for="criteriaFilterSelectorInput">filter: </label>
+                <label for="criteriaFilterSelectorInput">set filter: </label>
                 <span class="floatRightBlock">
                     <select name="criteriaFilterSelectorInput" id="criteriaFilterSelectorInput">
                         <option value="-1">--choose filter--</option>
@@ -826,6 +852,7 @@
                     <button>edit</button>
                 </span>
                 <br>
+
             </div>
 
 
