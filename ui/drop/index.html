@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <style>
-    html, body {
+    html,
+    body {
         /* max-width: 100%;
         overflow-x: hidden; */
     }
@@ -109,6 +110,7 @@
         font-size: 1.4em;
 
     }
+
     input[type=checkbox] {
         transform: scale(1.5);
     }
@@ -200,12 +202,12 @@
         <!-- <span class="titel">eligible nft collections</span> -->
         <div id="message"></div>
 
-        <label for="collectionSelect" class="selectCollection" >select collection:</label>
+        <label for="collectionSelect" class="selectCollection">select collection:</label>
         <select name="collections" id="collectionSelect">
         </select>
         <button id="editFilterButton" class="dropbtn">filter</button>
-        
-        <div id="filter" class="dropdown-content" >
+
+        <div id="filter" class="dropdown-content">
             <div>
                 <input class="dropbtn" type="checkbox" id="showUnclaimed" name="showUnclaimed" />
                 <label for="showUnclaimed">show unclaimed only</label>
@@ -226,7 +228,7 @@
                 <input class="dropbtn" type="checkbox" id="displayId" name="displayId" />
                 <label for="displayId"></label>
                 <label step="1" for="idInput">display nft id: </label>
-                <input class="dropbtn" type="number" value="1" id="idInput" name="idInput" min="0"/>
+                <input class="dropbtn" type="number" value="1" id="idInput" name="idInput" min="0" />
             </div>
         </div>
 
@@ -237,6 +239,6 @@
     </div>
 
     <div id="loading" style="font-weight: bold; font-size: 3em;"></div>
-    
+
 </body>
 <script type="module" src="./scripts/app.js" type="application/javascript"></script>
