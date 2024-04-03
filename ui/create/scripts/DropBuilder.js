@@ -5,7 +5,7 @@ import { CriteriaBuilder } from "./CriteriaBuilder.js"
 // import { FilterBuilder, filterTemplate } from "./FilterBuilder.js"
 import { ERC20ABI } from "../../abi/ERC20ABI.js"
 import { MerkleBuilder } from "../../scripts/MerkleBuilder.js"
-import { IpfsIndexer } from "../../scripts/IpfsIndexer.js"
+import { allExtraMetaData } from "../../scripts/extraMetaData.js"
 import { LoveDropFactoryAbi } from "../../abi/LoveDropFactoryAbi.js"
 import { LoveDropAbi } from "../../abi/LoveDropAbi.js"
 
@@ -64,6 +64,9 @@ export class DropBuilder {
     notEnoughTokensEl = document.getElementById("notEnoughTokens")
     dropBuilderMessageParent = document.getElementById("dropBuilderMessage")
     dropBuilderMessageContentEl = document.getElementById("dropBuilderMessageContent")
+    
+    collectionsSelectorEl = document.getElementById("preIndexedCollectionsSelector")
+    criterionCollectionInput =  document.getElementById("nftContractAddressInput")
 
     amountOfDuplicates = 0
 
@@ -76,22 +79,10 @@ export class DropBuilder {
 
     originalElementDisplayValues = this.getDisplayStylesFromElements(this.dropBuilderPages)
 
-    // static mainChain = {
-    //     chainId: "0x1",
-    //     rpcUrls: ["https://eth.llamarpc.com"],
-    //     chainName: "Ethereum Mainnet",
-    //     nativeCurrency: {
-    //         name: "Ethereum",
-    //         symbol: "ETH",
-    //         decimals: 18
-    //     },
-    //     //blockExplorerUrls: []
-    // }
-
     static mainChain = {
-        chainId: "0x7A69",
-        rpcUrls: ["http://localhost:8555/"],
-        chainName: "local fork Ethereum Mainnet",
+        chainId: "0x1",
+        rpcUrls: ["https://eth.llamarpc.com"],
+        chainName: "Ethereum Mainnet",
         nativeCurrency: {
             name: "Ethereum",
             symbol: "ETH",
@@ -99,6 +90,18 @@ export class DropBuilder {
         },
         //blockExplorerUrls: []
     }
+
+    // static mainChain = {
+    //     chainId: "0x7A69",
+    //     rpcUrls: ["http://localhost:8555/"],
+    //     chainName: "local fork Ethereum Mainnet",
+    //     nativeCurrency: {
+    //         name: "Ethereum",
+    //         symbol: "ETH",
+    //         decimals: 18
+    //     },
+    //     //blockExplorerUrls: []
+    // }
 
 
 
@@ -147,7 +150,27 @@ export class DropBuilder {
 
         this.checkEnoughTokensBtn.addEventListener("click", () => this.#checkEnoughTokensHandler())
 
+
+        this.collectionsSelectorEl.addEventListener("change", (event)=>{
+            console.log(event.target.value)
+            this.criterionCollectionInput.value = event.target.value
+            const newEvent = new Event("keypress")
+            newEvent.key = "Enter"
+            this.criterionCollectionInput.dispatchEvent(newEvent)
+        })
+
+        this.#createNftSelectorOptions(allExtraMetaData)
         this.chainManagement()
+    }
+
+    #createNftSelectorOptions(metaData=allExtraMetaData) {
+        for (const contractAddr in metaData) {
+            const optionEl = document.createElement("option")
+            optionEl.value = contractAddr
+            optionEl.innerText = metaData[contractAddr].name
+            this.collectionsSelectorEl.append(optionEl)
+        }
+        
     }
 
     async #criteriaBuilderPageFunc(currentPageIndex, selectedPageIndex) {
