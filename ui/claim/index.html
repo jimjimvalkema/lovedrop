@@ -13,9 +13,9 @@
         /* white-space: nowrap; */
         font-size: 1.7rem;
         text-align: right;
-        font-weight: bold; 
-        -webkit-text-fill-color: #ffffff; 
-        -webkit-text-stroke-width: 0.1rem; 
+        font-weight: bold;
+        -webkit-text-fill-color: #ffffff;
+        -webkit-text-stroke-width: 0.1rem;
         -webkit-text-stroke-color: #000000;
         z-index: 2;
     }
@@ -34,14 +34,14 @@
         z-index: 2;
 
         display: flex;
-        align-items:center;
+        align-items: center;
         font-size: 1.4rem;
 
-        width: 100%; 
-        bottom: 0px; 
-        left: 0px; 
-        color: white; 
-        background-color:  rgba(0, 0, 0, 0.9);
+        width: 100%;
+        bottom: 0px;
+        left: 0px;
+        color: white;
+        background-color: rgba(0, 0, 0, 0.9);
         min-height: 1.6rem;
 
     }
@@ -92,15 +92,17 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
-
 </style>
+
 <body>
 
 
     <div id="dropInfo"></div>
     <div id="walletConnectButton">
         <button onclick="connectSigner()">connect</button>
-        <div><div id="accountInfo" ></div></div>
+        <div>
+            <div id="accountInfo"></div>
+        </div>
 
     </div>
 
@@ -121,5 +123,4 @@
     <div id="loading" style="font-weight: bold; font-size: 3rem;"></div>
     <div id="message"></div>
 </body>
-<script type="module" src="./scripts/app.js"  
-type="application/javascript"></script>
+<script type="module" src="./scripts/app.js" type="application/javascript"></script>
