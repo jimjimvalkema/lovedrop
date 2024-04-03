@@ -157,7 +157,7 @@ export class FilterBuilder {
                 await this.NftDisplay.clear()
             }
             //reinitialize metaData and display
-            const nftMetaData = this.getNftMetaData(this.collectionAddress)
+            const nftMetaData = await this.getNftMetaData(this.collectionAddress)
             this.NftDisplay = new NftDisplay({
                 collectionAddress: this.collectionAddress,
                 provider: this.provider,
@@ -176,10 +176,11 @@ export class FilterBuilder {
 
     }
 
-    getNftMetaData(collectionAddress=this.collectionAddress) {
+    async getNftMetaData(collectionAddress=this.collectionAddress) {
         collectionAddress = ethers.getAddress(collectionAddress)
         if (!(collectionAddress in this.nftMetaDataPerCollection)) {
             this.nftMetaDataPerCollection[collectionAddress] = new NftMetaDataCollector(collectionAddress, this.provider, this.ipfsGateway)
+            await this.nftMetaDataPerCollection[collectionAddress].fetchAllExtraMetaData()
         }
         return this.nftMetaDataPerCollection[collectionAddress]
     }
@@ -533,7 +534,10 @@ export class FilterBuilder {
     }
 
     async getAllExtraMetaData() {
-        return await this.nftMetaDataPerCollection[this.collectionAddress].fetchAllExtraMetaData()
+        if (this.collectionAddress) {
+            return await this.nftMetaDataPerCollection[this.collectionAddress].fetchAllExtraMetaData()
+        }
+        
     }
 
     async getIdsPerAttribute(collectionAddress = this.collectionAddress) {

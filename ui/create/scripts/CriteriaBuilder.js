@@ -63,7 +63,7 @@ export class CriteriaBuilder {
 
 
     async initializeUi(collectionAddress=this.collectionAddress) {
-        this.filterBuilder = this.#createNewFilterBuilder(collectionAddress)
+        this.filterBuilder = await this.#createNewFilterBuilder(collectionAddress)
         await this.createCriterion(collectionAddress)
     }
 
@@ -292,12 +292,12 @@ export class CriteriaBuilder {
             }
            
         } else {
-            this.filterBuilder = this.#createNewFilterBuilder(address, updateUi)
+            this.filterBuilder = await this.#createNewFilterBuilder(address, updateUi)
         }
 
     }
 
-    #createNewFilterBuilder(collectionAddress, updateUi=true) {
+    async #createNewFilterBuilder(collectionAddress, updateUi=true) {
         const filterBuilder = new FilterBuilder({
             collectionAddress: collectionAddress,
             provider: this.provider,
@@ -305,6 +305,7 @@ export class CriteriaBuilder {
             displayElement: this.nftDisplayElement,
             filterSelectors: [this.filterSelectorId]
         })
+        await filterBuilder.getAllExtraMetaData()
         const updateCriteriaIds = (filter, ids)=>this.#onFilterChange(filter, ids)
         filterBuilder.addOnFilterChangeFunc(updateCriteriaIds)
         return filterBuilder

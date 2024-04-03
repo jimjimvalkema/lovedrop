@@ -49,6 +49,7 @@ export class NftDisplay {
         portraitOrientation = {["rowSize"]:3,["amountRows"]:4},
         nftMetaData, initialize=true, pageSelectorFlag=true, collectionInfoFlag=true}
     ) {
+        console.warn("initaliziing nft displayyyyyyyyyyyyyyyyyyyyyyyyyyyy")
         this.ipfsGateway = ipfsGateway
         this.provider =provider
         this.ids = ids

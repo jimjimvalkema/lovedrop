@@ -5,6 +5,7 @@
 import { ethers } from "./ethers-6.7.0.min.js"
 import { allExtraMetaData } from "./extraMetaData.js"
 import { ERC721ABI } from "../abi/ERC721ABI.js"
+import { IpfsIndexer } from  "./IpfsIndexer.js"
 
 /**
  * This function allow you to modify a JS Promise by adding some status properties.
@@ -146,39 +147,135 @@ export class NftMetaDataCollector {
 
     }
 
-    async fetchAllExtraMetaData(buildMissingData = true) {
+    async fetchAllExtraMetaData(getMetaDataArray = false) {
+        console.warn("started fetchingvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+        //todo \/
         this.idsOfOwnerCache = await this.getCachedIdsOfOwner()
-        if (!(typeof (localStorage) === "undefined") && localStorage.hasOwnProperty(await this.contractObj.target)) {
-            console.log(`${this.contractObj.target} extraMetaDataFile was found in local storage :D`)
-            const data = JSON.parse(localStorage.getItem(await this.contractObj.target));
-            this.idsPerAttribute = data.idsPerAttribute;
-            this.idStartsAt = data.idStartsAt;
-            if ("totalsupply" in data) {
-                this.totalSupply = parseInt(data.totalsupply)
+        let data
 
+        const localStorageExist = !(typeof (localStorage) === "undefined")
+        const contractIsInlocalStorage = localStorageExist && localStorage.hasOwnProperty(await this.contractObj.target)
+
+        //if it is not in there the extraMetaData has only 1 key which is the default type
+        const contractIsInExtraMetaData = Object.keys(this.extraMetaData).length > 1
+        if (contractIsInlocalStorage) {
+            console.log(`${this.contractObj.target} extraMetaDataFile was found in local storage :D`)
+            data = JSON.parse(localStorage.getItem(await this.contractObj.target));
+
+        }  else if (contractIsInExtraMetaData) {
+            data = this.extraMetaData
+        }
+        if(contractIsInExtraMetaData || contractIsInlocalStorage) {
+            //strictly needed
+            if (contractIsInlocalStorage) {
+                this.idsPerAttribute = data.idsPerAttribute
+            } else {
+                this.idsPerAttribute = await (await this.getUrlByProtocol( data.idsPerAttribute)).json();
             }
-        } else if (buildMissingData) {
             
+            this.idStartsAt = data.idStartsAt;
+            this.lastId = data.idEndsAt;
+
+            //extra
             
-            if ("idStartsAt" in this.extraMetaData && Number.isInteger(this.extraMetaData.idStartsAt)) {
-                this.idStartsAt = this.extraMetaData.idStartsAt
-            }
-            if ("type" in this.extraMetaData) {
-                switch (this.extraMetaData.type) {
-                    case "milady":
-                        this.totalSupply = 9999 //contract is bugged and gives a total supply that too large
-                        break;
-                    case "blockedCors":
-                        this.uriCache = await this.syncUriCache();
-                        break;
-                    default:
-                        break;
+            if ("baseUri" in data) {
+                this.baseURICache = data.baseUri
+                if ("baseUriExtension" in data) {
+                    this.baseUriExtension = data.baseUriExtension
+                    
                 }
             }
-            await this.syncUriCache()
-            await this.getIdsPerAttribute();
+
+            if ("compressedImages" in data) {
+                //TODO
+                //getImage needs cleanup
+            }
+
+            if (getMetaDataArray && "metaDataArray" in data) {
+                if (contractIsInlocalStorage) {
+                    //currently not stored here
+                } else {
+                    const r = await this.getUrlByProtocol(data.metaDataArray)
+                    this.uriCache = await r.json()
+                }
+            }
+        } else {
+            console.log("no premade data found syncing data from chain")
+            //TODO figure out why it doens start out as undefined anymore
+            this.uriCache = undefined
+            this.uriCache = await this.syncUriCache()
+            this.idsPerAttribute = await this.getIdsPerAttribute();
+            this.baseURICache = await this.getBaseURI()
+            this.firstId = await this.getFirstId()
+            this.lastId = await this.getLastId()
+
+            //TODO maybe save to session storage if collection was found in extraMetaData
+            //but local storage if user build it them selfs (idsPerAttribute)
+            await this.storeDataToLocaStorage()
 
         }
+        console.warn("done fetchingvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+    }
+
+    async storeDataToLocaStorage(overwrite = false) {
+        if (!this.idsPerAttribute) {
+            this.idsPerAttribute = await this.buildIdsPerAttributeFromUriCache(this.uriCache, true)
+        }
+
+        const storageObj ={
+            "name":await this.getContractName(),
+            "idStartsAt": await this.getFirstId(),
+            "idEndsAt": await this.getLastId(),
+            "totalsupply": (await this.getTotalSupply()),
+            "idsPerAttribute": this.idsPerAttribute,
+            "baseUri":await this.getBaseURI()
+        }
+
+        if (this.baseUriExtension) {
+            storageObj["baseUriExtension"] = this.baseUriExtension
+        }
+
+        if (overwrite === false && (this.contractObj.target in localStorage) === false) {
+            try {
+                if (!(typeof (localStorage) === "undefined")) {
+
+                    localStorage.setItem(await this.contractObj.target, JSON.stringify(storageObj));
+                }
+            } catch (e) {
+                console.warn("Couldnt save to local storage. Is it full?")
+                console.log(e)
+            }
+        }
+        return storageObj
+    }
+
+    async getExtraMetaDataObj(apiUrl = "http://127.0.0.1:5001") {
+        if (!this.idsPerAttribute) {
+            this.idsPerAttribute = await this.buildIdsPerAttributeFromUriCache(this.uriCache, true)
+        }
+        const data = JSON.stringify(this.idsPerAttribute)
+        const ipfsIndex = new IpfsIndexer([apiUrl], null, false)
+        const idsPerAttributeHash = (await ipfsIndex.addToIpfs(data, `${await this.getContractName()}-idsPerAttribute`))["Hash"]
+
+        const storageObj = {
+            [this.contractObj.target]: {
+                "name": await this.getContractName(),
+                "type": this.extraMetaData.type,
+                "idStartsAt": await this.getFirstId(),
+                "idEndsAt": await this.getLastId(),
+                "totalsupply": (await this.getTotalSupply()),
+                "idsPerAttribute": `ipfs://`+idsPerAttributeHash,
+                "baseUri": await this.getBaseURI()
+            }
+        }
+
+        if (this.baseUriExtension) {
+            storageObj[this.contractObj.target]["baseUriExtension"] = this.baseUriExtension
+        }
+
+        console.log(JSON.stringify(storageObj, null, 2))
+        return storageObj
+
     }
 
     async getImage(id) {
@@ -220,20 +317,20 @@ export class NftMetaDataCollector {
      * TODO use the iterable externsion
      * TODO make it skip ids until it finds unminted ones
      */
-    async #getLastIdFromChain(startingPointId = 5000, maxAmountChecks = 2500, chunkSize = 20, messageProgressElement, maxAmountFailsPerChunk=9) {
-        if(maxAmountFailsPerChunk>(chunkSize/2)) {
-            maxAmountFailsPerChunk = Math.floor(chunkSize/2)
+    async #getLastIdFromChain(startingPointId = 5000, maxAmountChecks = 2500, chunkSize = 20, messageProgressElement, maxAmountFailsPerChunk = 9) {
+        if (maxAmountFailsPerChunk > (chunkSize / 2)) {
+            maxAmountFailsPerChunk = Math.floor(chunkSize / 2)
         }
         if (messageProgressElement) {
             messageProgressElement.hidden = false
 
         }
-        
+
 
         this.lastId = 0
         let pendingIsLastIdRes = []
         let pendingIsLastIdResUpperRange = []
-        let pendingIsLastIdResLowerRange= []
+        let pendingIsLastIdResLowerRange = []
 
         const maxChecksHalf = Math.round(maxAmountChecks / 2)
         let totalFails = 0
@@ -250,16 +347,16 @@ export class NftMetaDataCollector {
                 pendingIsLastIdResLowerRange.push(MakeQuerablePromise(this.isLastId(lowerId)))
             }
 
-        
 
-            if (pendingIsLastIdResUpperRange.length >= chunkSize/2) {
+
+            if (pendingIsLastIdResUpperRange.length >= chunkSize / 2) {
                 pendingIsLastIdRes = [...pendingIsLastIdResUpperRange, ...pendingIsLastIdResLowerRange]
                 pendingIsLastIdRes = await Promise.all(pendingIsLastIdRes)
                 pendingIsLastIdResUpperRange = await Promise.all(pendingIsLastIdResUpperRange)
                 this.lastId = Math.max(this.lastId, ...pendingIsLastIdRes)
-                
 
-                totalFails += pendingIsLastIdResUpperRange.filter((x)=>x===-1).length
+
+                totalFails += pendingIsLastIdResUpperRange.filter((x) => x === -1).length
 
                 if (totalFails >= maxAmountFailsPerChunk && this.lastId !== 0) {
                     console.warn(`too many fails ${totalFails}`)
@@ -325,7 +422,7 @@ export class NftMetaDataCollector {
         }
     }
 
-    async getLastId(maxAmountChecks = 8000, messageProgressElement=undefined) {
+    async getLastId(maxAmountChecks = 8000, messageProgressElement = undefined) {
         if (this.lastId) {
             return this.lastId
         }
@@ -357,7 +454,7 @@ export class NftMetaDataCollector {
         } else {
             let id = 0;
             try {
-                id =parseInt(await this.contractObj.totalSupply())
+                id = parseInt(await this.contractObj.totalSupply())
 
             } catch (error) {
                 console.warn("uriHandeler had a error")
@@ -381,12 +478,12 @@ export class NftMetaDataCollector {
     }
 
     async getContractName() {
-    
+
         if (this.contractName) {
             return structuredClone(this.contractName)
 
         } else {
-            
+
             this.contractName = await this.contractObj.name()
             return structuredClone(this.contractName)
         }
@@ -424,60 +521,64 @@ export class NftMetaDataCollector {
     async getBaseURI() {
         let baseUri = undefined;
         //TODO test
-        //TODO IPFS
         //TODO get base uri by striping result .getTokenUri() becuase scatter doesnt have baseURI exposed :(
-        if (this.baseURICache == null) {
-            if ("type" in this.extraMetaData && (this.extraMetaData.type === "milady")) {
-                baseUri = this.getUrlByProtocol("ipfs://bafybeibkjh7jetwch4vzlyb2yq7tdqldqghnrzcqz44yswtshqqch73afm/", true)
-
-            } else {
+        if (this.baseURICache) {
+            return this.baseURICache
+        } else {
+            try {
+                baseUri = (await this.contractObj.baseURI());
+                // base uri is standard but not always there :(
+            } catch {
+                // try infering base uri from tokenURI function
+                console.warn(`contract: ${this.contractObj.target} does not have the baseURI() function. Using tokenURI() function to infer the baseUri (unsafe)`)
+                let s;
                 try {
-                    baseUri = (await this.contractObj.baseURI());
-                    // base uri is always standard :)
-                } catch {
-                    let s;
-                    try {
-                        const i = 1
-                        s = (await this.contractObj.tokenURI(i))
+                    const i = 1
+                    s = (await this.contractObj.tokenURI(i))
 
-                        //TODO do a series of checks 
-                        if (s.endsWith(`${i}`)) {
-                            baseUri = s.slice(0, -1);
-                        } else if (s.endsWith(`${i}.json`)) {
-                            baseUri = s.slice(0, -6)
-                            this.baseUriExtension = ".json"
-                        } else {
-                            console.warn(`NFT contract does not have baseURI() function and it's tokenURI() function return a non standard string: \n ${s}\n rolling with expensive rpc calls for now`)
-                            this.baseUriIsNonStandard = true
-                            baseUri = s
-                        }
-                    } catch (error) {
-                        console.warn(`NFT contract does not have baseURI() function and it's tokenURI() function return a non standard string: \n ${s}\n rolling with expensive rpc calls for now`)
+                    //TODO do a series of checks 
+                    if (s.endsWith(`${i}`)) {
+                        baseUri = s.slice(0, -2);
+                    } else if (s.endsWith(`${i}.json`)) {
+                        baseUri = s.slice(0, -7)
+                        this.baseUriExtension = ".json"
+                    } else {
+                        console.warn(`NFT contract does not have baseURI() function and it's tokenURI() function return a non standard string: \n ${s}\n using expensive rpc calls for now`)
                         this.baseUriIsNonStandard = true
                         baseUri = s
-
                     }
+                } catch (error) {
+                    console.warn(`NFT contract does not have baseURI() function and it's tokenURI() function return a non standard string: \n ${s}\n using expensive rpc calls for now`)
+                    this.baseUriIsNonStandard = true
+                    baseUri = s
+
                 }
             }
-        } else {
-            return this.baseURICache
         }
+
+
         this.baseURICache = baseUri
         return baseUri;
     }
 
-    async getUrisInBulk(startId = 0, endId = null, idList = null) {
+    async getUrisInBulk(startId = null, endId = null, idList = null) {
         let uris = [];
         //iter from startId to endId
         if (idList === null) {
             //do entire supply if endId is null
             if (endId === null) {
-                endId = await this.getTotalSupply()
+                endId = await this.getLastId()
             }
+            if (startId === null) {
+                startId = await this.getFirstId()
+            }
+
+            console.log("getUrisInBulk start stop", startId, endId)
+
             for (let i = startId; i < endId; i++) {
                 let id = i
                 if (!(id % 200)) {
-                    const m = `id:${id} out of:${await this.getTotalSupply()}`
+                    const m = `id:${id} out of:${endId}`
                     console.log(m)
                     if (!(typeof (document) === "undefined")) {
                         document.getElementById("messageProgress").innerHTML = m
@@ -498,17 +599,20 @@ export class NftMetaDataCollector {
     }
 
 
-    async syncUriCacheByScraping(startId = 0, endId = null, chunkSize = 150, idList = null) {
-        console.log("chucnsue", chunkSize)
+    async syncUriCacheByScraping(startId = null, endId = null, chunkSize = 100, idList = null) {
+        console.warn("scraping with chunk size", chunkSize)
         let allUris = [];
         let allUrisFulFilled = [];
-        const messageProgressElement = document.getElementById("messageProgress")
+        const messageProgressElement = document.getElementById("messageProgress") //TODO remove hardcoding
         //iter from startId to endId
         if (idList === null) {
             //do entire supply if endId is null
             if (endId === null) {
                 endId = await this.getLastId()
+            }
 
+            if (startId === null) {
+                startId = await this.getFirstId()
             }
 
             console.log("syncing from till", startId, endId)
@@ -529,7 +633,7 @@ export class NftMetaDataCollector {
                     await Promise.any(tempOnlyPromisses)
                 }
 
-                if (!(id % 20)) {
+                if (!(id % 20) && messageProgressElement) {
                     messageProgressElement.hidden = false
                     const m = `loading metadata. id:${id} out of:${this.lastId}`
                     //console.log(m)
@@ -615,28 +719,34 @@ export class NftMetaDataCollector {
     async syncUriCache(startId = 0, endId = null, chunkSize = 100) {
         // const traitTypeKey = this.attributeFormat.traitTypeKey
         // const valueKey = this.attributeFormat.valueKey
-        if (this.extraMetaData.metaDataArray) {
-            this.uriCache = await (await this.getUrlByProtocol(this.extraMetaData.metaDataArray)).json()
-        } else {
-            console.log(`no premade metadata found for ntf contract: ${await this.contractObj.target} :( collecting attribute manually!`)
-            //syncUriCacheByScraping already
-            //this.uriCache = 
-            this.uriCache = await this.syncUriCacheByScraping(startId, endId, chunkSize)
-            let emptyIdFormat = { "name": "WhoopsDoesntexist:p", "description": "WhoopsDoesntexist:p", "image": "WhoopsDoesntexist:p", "attributes": [] }
+        if (this.uriCache) {
+            return this.uriCache
 
-            this.uriCache = this.uriCache.map(function (element) {
-                if (element === undefined) {
-                    return emptyIdFormat
-                } else {
-                    return element
-                }
-            });
-            //assumes that it starts either at 0 or 1 ofc
-            if (this.uriCache[0].attributes) {
-                this.idStartsAt = 1
+        } else {
+            let tempUriCache 
+            console.warn("wwwwwwwwwwaaaaaaaaaaaa")
+            const contractIsInExtraMetaData = Object.keys(this.extraMetaData).length > 1
+            if (contractIsInExtraMetaData && this.extraMetaData.metaDataArray) {
+                this.uriCache = await (await this.getUrlByProtocol(this.extraMetaData.metaDataArray)).json()
+            } else {
+                console.log(`no premade metadata found for ntf contract: ${await this.contractObj.target} :( collecting attribute manually!`)
+                //syncUriCacheByScraping already
+                //this.uriCache = 
+                tempUriCache = await this.syncUriCacheByScraping(startId, endId, chunkSize)
+                let emptyIdFormat = { "name": "WhoopsDoesntexist:p", "description": "WhoopsDoesntexist:p", "image": "WhoopsDoesntexist:p", "attributes": [] }
+
+                tempUriCache = tempUriCache.map(function (element) {
+                    if (element === undefined) {
+                        return emptyIdFormat
+                    } else {
+                        return element
+                    }
+                });
             }
+            this.uriCache = tempUriCache
+            return this.uriCache
         }
-        return this.uriCache
+
     }
 
     async getTokenMetaDataNoCache(id, timeout = null) {
@@ -647,10 +757,11 @@ export class NftMetaDataCollector {
         //const reqObj = {method: 'GET'}
         let retries = 1;
         let uriString = ""
-        if (this.baseUriIsNonStandard) {
+        const baseUri = await this.getBaseURI()
+        //TODO what if base uri return a guess instead of the string from contract
+        if (baseUri) {
             try {
-                uriString = (await this.contractObj.tokenURI(id))
-
+                uriString = `${await this.getBaseURI()}/${id}${this.baseUriExtension}`
             } catch (error) {
                 console.log(`whoops errored on getting tokeUri from contract at id: ${id} it probably hasn't minted yet :(`)
                 return undefined
@@ -658,7 +769,7 @@ export class NftMetaDataCollector {
             }
 
         } else {
-            uriString = `${await this.getBaseURI()}${id}${this.baseUriExtension}`
+            uriString = (await this.contractObj.tokenURI(id))
         }
 
         //const URI =  await (await this.getUrlByProtocol()).json()
@@ -1145,7 +1256,7 @@ export class NftMetaDataCollector {
 
         for (let id = 0; id < this.uriCache.length; id++) {
             const metaData = this.uriCache[id]
-            if ("attributes" in metaData) {//uricache somtimes gets empty results from nft with broken max supplies like jay peg automart smh
+            if (typeof(metaData) === "object" && "attributes" in metaData) {//uricache somtimes gets empty results from nft with broken max supplies like jay peg automart smh
                 for (const attr of metaData.attributes) {
                     const traitType = attr[this.attributeFormat.traitTypeKey]
                     const value = attr[this.attributeFormat.valueKey]
@@ -1201,12 +1312,11 @@ export class NftMetaDataCollector {
                 }
 
             }
-            if (this.uriCache[id] === undefined) { //if undefined means totalsupply on contract is wrong
+            if (this.uriCache[id] === undefined) { //if undefined means totalsupply on contract is wrong TODO not actually always??
 
                 this.totalSupply = id - 1
             }
         }
-        console.log(idsPerAttribute)
         this.idsPerAttribute = idsPerAttribute
         return idsPerAttribute
 
@@ -1217,31 +1327,20 @@ export class NftMetaDataCollector {
      * @returns {Object} attributes
      */
     async getIdsPerAttribute(forceResync = false, keepIds = true, uriCache = this.uriCache) {
-
-
         //TODO make format global var
-
-        if (!forceResync && this.extraMetaData.idsPerAttributeCbor) {
-            if (this.extraMetaData.idsPerAttributeCbor) {
-                console.log(`found preprossed data for contract: ${this.contractObj.target}, at  ${this.extraMetaData.idsPerAttributeCbor}`)
-                const r = await this.getUrlByProtocol(this.extraMetaData.idsPerAttributeCbor)
-                this.idsPerAttribute = CBOR.decode(await r.arrayBuffer())
+        if (!forceResync && this.extraMetaData.idsPerAttribute) {
+            if (this.extraMetaData.idsPerAttribute) {
+                console.log(`found preprossed data for contract: ${this.contractObj.target}, at  ${this.extraMetaData.idsPerAttribute}`)
+                const r = await this.getUrlByProtocol(this.extraMetaData.idsPerAttribute)
+                //this.idsPerAttribute = CBOR.decode(await r.arrayBuffer())
+                this.idsPerAttribute = await r.json()
             }
 
             //this.idsPerAttribute = await (await this.getUrlByProtocol((await this.extraUriMetaData).idsPerAttribute)).json()
         } else {
             console.log(`no premade metadata found for ntf contract: ${await this.contractObj.target} :( collecting attributes manually!`)
-            this.idsPerAttribute = await this.buildIdsPerAttributeFromUriCache(uriCache, keepIds)
-            try {
-                if (!(typeof (localStorage) === "undefined")) {
-                    localStorage.setItem(await this.contractObj.target, JSON.stringify({ "idStartsAt": this.idStartsAt, "totalsupply": (await this.getTotalSupply()), "idsPerAttribute": this.idsPerAttribute }));
-
-                }
-
-            } catch (e) {
-                console.warn("Couldnt save to local storage. Is it full?")
-                console.log(e)
-            }
+            this.idsPerAttribute = await this.buildIdsPerAttributeFromUriCache(this.uriCache, true)
+            //await this.storeDataToLocaStorage()
 
         }
         return this.idsPerAttribute
@@ -1417,7 +1516,7 @@ export class NftMetaDataCollector {
 
 
     async getCachedIdsOfOwner(source = this.extraMetaData.idsOfOwner) {
-        
+
         if (Object.keys(this.idsOfOwnerCache).length) {
             return this.idsOfOwnerCache
         }
