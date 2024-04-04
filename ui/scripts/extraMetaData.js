@@ -3,8 +3,8 @@ export const allExtraMetaData ={
         "type": "milady",
         "name": "milady",
 
-        "idStartsAt":0,
-        "idsEndsAt":9999,
+        "firstId":0,
+        "lastId":9999,
 
         "idsPerAttribute": "ipfs://bafybeicgayygxqzdsz37hkn3shfpsxrbyyiemodpyrpkoazxbb3p5khc5m",
         "compressedImages": "ipfs://bafybeidku5upsi2oooyummqkgacv43ab6dqcnkji7pfq73oqx4l6zl362a",
@@ -20,8 +20,8 @@ export const allExtraMetaData ={
     "0x1D20A51F088492A0f1C57f047A9e30c9aB5C07Ea": {
         "name": "loomlocknft",
         "type": "standard",
-        "idStartsAt": 0,
-        "idEndsAt": 12344,
+        "firstId": 0,
+        "lastId": 12344,
         "totalsupply": 12343,
         "idsPerAttribute": "ipfs://bafybeiawcgynr55syd4klqykscatiqtt3tsirjj4eb5xfhjwfnpzpw3ctu",
         "baseUri": "https://arweave.net/LGlMDKAWgcDyvYoft1YV6Y2pBBAwjWaFuZrDP9yD-RY",
@@ -32,7 +32,8 @@ export const allExtraMetaData ={
         "type": "standard",
         "name": "mifairymaker",
 
-        "idStartsAt":1,
+        "firstId":1,
+        "lastId":3333,
         "totalSupply":3333,
 
         "idsPerAttribute": "ipfs://bafybeiek26panjzlaqif5ovolak7bgz4kjj7lbsfupixnytjxj47lcu5dq",
@@ -47,8 +48,8 @@ export const allExtraMetaData ={
         "type": "blockedCors",
         "name": "CHWO",
 
-        // "idStartsAt":undefined,
-        // "idsEndsAt":undefined,
+        // "firstId":undefined,
+        // "lastId":undefined,
 
         "idsPerAttribute": "ipfs://bafkreifhraqwqwrdxc6qsz2dzhr53bfodon27fsvqia62sr3jpsofshqyq",
         "compressedImages":"https://reveal.cakehats.xyz", //not compressed :p
@@ -67,7 +68,7 @@ export const allExtraMetaData ={
     //     "type": "blockedCors",
     //     "name": "Azuki Elementals",
 
-    //     "idStartsAt":0,
+    //     "firstId":0,
     //     "totalSupply":13627,
         
     //     // TODO => "idsPerAttribute": "ipfs://",

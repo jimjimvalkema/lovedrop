@@ -182,6 +182,7 @@ export class FilterBuilder {
             this.nftMetaDataPerCollection[collectionAddress] = new NftMetaDataCollector(collectionAddress, this.provider, this.ipfsGateway)
             await this.nftMetaDataPerCollection[collectionAddress].fetchAllExtraMetaData()
         }
+       
         return this.nftMetaDataPerCollection[collectionAddress]
     }
     
@@ -231,7 +232,7 @@ export class FilterBuilder {
         }
 
         const currentFilter = this.getCurrentFilter()
-        const resultIdSet = await this.nftMetaDataPerCollection[this.collectionAddress].processFilter(currentFilter)
+        const resultIdSet = await (await this.getNftMetaData()).processFilter(currentFilter)
         const ids  = [...resultIdSet]
 
         if (updateIU) {
@@ -535,16 +536,17 @@ export class FilterBuilder {
 
     async getAllExtraMetaData() {
         if (this.collectionAddress) {
-            return await this.nftMetaDataPerCollection[this.collectionAddress].fetchAllExtraMetaData()
+            return await (await this.getNftMetaData()).fetchAllExtraMetaData()
         }
         
     }
 
     async getIdsPerAttribute(collectionAddress = this.collectionAddress) {
-        if (!this.nftMetaDataPerCollection[collectionAddress].idsPerAttribute) {
-            await this.nftMetaDataPerCollection[collectionAddress].fetchAllExtraMetaData()
+        const nftMetadata = await this.getNftMetaData(collectionAddress)
+        if (!nftMetadata.idsPerAttribute) {
+            await nftMetadata.fetchAllExtraMetaData()
         }
-        return this.nftMetaDataPerCollection[collectionAddress].idsPerAttribute
+        return await nftMetadata.getIdsPerAttribute()
     }
 
     //filter fromatting
@@ -1226,8 +1228,8 @@ export class FilterBuilder {
         input.id = `${inputType}-${dataType}-selector`
         input.className = "idList-selector"
         input.type = "number"
-        input.min = await this.nftMetaDataPerCollection[this.collectionAddress].getFirstId()
-        input.max = await this.nftMetaDataPerCollection[this.collectionAddress].getLastId()
+        input.min = await (await this.getNftMetaData()).getFirstId()
+        input.max = await (await this.getNftMetaData()).getLastId()
         input.addEventListener("keypress", (event)=> this.#addIdButtonHandler(input.value,event))
 
         const label = document.createElement("label") 

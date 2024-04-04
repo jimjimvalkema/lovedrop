@@ -49,7 +49,6 @@ export class NftDisplay {
         portraitOrientation = {["rowSize"]:3,["amountRows"]:4},
         nftMetaData, initialize=true, pageSelectorFlag=true, collectionInfoFlag=true}
     ) {
-        console.warn("initaliziing nft displayyyyyyyyyyyyyyyyyyyyyyyyyyyy")
         this.ipfsGateway = ipfsGateway
         this.provider =provider
         this.ids = ids
@@ -66,7 +65,9 @@ export class NftDisplay {
             this.initialize(collectionAddress, nftMetaData)
 
         } else {
+            
             this.collectionAddress = collectionAddress
+            
         }
         
 
@@ -94,6 +95,7 @@ export class NftDisplay {
             return
         } else {
             this.collectionAddress = ethers.getAddress(collectionAddress)
+            
             //TODO recreating nftMetaData is inefecient if it used somewhere else
             if (this.nftMetaData.contractObj.target !== collectionAddress) {
                 console.warn("collection address is set by creating a new NftMetaDataCollector object this can break things! ")

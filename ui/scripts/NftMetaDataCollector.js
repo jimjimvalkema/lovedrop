@@ -67,7 +67,7 @@ export class NftMetaDataCollector {
     ipfsGateway = undefined;
     idsPerAttribute = undefined;
     useCustomCompressedImages = false;
-    idStartsAt = undefined;
+    firstId = undefined;
     contractName = undefined;
     idsOfOwnerCache = {};
     baseUriExtension = "";
@@ -126,18 +126,19 @@ export class NftMetaDataCollector {
 
 
     async getFirstId() {
+
         //cheeky way to check for off by one errors :p
-        if (this.idStartsAt === undefined) {
+        if (this.firstId === undefined) {
             try {
                 await this.contractObj.ownerOf(0)
             } catch (error) {
-                this.idStartsAt = 1
+                this.firstId = 1
                 return 1
             }
-            this.idStartsAt = 0
+            this.firstId = 0
             return 0
         } else {
-            return this.idStartsAt
+            return this.firstId
         }
 
     }
@@ -148,7 +149,6 @@ export class NftMetaDataCollector {
     }
 
     async fetchAllExtraMetaData(getMetaDataArray = false) {
-        console.warn("started fetchingvvvvvvvvvvvvvvvvvvvvvvvvvvv")
         //todo \/
         this.idsOfOwnerCache = await this.getCachedIdsOfOwner()
         let data
@@ -172,9 +172,8 @@ export class NftMetaDataCollector {
             } else {
                 this.idsPerAttribute = await (await this.getUrlByProtocol( data.idsPerAttribute)).json();
             }
-            
-            this.idStartsAt = data.idStartsAt;
-            this.lastId = data.idEndsAt;
+            this.firstId = data.firstId;
+            this.lastId = data.lastId;
 
             //extra
             
@@ -214,7 +213,6 @@ export class NftMetaDataCollector {
             await this.storeDataToLocaStorage()
 
         }
-        console.warn("done fetchingvvvvvvvvvvvvvvvvvvvvvvvvvvv")
     }
 
     async storeDataToLocaStorage(overwrite = false) {
@@ -224,8 +222,8 @@ export class NftMetaDataCollector {
 
         const storageObj ={
             "name":await this.getContractName(),
-            "idStartsAt": await this.getFirstId(),
-            "idEndsAt": await this.getLastId(),
+            "firstId": await this.getFirstId(),
+            "lastId": await this.getLastId(),
             "totalsupply": (await this.getTotalSupply()),
             "idsPerAttribute": this.idsPerAttribute,
             "baseUri":await this.getBaseURI()
@@ -261,8 +259,8 @@ export class NftMetaDataCollector {
             [this.contractObj.target]: {
                 "name": await this.getContractName(),
                 "type": this.extraMetaData.type,
-                "idStartsAt": await this.getFirstId(),
-                "idEndsAt": await this.getLastId(),
+                "firstId": await this.getFirstId(),
+                "lastId": await this.getLastId(),
                 "totalsupply": (await this.getTotalSupply()),
                 "idsPerAttribute": `ipfs://`+idsPerAttributeHash,
                 "baseUri": await this.getBaseURI()
@@ -383,7 +381,6 @@ export class NftMetaDataCollector {
         }
 
         pendingIsLastIdRes = await Promise.all(pendingIsLastIdRes)
-        console.log(pendingIsLastIdRes)
         this.lastId = Math.max(this.lastId, ...pendingIsLastIdRes)
 
         return this.lastId
@@ -600,7 +597,6 @@ export class NftMetaDataCollector {
 
 
     async syncUriCacheByScraping(startId = null, endId = null, chunkSize = 100, idList = null) {
-        console.warn("scraping with chunk size", chunkSize)
         let allUris = [];
         let allUrisFulFilled = [];
         const messageProgressElement = document.getElementById("messageProgress") //TODO remove hardcoding
@@ -724,7 +720,6 @@ export class NftMetaDataCollector {
 
         } else {
             let tempUriCache 
-            console.warn("wwwwwwwwwwaaaaaaaaaaaa")
             const contractIsInExtraMetaData = Object.keys(this.extraMetaData).length > 1
             if (contractIsInExtraMetaData && this.extraMetaData.metaDataArray) {
                 this.uriCache = await (await this.getUrlByProtocol(this.extraMetaData.metaDataArray)).json()
@@ -1046,7 +1041,6 @@ export class NftMetaDataCollector {
             //TODO check if correct
             const resolvedNewIdSets = await Promise.all(newIdSets);
             //const resolvedNewIdSets = newIdSets.map((x) => [...x]);
-            console.log(resolvedNewIdSets)
             if (resolvedNewIdSets.length) {
                 for (const newIdSet of resolvedNewIdSets) {
                     if (idSet.size) {
@@ -1055,7 +1049,7 @@ export class NftMetaDataCollector {
                     } else {
                         idSet = newIdSet
                     }
-                    console.log(idSet)
+   
 
                 }
 
@@ -1327,23 +1321,27 @@ export class NftMetaDataCollector {
      * @returns {Object} attributes
      */
     async getIdsPerAttribute(forceResync = false, keepIds = true, uriCache = this.uriCache) {
-        //TODO make format global var
-        if (!forceResync && this.extraMetaData.idsPerAttribute) {
-            if (this.extraMetaData.idsPerAttribute) {
-                console.log(`found preprossed data for contract: ${this.contractObj.target}, at  ${this.extraMetaData.idsPerAttribute}`)
-                const r = await this.getUrlByProtocol(this.extraMetaData.idsPerAttribute)
-                //this.idsPerAttribute = CBOR.decode(await r.arrayBuffer())
-                this.idsPerAttribute = await r.json()
-            }
-
-            //this.idsPerAttribute = await (await this.getUrlByProtocol((await this.extraUriMetaData).idsPerAttribute)).json()
+        if (this.idsPerAttribute) {
+            return this.idsPerAttribute
         } else {
-            console.log(`no premade metadata found for ntf contract: ${await this.contractObj.target} :( collecting attributes manually!`)
-            this.idsPerAttribute = await this.buildIdsPerAttributeFromUriCache(this.uriCache, true)
-            //await this.storeDataToLocaStorage()
+            //TODO make format global var
+            if (!forceResync && this.extraMetaData.idsPerAttribute) {
+                if (this.extraMetaData.idsPerAttribute) {
+                    console.log(`found preprossed data for contract: ${this.contractObj.target}, at  ${this.extraMetaData.idsPerAttribute}`)
+                    const r = await this.getUrlByProtocol(this.extraMetaData.idsPerAttribute)
+                    //this.idsPerAttribute = CBOR.decode(await r.arrayBuffer())
+                    this.idsPerAttribute = await r.json()
+                }
 
+                //this.idsPerAttribute = await (await this.getUrlByProtocol((await this.extraUriMetaData).idsPerAttribute)).json()
+            } else {
+                console.log(`no premade metadata found for ntf contract: ${await this.contractObj.target} :( collecting attributes manually!`)
+                this.idsPerAttribute = await this.buildIdsPerAttributeFromUriCache(this.uriCache, true)
+                //await this.storeDataToLocaStorage()
+
+            }
+            return this.idsPerAttribute
         }
-        return this.idsPerAttribute
     }
 
     async eventScanInChunks(contrObj, filter, startBlock, endBlock, chunkSize = 4000, maxRequests = 10) {
@@ -1452,7 +1450,6 @@ export class NftMetaDataCollector {
         let foundIds = []
         const nftAddr = await this.contractObj.target
         let tokenOfOwnerByindexFailed = false;
-        console.log(ownerAddres, nftContrObj.target)
         //TODO do try catch becuase mfrs be deploying proxys 
         //if ((await contractHasFunction(nftAddr,"tokenOfOwnerByIndex(address,uint256)","../ui/abi/ERC721ABI.json", provider ))) {//wil just return empty array id tokenOfOwnerByindex doesnt exist :(
         try {

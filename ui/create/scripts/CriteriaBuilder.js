@@ -107,7 +107,7 @@ export class CriteriaBuilder {
         await this.selectFilterForCriterion(value, this.getCurrentCriterion())
         
         //run filter
-        const resultIdSet = await this.filterBuilder.getNftMetaData(currentCriterion.collectionAddress).processFilter(currentCriterion.selectedFilter)
+        const resultIdSet = await (await this.filterBuilder.getNftMetaData(currentCriterion.collectionAddress)).processFilter(currentCriterion.selectedFilter)
         const ids  = [...resultIdSet]
 
         await this.#onFilterChange(currentCriterion.selectedFilter, ids)
@@ -239,7 +239,7 @@ export class CriteriaBuilder {
 
         //check if filterbuilder needs to be updated
         if (collectionAddress !== this.filterBuilder.currentCollection) {
-            await this.#setCollectionFilterBuilder(collectionAddress, updateUi) 
+            await this.#setCollectionFilterBuilder(collectionAddress, updateUi)  //calls nftMetadat
 
         } else {
             console.info("filterBuilder was set to the same collection address")
@@ -258,21 +258,19 @@ export class CriteriaBuilder {
         //check if a new filter need to be created
         if (collectionAddress !== oldCollectionAddress || (!("index" in criterion.selectedFilter)) ) {
             const newFilter = this.filterBuilder.createNewFilter("AND")
-            await this.selectFilterForCriterion(newFilter.index, criterion, updateUi) //creates display
+            await this.selectFilterForCriterion(newFilter.index, criterion, updateUi) //creates display //calls nftMetadat
         }
 
-        await this.updateCriterionName()
+        await this.updateCriterionName(criterionIndex) //calls nftMetadat
         this.#toggleNextButton()
         
     }
 
     #toggleNextButton() {
         const allCriterionAreValid = !Boolean(this.criteria.find((criterion)=>!this.isERC721(criterion.collectionAddress) || !criterion.collectionAddress ) )
-        console.log("toggling", allCriterionAreValid)
         if (allCriterionAreValid) {
             this.nextButton.disabled = false
             this.nextButton.title = "Go to overview of all criteria (you can go back and make changes)"
-            console.log(this.nextButton)
         } else {
             this.nextButton.disabled = true
         }
@@ -347,7 +345,8 @@ export class CriteriaBuilder {
         let collectionName
         if (criterion.collectionAddress) {
             try {
-                collectionName = await this.filterBuilder.getNftMetaData(criterion.collectionAddress).getContractName()
+                const filterBuilder = await this.filterBuilder.getNftMetaData(criterion.collectionAddress)
+                collectionName = await filterBuilder.getContractName()
                 
             } catch (error) {
                 collectionName = "ErrNoCollectionName"
@@ -394,6 +393,9 @@ export class CriteriaBuilder {
         //newCriterion.collectionAddress = collectionAddress
         this.criteria.push(newCriterion)
 
+    
+       
+
         //add Filter
         // const newFilter = this.filterBuilder.createNewFilter("AND")
         // await this.selectFilterForCriterion(newFilter.index, newCriterion)
@@ -408,8 +410,7 @@ export class CriteriaBuilder {
         newCriterionOption.value = newCriterionIndex
         criteriaSelector.insertBefore(newCriterionOption, addNewOption)
 
-        
-        await this.setCollectionAddress(collectionAddress,newCriterionIndex, false) //creates dispay
+        await this.setCollectionAddress(collectionAddress,newCriterionIndex, true) //creates dispay
         await this.changeCurrentCriterion(newCriterionIndex) //creates display
         
 
@@ -506,7 +507,6 @@ export class CriteriaBuilder {
         
         //set all criterion with no amountPerItem to 0
         for (const criterion of this.criteria) {
-            console.log(criterion)
             if (!this.isERC721(criterion.collectionAddress) || !criterion.collectionAddress) {
                 await this.removeCriterionByIndex(criterion.index)
             } else if (isNaN(criterion.amountPerItem) || criterion.amountPerItem === "") {

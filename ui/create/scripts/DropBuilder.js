@@ -79,22 +79,10 @@ export class DropBuilder {
 
     originalElementDisplayValues = this.getDisplayStylesFromElements(this.dropBuilderPages)
 
-    static mainChain = {
-        chainId: "0x1",
-        rpcUrls: ["https://eth.llamarpc.com"],
-        chainName: "Ethereum Mainnet",
-        nativeCurrency: {
-            name: "Ethereum",
-            symbol: "ETH",
-            decimals: 18
-        },
-        //blockExplorerUrls: []
-    }
-
     // static mainChain = {
-    //     chainId: "0x7A69",
-    //     rpcUrls: ["http://localhost:8555/"],
-    //     chainName: "local fork Ethereum Mainnet",
+    //     chainId: "0x1",
+    //     rpcUrls: ["https://eth.llamarpc.com"],
+    //     chainName: "Ethereum Mainnet",
     //     nativeCurrency: {
     //         name: "Ethereum",
     //         symbol: "ETH",
@@ -102,6 +90,18 @@ export class DropBuilder {
     //     },
     //     //blockExplorerUrls: []
     // }
+
+    static mainChain = {
+        chainId: "0x7A69",
+        rpcUrls: ["http://localhost:8555/"],
+        chainName: "local fork Ethereum Mainnet",
+        nativeCurrency: {
+            name: "Ethereum",
+            symbol: "ETH",
+            decimals: 18
+        },
+        //blockExplorerUrls: []
+    }
 
 
 
@@ -119,7 +119,6 @@ export class DropBuilder {
         this.ipfsIndexer = ipfsIndexer
         this.nftDisplayElementCriteriaBuilder = nftDisplayElementCriteriaBuilder
         this.loveDropFactoryAddress = loveDropFactoryAddress
-        console.log(this.dropBuilderMessageContentEl)
         //initialize
         //this.dropBuilderEl.style.display = "none"
         this.selectDropBuilderPageIndex(0)
@@ -152,7 +151,6 @@ export class DropBuilder {
 
 
         this.collectionsSelectorEl.addEventListener("change", (event)=>{
-            console.log(event.target.value)
             this.criterionCollectionInput.value = event.target.value
             const newEvent = new Event("keypress")
             newEvent.key = "Enter"
@@ -279,7 +277,6 @@ export class DropBuilder {
             await this.criteriaBuilder.filterBuilder.removeFilterByIndex(criterion.selectedFilter.index, criterion.collectionAddress)
             await this.criteriaBuilder.removeCriterionByIndex(criterion.index)
             //await this.criteriaBuilder.changeCurrentCriterion(0)
-            console.log("removed:", criterion)
         }
     }
 
@@ -458,9 +455,6 @@ export class DropBuilder {
         //new ethers.BrowserProvider(window.ethereum).provider["provider"].on('chainChanged', async (networkId) => {
         if (window.ethereum) {
             window.ethereum.on('chainChanged', async (networkId) => {
-                console.log(networkId, "hi hello hi :)")
-                console.log(networkId, DropBuilder.mainChain.chainId)
-                console.log(networkId !== DropBuilder.mainChain.chainId)
                 if (networkId !== DropBuilder.mainChain.chainId) {
                     await DropBuilder.switchNetwork(DropBuilder.mainChain)
                     console.warn("network changed TODO handle this")
@@ -556,7 +550,6 @@ export class DropBuilder {
             }
             // handle other "switch" errors
         }
-        console.log(result)
         return true
 
     }
@@ -588,7 +581,7 @@ export class DropBuilder {
 
     async #createCollectionHrefs() {
         const allCollectionsAddresses = [...new Set(this.criteriaBuilder.criteria.map((x) => x.collectionAddress))]
-        const names = allCollectionsAddresses.map((address) => this.criteriaBuilder.filterBuilder.getNftMetaData(address).getContractName())
+        const names = allCollectionsAddresses.map(async (address) => await (await this.criteriaBuilder.filterBuilder.getNftMetaData(address)).getContractName())
         const nameElements = (await Promise.all(names)).map((name, index) => {
             const address = allCollectionsAddresses[index]
             const nameElement = document.createElement("a")
@@ -780,7 +773,7 @@ export class DropBuilder {
 
     async createNftDisplay(collectionAddress, ids, nftDisplayElement) {
         //this.nftMetaData = new NftMetaDataCollector(collectionAddress, this.provider, this.ipfsGateway)
-        const nftMetaData = this.criteriaBuilder.filterBuilder.getNftMetaData(collectionAddress)
+        const nftMetaData = await this.criteriaBuilder.filterBuilder.getNftMetaData(collectionAddress)
         let nftDisplay = new NftDisplay({
             ids: ids,
             collectionAddress: collectionAddress,
@@ -1116,7 +1109,7 @@ export class DropBuilder {
         contractAddressLink.innerText = criterion.collectionAddress
 
         //contractName
-        const contractName = await this.criteriaBuilder.filterBuilder.getNftMetaData(criterion.collectionAddress).getContractName()
+        const contractName = await (await this.criteriaBuilder.filterBuilder.getNftMetaData(criterion.collectionAddress)).getContractName()
 
         //add info to criteriaEl
         const wrapperDiv = document.createElement("div")
@@ -1496,7 +1489,7 @@ export class DropBuilder {
         const ids = criterion.ids.filter((id) => criterion.excludedIds.indexOf(id) === -1)
         const collectionAddress = ethers.getAddress(criterion.collectionAddress)
         const contentElement = document.createElement("div")
-        const nftMetaData = this.criteriaBuilder.filterBuilder.getNftMetaData(collectionAddress)
+        const nftMetaData = await this.criteriaBuilder.filterBuilder.getNftMetaData(collectionAddress)
         contentElement.id = `${collectionAddress}-${criterion.name}-${criterion.index}`
 
         const landscapeOrientation = { "rowSize": 5, "amountRows": 1 }
@@ -1688,7 +1681,7 @@ export class DropBuilder {
 
 
             if (this.isWalletConnected()) {
-                console.log(this.airdropTokenContractObj.target, merkleRoot, claimDataIpfs)
+                console.log("creating new drop with params:",this.airdropTokenContractObj.target, merkleRoot, claimDataIpfs)
                 var tx = loveDropFactory.createNewDrop(this.airdropTokenContractObj.target, merkleRoot, claimDataIpfs);
                 this.txs.push(tx)
 
@@ -1838,7 +1831,7 @@ export class DropBuilder {
     async #createSingleNftDisplay(collectionAddress, id) {
         collectionAddress = ethers.getAddress(collectionAddress)
         const contentElement = document.createElement("div")
-        const nftMetaData = this.criteriaBuilder.filterBuilder.getNftMetaData(collectionAddress)
+        const nftMetaData = await this.criteriaBuilder.filterBuilder.getNftMetaData(collectionAddress)
         contentElement.id = `singleNftDisplay-${collectionAddress}-${id}`
 
         const landscapeOrientation = { "rowSize": 1, "amountRows": 1 }
