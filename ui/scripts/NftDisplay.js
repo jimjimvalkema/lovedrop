@@ -77,6 +77,7 @@ export class NftDisplay {
     async initialize(collectionAddress=this.collectionAddress, nftMetaData=undefined) {
         if (!nftMetaData) {
             this.nftMetaData = new NftMetaDataCollector(collectionAddress,this.provider,this.ipfsGateway)
+            await this.nftMetaData.fetchAllExtraMetaData()
         } else {
             this.nftMetaData = nftMetaData
         }

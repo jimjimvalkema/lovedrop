@@ -126,7 +126,6 @@ export class NftMetaDataCollector {
 
 
     async getFirstId() {
-
         //cheeky way to check for off by one errors :p
         if (this.firstId === undefined) {
             try {
@@ -140,7 +139,6 @@ export class NftMetaDataCollector {
         } else {
             return this.firstId
         }
-
     }
 
     async getCompressedImages() {
@@ -176,7 +174,6 @@ export class NftMetaDataCollector {
             this.lastId = data.lastId;
 
             //extra
-            
             if ("baseUri" in data) {
                 this.baseURICache = data.baseUri
                 if ("baseUriExtension" in data) {
@@ -752,11 +749,13 @@ export class NftMetaDataCollector {
         //const reqObj = {method: 'GET'}
         let retries = 1;
         let uriString = ""
-        const baseUri = await this.getBaseURI()
+        let baseUri = await this.getBaseURI()
         //TODO what if base uri return a guess instead of the string from contract
         if (baseUri) {
             try {
-                uriString = `${await this.getBaseURI()}/${id}${this.baseUriExtension}`
+                if (baseUri.endsWith("/")) {baseUri=baseUri.slice(0,-1)}
+
+                uriString = `${baseUri}/${id}${this.baseUriExtension}`
             } catch (error) {
                 console.log(`whoops errored on getting tokeUri from contract at id: ${id} it probably hasn't minted yet :(`)
                 return undefined

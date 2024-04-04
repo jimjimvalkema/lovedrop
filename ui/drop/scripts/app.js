@@ -258,6 +258,7 @@ async function displayNfts(nftAddress = null) {
         })
         await display.setCollectionAddress(nftAddress)
         await display.showAttributes()
+        await display.initialize()
         window.nftDisplays[nftAddress] = display
 
 
@@ -355,7 +356,7 @@ async function loadAllContracts() {
     window.urlVars = await getUrlVars();
 
     const claimPageUrl = new URL(window.location.href)
-    claimPageUrl.pathname = "drop"
+    claimPageUrl.pathname = "claim"
 
     document.getElementById("loading").innerText = "loading"
     document.getElementById("dropInfo").innerHTML = `Claim at: <a href=${decodeURIComponent(claimPageUrl.toString())}}>claim page</a><br>`
