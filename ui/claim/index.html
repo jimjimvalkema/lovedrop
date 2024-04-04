@@ -2,7 +2,7 @@
 <style>
     * {
         font-family: Arial;
-        font-size: 110%;
+        font-size: large;
     }
 
     .tokenDisplay {
@@ -11,17 +11,17 @@
         text-overflow: ellipsis;
         overflow: hidden;
         /* white-space: nowrap; */
-        font-size: 1.7rem;
+        font-size: 1.7em;
         text-align: right;
         font-weight: bold;
         -webkit-text-fill-color: #ffffff;
-        -webkit-text-stroke-width: 0.1rem;
+        -webkit-text-stroke-width: 0.05em;
         -webkit-text-stroke-color: #000000;
         z-index: 2;
     }
 
     .nftdisplayInfo {
-        font-size: 1.5rem;
+        font-size: 1.5em;
     }
 
     .nftDisplaySelectionStatus {
@@ -35,24 +35,24 @@
 
         display: flex;
         align-items: center;
-        font-size: 1.4rem;
+        font-size: 1.4em;
 
         width: 100%;
         bottom: 0px;
         left: 0px;
         color: white;
         background-color: rgba(0, 0, 0, 0.9);
-        min-height: 1.6rem;
+        min-height: 1.6em;
 
     }
 
     .globalButtons {
-        font-size: 1.4rem;
+        font-size: 1.4em;
     }
 
     #walletConnectButton {
         float: right;
-        font-size: 2rem;
+        font-size: 2em;
         position: absolute;
         right: 0px;
         top: 0px;
@@ -65,16 +65,16 @@
     }
 
     .titel {
-        font-size: 1.7rem;
+        font-size: 1.7em;
         font-weight: bold;
     }
 
     .text {
-        font-size: 1rem;
+        font-size: 1em;
     }
 
     #accountInfo {
-        font-size: 1.2rem;
+        font-size: 1.2em;
         overflow: hidden;
         text-overflow: ellipsis;
         width: 11em;
@@ -86,8 +86,8 @@
     }
 
     #dropInfo {
-        font-size: 1.6rem;
-        margin-bottom: 3.2rem;
+        font-size: 1.6em;
+        margin-bottom: 3.2em;
         width: 46vw;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -98,13 +98,18 @@
         overflow: hidden;
         /* white-space: nowrap; */
         position: relative;
-        font-size: 1.2rem;
+        font-size: 1.2em;
         text-align: center;
         color: #000000;
         font-weight: bold;
         background-color: #ffffff;
         width: 100%;
         z-index: 2;
+    }
+
+    .nftDisplay {
+        max-height: 38vh;
+        display: grid;
     }
 </style>
 
@@ -134,7 +139,7 @@
 
 
     <div id="nfts"></div>
-    <div id="loading" style="font-weight: bold; font-size: 3rem;"></div>
+    <div id="loading" style="font-weight: bold; font-size: 3em;"></div>
     <div id="message"></div>
 </body>
 <script type="module" src="./scripts/app.js" type="application/javascript"></script>

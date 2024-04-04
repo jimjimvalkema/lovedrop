@@ -22,12 +22,12 @@ const mainChain = {
     rpcUrls: ["http://localhost:8555/"],
     chainName: "local fork Ethereum Mainnet",
     nativeCurrency: {
-      name: "Ethereum",
-      symbol: "ETH",
-      decimals: 18
+        name: "Ethereum",
+        symbol: "ETH",
+        decimals: 18
     },
     //blockExplorerUrls: []
-  }
+}
 
 async function getUrlVars() {
     var vars = {};
@@ -43,30 +43,30 @@ async function connectProvider() {
         window.provider = new ethers.BrowserProvider(window.ethereum);
     } else {
         console.log("couldn't connect to window.ethereum using a external rpc")
-        const providerUrls = ["https://mainnet.infura.io/v3/", "https://eth.llamarpc.com"] 
+        const providerUrls = ["https://mainnet.infura.io/v3/", "https://eth.llamarpc.com"]
         const workingProviderUrl = await getFirstAvailableProvider(providerUrls)
-        console.log(workingProviderUrl) 
+        console.log(workingProviderUrl)
         window.provider = new ethers.JsonRpcProvider(workingProviderUrl)
-    } 
+    }
 
 }
-  
+
 
 async function getFirstAvailableProvider(providerUrls) {
-    const isWorkingProvider = await Promise.all(providerUrls.map((url)=>isProviderAvailable(url)))
-    return providerUrls [isWorkingProvider.indexOf(true)]
+    const isWorkingProvider = await Promise.all(providerUrls.map((url) => isProviderAvailable(url)))
+    return providerUrls[isWorkingProvider.indexOf(true)]
 
 }
 
 async function isProviderAvailable(url) {
     try {
-        const testProvider = new  ethers.JsonRpcProvider(url)
+        const testProvider = new ethers.JsonRpcProvider(url)
         await testProvider.getNetwork()
         return true
     } catch (error) {
         console.warn(`couldnt connect to ${url}`)
         console.warn(error)
-        return false   
+        return false
     }
 }
 
@@ -99,24 +99,24 @@ async function resolveTillConnected() {
 async function getAccountName(address) {
     let ens
     try {
-        ens =  await provider.lookupAddress(address);
-    } catch{}
+        ens = await provider.lookupAddress(address);
+    } catch { }
     if (ens) {
         return ens
     } else {
-        return address.slice(0,8)+".."
+        return address.slice(0, 8) + ".."
     }
 
 
 }
 window.getAccountName = getAccountName
 
-async function connectSigner(refreshNftDisplay=true) {
+async function connectSigner(refreshNftDisplay = true) {
     // MetaMask requires requesting permission to connect users accounts
     if (!window.ethereum) {
         message("no inject ethereum wallet found please install metamask or equivalant!")
         document.getElementById("loading").innerText = ""
-        
+
         return 0
     }
 
@@ -126,7 +126,7 @@ async function connectSigner(refreshNftDisplay=true) {
     message("please connect wallet :)")
 
     if (isWalletConnected()) {
-        
+
         await resolveTillConnected()
         message("")
         // while (!window.airdropTokenContract) {
@@ -134,7 +134,7 @@ async function connectSigner(refreshNftDisplay=true) {
         // }
         // window.mildayDropWithSigner = await window.mildayDropContract.connect(window.signer);
         window.userAddress = await window.signer.getAddress()
-        if(window.allNftDisplays && refreshNftDisplay) {
+        if (window.allNftDisplays && refreshNftDisplay) {
             await displayNfts();
 
         }
@@ -147,37 +147,37 @@ async function connectSigner(refreshNftDisplay=true) {
 }
 window.connectSigner = connectSigner
 
-async function switchNetwork(network=mainChain) {
+async function switchNetwork(network = mainChain) {
     try {
-        await window.provider.send("wallet_switchEthereumChain",[{ chainId: network.chainId }]);
+        await window.provider.send("wallet_switchEthereumChain", [{ chainId: network.chainId }]);
 
-      } catch (switchError) {
+    } catch (switchError) {
         window.switchError = switchError
         // This error code indicates that the chain has not been added to MetaMask.
         if (switchError.error && switchError.error.code === 4902) {
-          try {
-            await window.provider.send("wallet_addEthereumChain",[network]);
+            try {
+                await window.provider.send("wallet_addEthereumChain", [network]);
 
-          } catch (addError) {
-            // handle "add" error
-          }
+            } catch (addError) {
+                // handle "add" error
+            }
         }
         // handle other "switch" errors
-      }
+    }
 
 }
 
 async function displayUserAccountInfo() {
-    
+
     let accountInfoDiv = document.getElementById("accountInfo")
     if (window.userAddress && window.airdropTokenContract) {
         const accountName = getAccountName(window.userAddress)
-    
+
 
 
         const balance = window.airdropTokenContract.balanceOf(window.userAddress)
-    
-        const allUserIds = Object.fromEntries(window.nftDisplays.map((x)=>[x.collectionAddress,x.ids]).filter((x)=>x[1].length))
+
+        const allUserIds = Object.fromEntries(window.nftDisplays.map((x) => [x.collectionAddress, x.ids]).filter((x) => x[1].length))
         const claimableAmount = getClaimableAmount(allUserIds)
 
 
@@ -192,11 +192,11 @@ async function displayUserAccountInfo() {
         `
 
     }
-    
+
 }
 
 async function getClaimableAmount(userIdsPerCollection) {
-    let total = 0n 
+    let total = 0n
     for (const collectionAddr in userIdsPerCollection) {
         for (const id of userIdsPerCollection[collectionAddr]) {
             if (!await isClaimed(collectionAddr, id) && id in window.idsPerCollection[collectionAddr]) {
@@ -206,8 +206,8 @@ async function getClaimableAmount(userIdsPerCollection) {
         }
     }
     return total.toString()
-    
-    
+
+
 
 }
 window.getClaimableAmount = getClaimableAmount
@@ -222,39 +222,39 @@ async function addDropTokenToMetamaskButton() {
     const ticker = await window.ticker
     let addToMetaMaskButton = document.createElement("button")
     addToMetaMaskButton.innerText = `add to metamask`
-    addToMetaMaskButton.style.fontSize = "1rem"
-    addToMetaMaskButton.onclick = ()=>addTokenToMetamask(window.airdropTokenContract.target,ticker,18)
+    addToMetaMaskButton.style.fontSize = "em"
+    addToMetaMaskButton.onclick = () => addTokenToMetamask(window.airdropTokenContract.target, ticker, 18)
     return addToMetaMaskButton
 }
 
-async function addTokenToMetamask(tokenAddress, tokenSymbol, tokenDecimals, tokenImage="") {
+async function addTokenToMetamask(tokenAddress, tokenSymbol, tokenDecimals, tokenImage = "") {
     //TODO get image from drop info from ipfs or somewhere else?
     if (ethers.getAddress(tokenAddress) === "0x3AEC26bf9FEDba55a55e970504f439101AbD7327") {
         tokenImage = "https://ipfs.io/ipfs/QmZZs6Y3ToYRkfMdi3jrU5QXSqNf6vk3j8Dxwvtf55vKvw"
     }
 
     try {
-    // 'wasAdded' is a boolean. Like any RPC method, an error can be thrown.
-    const wasAdded = await window.ethereum.request({
-        method: 'wallet_watchAsset',
-        params: {
-        type: 'ERC20',
-        options: {
-            address: tokenAddress, // The address of the token.
-            symbol: tokenSymbol, // A ticker symbol or shorthand, up to 5 characters.
-            decimals: tokenDecimals, // The number of decimals in the token.
-            image: tokenImage, // A string URL of the token logo.
-        },
-        },
-    });
+        // 'wasAdded' is a boolean. Like any RPC method, an error can be thrown.
+        const wasAdded = await window.ethereum.request({
+            method: 'wallet_watchAsset',
+            params: {
+                type: 'ERC20',
+                options: {
+                    address: tokenAddress, // The address of the token.
+                    symbol: tokenSymbol, // A ticker symbol or shorthand, up to 5 characters.
+                    decimals: tokenDecimals, // The number of decimals in the token.
+                    image: tokenImage, // A string URL of the token logo.
+                },
+            },
+        });
 
-    // if (wasAdded) {
-    //     console.log('Thanks for your interest!');
-    // } else {
-    //     console.log('Your loss!');
-    // }
+        // if (wasAdded) {
+        //     console.log('Thanks for your interest!');
+        // } else {
+        //     console.log('Your loss!');
+        // }
     } catch (error) {
-    console.log(error);
+        console.log(error);
     }
 }
 
@@ -282,10 +282,10 @@ async function getClaimableStatus(allIds, eligableIdsAmounts, nftAddr) {
             message(`checked ${i + chunkSize} out of ${eligableUserIdsAmountsEntries.length} ids claimed status`)
         }
     } catch (error) {
-            
+
         message(`got a error try running in a normal browser without metamask/inject ethereum \n error: ${error}`)
         return 0
-        
+
     }
     message("")
 
@@ -322,7 +322,7 @@ async function buildMultiProof(idsPerNftAddr) {
     return (await window.merkleBuilder).getMultiProof(idsPerNftAddrWithArrays)
 }
 
-async function loadTreeAndBuildMultiProof(merkleBuilder,selectedIds) {
+async function loadTreeAndBuildMultiProof(merkleBuilder, selectedIds) {
     //load merkle tree
     message("loading merkle tree (might take a minute on large drops)")
     if (!merkleBuilder) {
@@ -344,11 +344,11 @@ async function loadTreeAndBuildMultiProof(merkleBuilder,selectedIds) {
     const ids = leaves.map((x) => x[1])
     const amounts = leaves.map((x) => x[2])
 
-    return {proof, proofFlags, ids, amounts, nftAddresses}
+    return { proof, proofFlags, ids, amounts, nftAddresses }
 
 }
 
-async function fetchSingleProof(ipfsIndex,id,nftAddr) {
+async function fetchSingleProof(ipfsIndex, id, nftAddr) {
     //get proof
     message("fetching proof from ipfs")
     const { amount, proof } = await new Promise((resolve, reject) => {
@@ -358,7 +358,7 @@ async function fetchSingleProof(ipfsIndex,id,nftAddr) {
     });
     message("done")
 
-    return { amount, proof } 
+    return { amount, proof }
 }
 
 
@@ -366,13 +366,13 @@ async function claimSelected() {
     await connectSigner(false)
     window.mildayDropWithSigner = await window.mildayDropContract.connect(window.signer);
     //get selected ids {nftAddr:[ids]}
-    const selectedIdsEntries = window.nftDisplays.map((x)=>[x.collectionAddress,x.selection]).filter((x)=>x[1].length>0)
+    const selectedIdsEntries = window.nftDisplays.map((x) => [x.collectionAddress, x.selection]).filter((x) => x[1].length > 0)
     const selectedIds = Object.fromEntries(selectedIdsEntries)
 
     const amountIds = Object.keys(selectedIds).reduce((a, v) => a + selectedIds[v].length, 0)
     if (amountIds > 1) {
         //build multiproof
-        const {proof, proofFlags, ids, amounts, nftAddresses} = await loadTreeAndBuildMultiProof(window.merkleBuilder, selectedIds)
+        const { proof, proofFlags, ids, amounts, nftAddresses } = await loadTreeAndBuildMultiProof(window.merkleBuilder, selectedIds)
 
         //submit tx
         let receipt
@@ -386,16 +386,16 @@ async function claimSelected() {
             } else {
                 message(error)
             }
- 
-            
+
+
         }
-    
+
         message("claimed :)")
 
         //update display
         await clearIsClaimedIds(selectedIds)
         await clearSelection()
-        const selectedNftDisplays = window.nftDisplays.filter((display)=> nftAddresses.indexOf(display.collectionAddress)!==-1)
+        const selectedNftDisplays = window.nftDisplays.filter((display) => nftAddresses.indexOf(display.collectionAddress) !== -1)
         await refreshDisplay(selectedNftDisplays)
         await displayUserAccountInfo()
 
@@ -405,7 +405,7 @@ async function claimSelected() {
         const id = selectedIds[nftAddr][0]
 
         //get proof
-        const { amount, proof } = await fetchSingleProof(window.ipfsIndex, id,nftAddr)
+        const { amount, proof } = await fetchSingleProof(window.ipfsIndex, id, nftAddr)
 
         //submit tx
         console.log(proof, id, amount, nftAddr)
@@ -413,7 +413,7 @@ async function claimSelected() {
         try {
             const tx = await window.mildayDropWithSigner.claim(proof, id, amount, nftAddr)
             receipt = await tx.wait(1)
-            
+
         } catch (error) {
             if (error.code === 'ACTION_REJECTED') {
                 message("transaction rejected try again")
@@ -422,7 +422,7 @@ async function claimSelected() {
                 message(error)
             }
         }
-        
+
 
         message("claimed :)")
 
@@ -442,7 +442,7 @@ async function clearSelection() {
         await nftDisplay.clearSelection()
     }
     window.selectedAmount = 0n
-    const formattedAmount  =  new Intl.NumberFormat('en-EN').format(ethers.formatEther( window.selectedAmount.toString()))
+    const formattedAmount = new Intl.NumberFormat('en-EN').format(ethers.formatEther(window.selectedAmount.toString()))
     document.getElementById("amountSelected").innerHTML = `${formattedAmount} ${await window.ticker}  selected`
 }
 window.clearSelection = clearSelection
@@ -460,11 +460,11 @@ async function selectAll() {
                     return 0n
                 }
 
-            },0n
+            }, 0n
         );
         window.selectedAmount = window.selectedAmount + (totalSelected)
     }
-    const formattedAmount  =  new Intl.NumberFormat('en-EN').format(ethers.formatEther( window.selectedAmount.toString()))
+    const formattedAmount = new Intl.NumberFormat('en-EN').format(ethers.formatEther(window.selectedAmount.toString()))
     document.getElementById("amountSelected").innerHTML = `${formattedAmount} ${await window.ticker}  selected`
 }
 window.selectAll = selectAll
@@ -473,14 +473,14 @@ function displayTokens(id, nftDisplay) {
     let d = document.createElement("div");
     d.className = "tokenDisplay"
     if (id in window.idsPerCollection[nftDisplay.collectionAddress]) {
-        const amount = ethers.formatEther(window.idsPerCollection[nftDisplay.collectionAddress][id])
-        d.innerText =  `${amount} ${window.ticker}`
+        const amount = Math.round(ethers.formatEther(window.idsPerCollection[nftDisplay.collectionAddress][id]) * 1000000) / 1000000
+        d.innerText = `${amount} ${window.ticker}`
         if (id in window.idsByClaimableStatus[nftDisplay.collectionAddress].claimed) {
             d.style.textDecoration = "line-through"
         }
     } else {
         //return ""
-        d.innerText =  `nothing :(`
+        d.innerText = `nothing :(`
     }
     return d
 }
@@ -491,7 +491,7 @@ function makeIntoDivs(parentId, childIds) {
     for (const childId of childIds) {
         let childDiv = document.createElement("div");
         childDiv.id = childId
-        childDiv.style.paddingTop = "1.5rem"
+        childDiv.style.paddingTop = "1.5em"
         parentElement.appendChild(childDiv)
         children.push(childDiv)
     }
@@ -505,11 +505,11 @@ async function refreshDisplay(displays) {
 
         //refreh claimable status all ids (TODO do only claimed to reduce rpc calls)
         const nftAddr = display.collectionAddress
-        window.idsByClaimableStatus[nftAddr] =  await getClaimableStatus(display.ids, window.idsPerCollection[nftAddr], nftAddr)
-        const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddr]
+        window.idsByClaimableStatus[nftAddr] = await getClaimableStatus(display.ids, window.idsPerCollection[nftAddr], nftAddr)
+        const { claimable, claimed, ineligible } = window.idsByClaimableStatus[nftAddr]
 
         display.notSelectable = [...Object.keys(claimed), ...Object.keys(ineligible)]
-        
+
         //re-sort ids
         display.ids = [...Object.keys(claimable), ...Object.keys(claimed), ...Object.keys(ineligible)]
         await display.refreshPage()
@@ -521,12 +521,12 @@ async function updateSelectedAmount(id, display) {
     //TODO selectAll
     if (display.selection.indexOf(id) === -1) {
         const amountBigNum = BigInt(window.idsPerCollection[display.collectionAddress][id])
-        window.selectedAmount = window.selectedAmount / (amountBigNum) 
+        window.selectedAmount = window.selectedAmount / (amountBigNum)
     } else {
         const amountBigNum = BigInt(window.idsPerCollection[display.collectionAddress][id])
-        window.selectedAmount = window.selectedAmount + (amountBigNum) 
-    }   
-    const formattedAmount  =  new Intl.NumberFormat('en-EN').format(ethers.formatEther( window.selectedAmount.toString()))
+        window.selectedAmount = window.selectedAmount + (amountBigNum)
+    }
+    const formattedAmount = new Intl.NumberFormat('en-EN').format(ethers.formatEther(window.selectedAmount.toString()))
     document.getElementById("amountSelected").innerHTML = `${formattedAmount} ${await window.ticker}  selected`
 }
 
@@ -544,17 +544,17 @@ async function displayNfts() {
 
         //empty the element if it already exist (incase user connects a new wallet)
         let domElement = document.getElementById(`nftDisplay-${nftAddr}`)
-        if(domElement){domElement.innerHTML=""}
+        if (domElement) { domElement.innerHTML = "" }
 
         //display amount of token recieved
         display.divFunctions.push(displayTokens)
         const userIds = (await display.setIdsFromOwner(await window.userAddress))
 
         //process user ids
-        window.idsByClaimableStatus[nftAddr] =  await getClaimableStatus(userIds, window.idsPerCollection[nftAddr], nftAddr)
-        const {claimable, claimed, ineligible} = window.idsByClaimableStatus[nftAddr]
+        window.idsByClaimableStatus[nftAddr] = await getClaimableStatus(userIds, window.idsPerCollection[nftAddr], nftAddr)
+        const { claimable, claimed, ineligible } = window.idsByClaimableStatus[nftAddr]
         display.ids = [...Object.keys(claimable), ...Object.keys(claimed), ...Object.keys(ineligible)]
-        display.notSelectable =[...Object.keys(claimed), ...Object.keys(ineligible)]
+        display.notSelectable = [...Object.keys(claimed), ...Object.keys(ineligible)]
 
         //display nfts
         await display.createDisplay()
@@ -588,7 +588,7 @@ function clearIsClaimedIds(idsPerNftAddr) {
             delete isClaimedCache[nftAddr][id]
         }
     }
-      
+
 }
 
 async function loadAllContracts() {
@@ -602,11 +602,11 @@ async function loadAllContracts() {
     document.getElementById("dropInfo").innerHTML = `See all nfts: <a href=${decodeURIComponent(dropPageUrl.toString())}}>drop page</a>`
 
     if (!window.urlVars["ipfsGateway"]) {
-        window.ipfsGateways = ["https://.mypinata.cloud","http://127.0.0.1:48084","http://127.0.0.1:8080","https://ipfs.io"] //no grifting pls thank :)
+        window.ipfsGateways = ["https://.mypinata.cloud", "http://127.0.0.1:48084", "http://127.0.0.1:8080", "https://ipfs.io"] //no grifting pls thank :)
     } else {
         window.ipfsGateways = [window.urlVars["ipfsGateway"]]
     }
-    
+
 
     //abis
     const mildayDropAbi = await (await fetch("../abi/mildayDropAbi.json")).json()
@@ -638,12 +638,41 @@ async function loadAllContracts() {
     const dropSize = getTotalDrop()
     totalSupply = ethers.formatEther((await totalSupply).toString())
 
+    const dropPageHref = document.createElement("a")
+    dropPageHref.href = decodeURIComponent(dropPageUrl.toString())
+    dropPageHref.innerText = "drop page"
+    dropPageHref.style.fontSize = "inherit"
+
+    const airdropTokenContractHref = document.createElement("a")
+    airdropTokenContractHref.href = `https://etherscan.io/token/${window.airdropTokenContract.target}`
+    airdropTokenContractHref.innerText = window.airdropTokenContract.target
+    airdropTokenContractHref.style = `
+        display: inline-block;
+        vertical-align: bottom;
+
+        font-size: inherit;
+
+        width: calc(100% - 10em);
+        min-width: 5em;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        
+    `
+
+
     dropInfo.innerHTML = `<span class="titel">${await dropTokenName}</span> <br> <br>
     Airdrop size: ${new Intl.NumberFormat('en-EN').format(dropSize)} ${await window.ticker} <br>
     Total supply: ${new Intl.NumberFormat('en-EN').format(await totalSupply)} ${await window.ticker}<br>
-    ${await window.ticker} on etherscan: <a href="https://etherscan.io/token/${window.airdropTokenContract.target}">${window.airdropTokenContract.target}<a><br>
-    See all nfts: <a href=${decodeURIComponent(dropPageUrl.toString())}>drop page</a> <br>
     `
+    dropInfo.append(
+        `${await window.ticker} on etherscan: `,
+        airdropTokenContractHref,
+        document.createElement("br"),
+
+        "See all nfts: ",
+        dropPageHref,
+        document.createElement("br")
+    )
     dropInfo.insertBefore(await addDropTokenToMetamaskButton(), dropInfo.childNodes[3]);
     document.getElementById("loading").innerText = ""
 
@@ -656,21 +685,22 @@ async function loadAllContracts() {
     // create the nftDisplay divs
     const nftAddresses = Object.keys(await window.idsPerCollection)
     const parrentDiv = document.getElementById("nfts")
-    const nftDisplayElements = Object.fromEntries(nftAddresses.map((address)=>{
+    const nftDisplayElements = Object.fromEntries(nftAddresses.map((address) => {
         const displayEl = document.createElement("div")
         displayEl.id = `nftDisplay-${address}`
+        displayEl.className = "nftDisplay"
         parrentDiv.append(displayEl)
         return [address, displayEl]
     }))
-    
+
 
     //makeIntoDivs("nfts", nftDisplayElementIds)
 
     //window.allEligibleIds = window.ipfsIndex.getIdsPerCollection()
-    window.allNftDisplays = window.allNftAddresses.map((nftAddr) => new NftDisplay({collectionAddress:nftAddr, provider:window.provider, displayElement:nftDisplayElements[nftAddr], ids:[], ipfsGateway:window.ipfsGateway, initialize:false}))
-    await Promise.all(window.allNftDisplays.map(async (display) => {await display.displayNames({redirect:true}); await display.initialize()}))
+    window.allNftDisplays = window.allNftAddresses.map((nftAddr) => new NftDisplay({ collectionAddress: nftAddr, provider: window.provider, displayElement: nftDisplayElements[nftAddr], ids: [], ipfsGateway: window.ipfsGateway, initialize: false, landscapeOrientation: { ["rowSize"]: 7, ["amountRows"]: 1 } }))
+    await Promise.all(window.allNftDisplays.map(async (display) => { await display.displayNames({ redirect: true }); await display.initialize() }))
 
-    if(window.signer) {
+    if (window.signer) {
         await displayNfts()
         await displayUserAccountInfo()
 
@@ -678,7 +708,7 @@ async function loadAllContracts() {
 
 
 
-   
+
 }
 window.loadAllContracts = loadAllContracts
 
@@ -686,7 +716,7 @@ async function runOnLoad() {
     await connectProvider()
     await connectSigner()
     loadAllContracts()
-    
+
 }
 window.onload = runOnLoad;
 
