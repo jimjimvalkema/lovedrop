@@ -146,7 +146,7 @@ export class NftMetaDataCollector {
 
     }
 
-    async fetchAllExtraMetaData(getMetaDataArray = false) {
+    async fetchAllExtraMetaData(skipIdsPerAttribute=false,getMetaDataArray = false) {
         //todo \/
         this.idsOfOwnerCache = await this.getCachedIdsOfOwner()
         let data
@@ -198,10 +198,14 @@ export class NftMetaDataCollector {
         } else {
             console.log("no premade data found syncing data from chain")
             //TODO figure out why it doens start out as undefined anymore
-            this.uriCache = undefined
-            this.uriCache = await this.syncUriCache()
-            this.idsPerAttribute = await this.getIdsPerAttribute();
-            this.baseURICache = await this.getBaseURI()
+
+            if (!skipIdsPerAttribute) {
+                this.uriCache = undefined
+                this.uriCache = await this.syncUriCache()
+                this.idsPerAttribute = await this.getIdsPerAttribute();
+                this.baseURICache = await this.getBaseURI()
+            }
+
             this.firstId = await this.getFirstId()
             this.lastId = await this.getLastId()
 

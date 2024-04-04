@@ -256,7 +256,7 @@ async function displayNfts(nftAddress = null) {
             "landscapeOrientation": { ["rowSize"]: 7, ["amountRows"]: 2 },
             "portraitOrientation": { ["rowSize"]: 4, ["amountRows"]: 5 }
         })
-        await display.setCollectionAddress(nftAddress)
+        //await display.setCollectionAddress(nftAddress)
         await display.showAttributes()
         await display.initialize()
         window.nftDisplays[nftAddress] = display
@@ -290,6 +290,10 @@ async function displayNfts(nftAddress = null) {
     document.getElementById("collectionSelect").value = window.currentNft
     await Promise.all(window.optionsResult)
     document.getElementById("collectionSelect").value = window.currentNft
+    
+    
+    document.getElementById("loading").innerText = ""
+
 
     return targetDomElement
 }
@@ -443,6 +447,8 @@ async function runOnLoad() {
     document.getElementById("editFilterButton").onclick = () => toggleShow("filter")
     console.log("hi :)")
     await loadAllContracts()
+    console.log("all contract loaded wow!")
+    document.getElementById("loading").innerText = ""
 }
 
 window.onload = runOnLoad;

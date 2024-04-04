@@ -47,7 +47,7 @@ export class NftDisplay {
         {collectionAddress,provider, displayElement, ids=[], ipfsGateway = "https://ipfs.io", 
         landscapeOrientation = {["rowSize"]:5,["amountRows"]:2}, 
         portraitOrientation = {["rowSize"]:3,["amountRows"]:4},
-        nftMetaData, initialize=true, pageSelectorFlag=true, collectionInfoFlag=true}
+        nftMetaData, initialize=false, pageSelectorFlag=true, collectionInfoFlag=true}
     ) {
         this.ipfsGateway = ipfsGateway
         this.provider =provider
@@ -77,7 +77,7 @@ export class NftDisplay {
     async initialize(collectionAddress=this.collectionAddress, nftMetaData=undefined) {
         if (!nftMetaData) {
             this.nftMetaData = new NftMetaDataCollector(collectionAddress,this.provider,this.ipfsGateway)
-            await this.nftMetaData.fetchAllExtraMetaData()
+            await this.nftMetaData.fetchAllExtraMetaData(true)
         } else {
             this.nftMetaData = nftMetaData
         }
@@ -101,6 +101,7 @@ export class NftDisplay {
             if (this.nftMetaData.contractObj.target !== collectionAddress) {
                 console.warn("collection address is set by creating a new NftMetaDataCollector object this can break things! ")
                 this.nftMetaData = new NftMetaDataCollector(this.collectionAddress,this.provider,this.ipfsGateway)
+                await this.nftMetaData.fetchAllExtraMetaData()
 
             }
            
@@ -721,14 +722,14 @@ export class NftDisplay {
     async #nftName(id) {
         let div = document.createElement("div")
         //TODO why not selectable?
-        if (this.notSelectable.indexOf(id)===-1) { 
-            div.innerText = await this.nftMetaData.getTokenName(id)
-            div.id = `nftName-${id}-${this.collectionAddress}`
-            div.className = "nftName"
-            return div
-        } else {
-            return ""
-        }
+        //if (this.notSelectable.indexOf(id)===-1) { 
+        div.innerText = await this.nftMetaData.getTokenName(id)
+        div.id = `nftName-${id}-${this.collectionAddress}`
+        div.className = "nftName"
+        return div
+        // } else {
+        //     return ""
+        // }
     }
 
     async #nftNameWithOpenSeaProRedirect(id) {
