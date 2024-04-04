@@ -787,7 +787,8 @@ export class DropBuilder {
         //TODO am setting collection addres twice becuase initializing is async
         await nftDisplay.displayNames({ redirect: true })
         await nftDisplay.addImageDivsFunction((id, nftDisplay) => this.#showCriteriaNftDisplay(id, nftDisplay), false)
-        await nftDisplay.createDisplay()
+        await nftDisplay.initialize()
+        await  nftDisplay.createDisplay()
 
         return nftDisplay
 
