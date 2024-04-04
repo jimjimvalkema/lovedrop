@@ -167,6 +167,7 @@ export class FilterBuilder {
             })
             await this.NftDisplay.displayNames({redirect:true})
             await this.NftDisplay.showAttributes()
+            await this.NftDisplay.initialize()
 
             await this.reinitializeUi()
 
@@ -627,6 +628,7 @@ export class FilterBuilder {
 
     //filter selector
     createNewFilter(type, name="") {
+        console.warn("weee new filter")
         //TODO filtername to just name
         //TODO set filter dropdown of criteria field
         const newFiltersIndex= this.getFiltersOfCollection().length
