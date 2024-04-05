@@ -256,7 +256,8 @@ export class CriteriaBuilder {
         }
 
         //check if a new filter need to be created
-        if (collectionAddress !== oldCollectionAddress || (!("index" in criterion.selectedFilter)) ) {
+        //you could check if a filter is unused instead of blindly making a new one every time but that requires addind alot of checks
+        if ((collectionAddress !== oldCollectionAddress  ) || (!("index" in criterion.selectedFilter)) ) {
             const newFilter = this.filterBuilder.createNewFilter("AND")
             await this.selectFilterForCriterion(newFilter.index, criterion, updateUi) //creates display //calls nftMetadat
         }
@@ -283,7 +284,6 @@ export class CriteriaBuilder {
     }
 
     async #setCollectionFilterBuilder(address, updateUi=true) {
-        
         if (this.filterBuilder) {
             if (this.filterBuilder.collectionAddress !== address) {
                 await this.filterBuilder.setCollectionAddress(address, updateUi)

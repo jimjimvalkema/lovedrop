@@ -697,7 +697,7 @@ async function loadAllContracts() {
     //makeIntoDivs("nfts", nftDisplayElementIds)
 
     //window.allEligibleIds = window.ipfsIndex.getIdsPerCollection()
-    window.allNftDisplays = window.allNftAddresses.map((nftAddr) => new NftDisplay({ collectionAddress: nftAddr, provider: window.provider, displayElement: nftDisplayElements[nftAddr], ids: [], ipfsGateway: window.ipfsGateway, initialize: false, landscapeOrientation: { ["rowSize"]: 7, ["amountRows"]: 1 } }))
+    window.allNftDisplays = window.allNftAddresses.map((nftAddr) => new NftDisplay({ collectionAddress: nftAddr, provider: window.provider, displayElement: nftDisplayElements[nftAddr], ids: [], ipfsGateway: window.ipfsGateway, initialize: false, landscapeOrientation: { ["rowSize"]: 7, ["amountRows"]: 1 } , portraitOrientation: {["rowSize"]:4,["amountRows"]:1}}))
     await Promise.all(window.allNftDisplays.map(async (display) => { await display.displayNames({ redirect: true }); await display.initialize() }))
 
     if (window.signer) {

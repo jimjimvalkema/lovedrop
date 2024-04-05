@@ -32,8 +32,11 @@
 
     .boldTitel {
         font-weight: bolder;
-        text-align: left;
+        /* text-align: left; */
         font-size: 1.2em;
+        /* so its also always left on flex */
+        width: 100%;
+        padding-bottom: 0.6em;
     }
 
     .italic {
@@ -46,7 +49,7 @@
 
     * {
         font-family: Arial;
-        font-size: large;
+        font-size: medium;
     }
 
     .nftImagesFilter {
@@ -72,13 +75,13 @@
     }
 
     .nftdisplayInfo {
-        font-size: 1.7rem;
+        font-size: 1.7em;
 
     }
 
 
     #loading {
-        font-size: 1.8rem;
+        font-size: 1.8em;
         font-weight: bold;
     }
 
@@ -87,7 +90,7 @@
         overflow: hidden;
         /* white-space: nowrap; */
         position: relative;
-        font-size: 1.2rem;
+        font-size: 1.2em;
         text-align: center;
         color: #000000;
         font-weight: bold;
@@ -419,11 +422,11 @@
 
     .center {
         height: inherit;
-        width: 100%;
         min-width: 0;
         display: flex;
         justify-content: center;
         align-items: center;
+        flex-direction: column;
     }
 
     .nftImagesDiv {
@@ -494,8 +497,10 @@
         align-items: center;
         justify-content: center;
         position: relative;
-        width: 100%;
+        width: auto;
         flex-direction: column;
+        margin: 3.5em;
+        margin-bottom: 0px;
     }
 
     #duplicatesNftDisplay {
@@ -504,8 +509,7 @@
         bottom: 1em;
 
         /*TODO figure out how to do height:100%*/
-        height: 38vh;
-        overflow-y: scroll;
+        height: 100%;
 
         /* TODO fix this
         width: 98%; */
@@ -520,22 +524,23 @@
     }
 
     #dropBuilderConflictsMessage {
-        border-style: solid;
         margin: 1em;
+        border-style: solid;
         text-align: center;
         font-weight: bolder;
         font-size: 1.2em;
+        width: 100%;
     }
 
     #dropBuilderConflicts {
-        border-style: solid;
-        max-height: 70vh;
+        display: flex;
+        flex-direction: column;
+        height: fit-content;
 
-        width: fit-content;
-        max-width: 88em;
+        /* width: calc(100vw - 12em);
         margin: 1vw;
         margin-left: 6em;
-        margin-right: 6em;
+        margin-right: 6em; */
 
     }
 
@@ -543,6 +548,10 @@
         margin: 1em;
         border-style: solid;
         position: relative;
+        height: 100%;
+        overflow-y: auto;
+        width: 100%;
+        max-height: calc(100vh - 17em);
     }
 
     #filterSelectorInput {
@@ -551,31 +560,35 @@
     }
 
     #backButtonDropBuilderDiv {
+        float: left;
         position: absolute;
-        left: 0;
-        top: 0;
+        display: block;
+        z-index: 10;
+        margin: 1em;
+        width: fit-content;
     }
 
     #backButtonDropBuilderDiv button {
-        font-size: larger;
+        font-size: 1.5em;
     }
 
     .duplicateDisplay {
-        height: fit-content;
+        max-height: 100%;
+        min-height: 16em;
         display: grid;
-        grid-gap: 1em;
-        bottom: 1em;
 
-        grid-auto-rows: max-content;
 
     }
 
+    #dropBuilderConflictsContent {
+
+        max-width: 80em;
+        min-width: 45em;
+        flex-direction: column;
+    }
+
     #distrobutionOverView {
-        display: block;
-        position: relative;
-        width: calc(100% - 12em);
-        margin: 6em;
-        margin-top: 2em;
+    
 
     }
 
@@ -583,10 +596,9 @@
         display: grid;
         grid-template-columns: max-content max-content max-content 1fr;
 
-        border-style: solid;
+        /* border-style: solid; */
         background-color: #000000;
         gap: max(2px, 0.35em);
-        margin: 1em;
     }
 
 
@@ -634,7 +646,7 @@
 
     .border {
         border-style: solid;
-        padding: 0.35em;
+        padding: 0.6em;
     }
 
     .filterInputsContent {
@@ -680,8 +692,8 @@
     }
 
     #giveDropToDevsNftDisplay {
-        height: 40vh;
-        width: calc(40vh * 0.8);
+        height: 24em;
+        width: calc(24em* 0.76);
     }
 
     #giveDropToDevs {
@@ -693,8 +705,10 @@
 
     }
 
-    .fitContentFix {
-        width: fit-content;
+    .deploymentSteps {
+
+        width: 40em;
+        max-width: 100%;
     }
 
     #totalsOverview {
@@ -702,18 +716,26 @@
     }
 
     #amountDevGiftPercentSlider {
-        width: 17em;
+        width: 22.5em;
         display: inline-block;
+        vertical-align: bottom;
     }
 
     #amountDevGiftForm {
-        min-width: fit-content;
+        width: 23em;
+        display: flex;
+        flex-direction: column;
+        align-items:center;
 
+    }
+    #devGiftPercentRange {
+        width: 13em;
     }
 
     #devGiftAmount {
         width: 8em;
     }
+
 
     #dropBuilderMessage {
         display: none;
@@ -721,7 +743,32 @@
 
     #dropBuilderMessageContent{
         width: 100%;
+        text-overflow: ellipsis;
+        overflow: hidden;
     }
+
+    #devGiftText{
+        width: 35em;
+        text-align: center;
+    }
+
+    #devGiftText > div {
+        width: 100%;
+        text-align: center;
+    }
+    .maxWidth{
+        width: 100%;
+    }
+    #distrobutionOverViewContent {
+        max-width: 64em;
+        margin-bottom: 5em;
+        
+    }
+
+    #confirmDistrobutionBtn {
+        font-size: 1.5em;
+    }
+
 </style>
 
 <body>
@@ -1021,62 +1068,75 @@
         <button hidden id="backButtonDropBuilder">go back</button>
     </div>
     <div id="dropBuilderConflicts" class="dropBuilder">
-        <div id="dropBuilderConflictsMessage">
-            <span class="emoji">&#10071;</span>Some nfts have multiple criteria. Choose a method to select what
-            amount they recieve. <span class="emoji">&#10071;</span>
-            <br>
-            <label for="criteriaConflictsResolutionSelection">choose a method:</label>
-            <select name="criteria conflicts resolution options" id="criteriaConflictsResolutionSelection">
-                <option value="selectMethod">--select method--</option>
-                <option value="largest">largest amount</option>
-                <option value="smallest">smallest amount</option>
-                <option value="first">first criterion made</option>
-                <option value="last">last criterion made</option>
-                <option value="add">add together</option>
-                <option value="remove">set to zero</option>
-            </select>
-
-            <button id="confirmConflictResolutionButton" disabled>confirm</button>
-        </div>
-
-        <div id="duplicatesManager">
-            <div class="boldTitel">nfts with conflicting criteria:</div>
-
-            <div id="duplicatesNftDisplay"></div>
-        </div>
-    </div>
-
-    <div id="giveDropToDevs" class="border dropBuilder">
-        <div class="boldTitel">hi give me money pls thansk </div>
-
-        <div id="giveDropToDevsNftDisplay">
-
-        </div>
-        <div id="amountDevGiftForm">
-            <div id="amountDevGiftPercentSlider">
-                <label>set percent:
-                    <input type="range" id="devGiftPercentRange" value="0.05" min="0.01" max="2" step="0.001"
-                        oninput="devGiftPercentRangeDisplay.value = devGiftPercentRange.value">
-                    <output id="devGiftPercentRangeDisplay">0.05</output>%
-                </label>
-            </div>
-            <br>
-            <div disabled>
-                <label>set amount:
-                    <input type="number" id="devGiftAmount" name="devGiftAmount" min="0" />
-                </label>
-            </div>
-            <label>
-
-                <select name="devGiftAddingMethod" id="devGiftAddingMethod" value="add">
-                    <option value="add">add to total</option>
-                    <option value="take">take from total</option>
+        <div id="dropBuilderConflictsContent" class="center">
+            <div id="dropBuilderConflictsMessage">
+                <span class="emoji">&#10071;</span>Some nfts have multiple criteria. Choose a method to select what
+                amount they recieve. <span class="emoji">&#10071;</span>
+                <br>
+                <label for="criteriaConflictsResolutionSelection">choose a method:</label>
+                <select name="criteria conflicts resolution options" id="criteriaConflictsResolutionSelection">
+                    <option value="selectMethod">--select method--</option>
+                    <option value="largest">largest amount</option>
+                    <option value="smallest">smallest amount</option>
+                    <option value="first">first criterion made</option>
+                    <option value="last">last criterion made</option>
+                    <option value="add">add together</option>
+                    <option value="remove">set to zero</option>
                 </select>
-            </label>
+    
+                <button id="confirmConflictResolutionButton" disabled>confirm</button>
+            </div>
+    
+            <div id="duplicatesManager">
+                <div class="boldTitel">nfts with conflicting criteria:</div>
+    
+                <div id="duplicatesNftDisplay"></div>
+            </div>
 
-            <br>
+        </div>
 
-            <button id="giveDropToDevsNo">no >:(</button><button id="giveDropToDevsYes">yes :)</button>
+    </div>
+
+    <div id="giveDropToDevs" class="dropBuilder center">
+        <div class="border center"> 
+            <div id="devGiftText">
+                <div class="boldTitel">hi give me money pls thanks </div>
+                This is the dev's milady. Add her to support the dev (can be edited later). 
+                <br>
+                If not that's okay!
+            </div>
+
+
+
+
+            <div id="amountDevGiftForm">
+
+                <div id="giveDropToDevsNftDisplay">
+        
+                </div>
+
+                <div>
+                    <div id="amountDevGiftPercentSlider">
+                        <label>set percent:
+                            <input type="range" id="devGiftPercentRange" value="0.05" min="0.01" max="2" step="0.001"
+                                oninput="devGiftPercentRangeDisplay.value = devGiftPercentRange.value">
+                            <output id="devGiftPercentRangeDisplay">0.05</output>%
+                        </label>
+                    </div>
+                    <div disabled>
+                        <label>set amount:
+                            <input type="number" id="devGiftAmount" name="devGiftAmount" min="0" />
+                        </label>
+
+                        <select name="devGiftAddingMethod" id="devGiftAddingMethod" value="add">
+                            <option value="add">add to total</option>
+                            <option value="take">take from total</option>
+                        </select>
+                    </div>
+                    Add her: <span><button id="giveDropToDevsYes">yes :)</button><button id="giveDropToDevsNo">no >:(</button></span>
+                </div>
+            </div>
+            
         </div>
 
 
@@ -1084,32 +1144,40 @@
 
     </div>
 
-    <div id="distrobutionOverView" class="border dropBuilder">
-        <div class="boldTitel">Final distribution </div>
-        <div id="criteriaOverviewTable">
-            <div class="criteriaTableHeader">
-                <div>criteria</div>
-            </div>
-            <div class="criteriaTableHeader">
-                <div>amount</div>
-            </div>
-            <div class="criteriaTableHeader">
-                <div>collection</div>
-            </div>
-            <div class="criteriaTableHeader">
-                <div>nfts</div>
-            </div>
+    <div id="distrobutionOverView" class="dropBuilder">
+        <div id="distrobutionOverViewContent" class="center border">
+            <div class="boldTitel">Final distribution <br></div>
 
+            <div id="criteriaOverviewTable">
+                <div class="criteriaTableHeader">
+                    <div>criteria</div>
+                </div>
+                <div class="criteriaTableHeader">
+                    <div>amount</div>
+                </div>
+                <div class="criteriaTableHeader">
+                    <div>collection</div>
+                </div>
+                <div class="criteriaTableHeader">
+                    <div>nfts</div>
+                </div>
+    
+    
+    
+            </div>
+            <div class="maxWidth">
+                <button id="confirmDistrobutionBtn">confirm</button>
 
+            </div>
+            
 
         </div>
 
-        <button id="confirmDistrobutionBtn">confirm</button>
 
     </div>
 
     <div id="deployment">
-        <div class="fitContentFix">
+        <div class="deploymentSteps">
             <div id="tokenInputForm" class="border">
                 <div class="boldTitel">Set token</div>
                 <label>Set airdrop token: <input class="addressInput" id="airdropTokenContractAddressInput" type="text"
