@@ -189,6 +189,7 @@ export class DropBuilder {
     }
 
     async #conflictResolutionPageFunc(currentPageIndex, selectedPageIndex) {
+        //document.getElementById(this.duplicatesNftDisplayId).innerHTML = ""
         const returnsToPage = currentPageIndex > selectedPageIndex
         if (returnsToPage) {
             if (!this.amountOfDuplicates) {
@@ -238,7 +239,7 @@ export class DropBuilder {
     async #giveDropToDevsPageFunc(currentPageIndex, selectedPageIndex) {
         const returnsToPage = currentPageIndex > selectedPageIndex
         if (returnsToPage) {
-            const devAllocCriterion = this.criteriaBuilder.criteria.find((criterion) => criterion.name === "dev_allocation_:D")
+            const devAllocCriterion = this.criteriaBuilder.criteria.find((criterion) => criterion.name === "lovedrop-allocation-:D")
 
             //await this.removeConflictResolutionCriteria()
             if (devAllocCriterion) {
@@ -272,7 +273,7 @@ export class DropBuilder {
 
     async #removeDevAllocationCriterion() {
         //TODO doesnt remove it somehow
-        const criterion = this.criteriaBuilder.criteria.find((criterion) => criterion.name === "dev_allocation_:D")
+        const criterion = this.criteriaBuilder.criteria.find((criterion) => criterion.name === "lovedrop-allocation-:D")
         if (criterion) {
             await this.criteriaBuilder.filterBuilder.removeFilterByIndex(criterion.selectedFilter.index, criterion.collectionAddress)
             await this.criteriaBuilder.removeCriterionByIndex(criterion.index)
@@ -743,6 +744,14 @@ export class DropBuilder {
         //await this.#selectDropBuilderPageEl(this.conflictsResolutionEl)
 
         //display
+    
+        Object.keys(this.duplicatesNftDisplays).forEach((address)=>{
+            if (!(address in duplicates)) {
+                const nftDisplay = this.duplicatesNftDisplays[address]
+                nftDisplay.displayElement.outerHTML = ""
+                delete this.duplicatesNftDisplays[address]
+            }
+        })
         for (const rawCollectionAddress in duplicates) {
             const collectionAddress = ethers.getAddress(rawCollectionAddress)
             const ids = Object.keys(duplicates[collectionAddress])
@@ -1006,7 +1015,7 @@ export class DropBuilder {
                         const allCriterionNames = criteriaIndexesOfId.reduce((name, index) => {
                             return name += `${this.criteriaBuilder.criteria[index].name}-`
                         }, "").slice(0, -1)
-                        const name = `overlappingCriteria-${allCriterionNames}`
+                        const name = `combined-${allCriterionNames}`
                         await this.criteriaBuilder.updateCriterionName(newCriterion.index, name)
                         this.criteriaBuilder.filterBuilder.changeFilterName(name, newCriterion.selectedFilter.index)
 
@@ -1393,7 +1402,7 @@ export class DropBuilder {
     async #giftDevYesButtonHandler() {
         //TODO make handler for no so it removes the critierion
         const amount = this.devGiftAmountInput.value
-        const criterionName = "dev_allocation_:D"
+        const criterionName = "lovedrop-allocation-:D"
         let otherCriteria = []
         const existingCriterionIndex = this.criteriaBuilder.criteria.findIndex((criterion) => criterion.name === criterionName)
         const oldTotal = this.getTotalAirdrop()
@@ -1493,8 +1502,8 @@ export class DropBuilder {
         const nftMetaData = await this.criteriaBuilder.filterBuilder.getNftMetaData(collectionAddress)
         contentElement.id = `${collectionAddress}-${criterion.name}-${criterion.index}`
 
-        const landscapeOrientation = { "rowSize": 5, "amountRows": 1 }
-        const portraitOrientation = { "rowSize": 3, "amountRows": 1 }
+        const landscapeOrientation = { "rowSize": 4, "amountRows": 1 }
+        const portraitOrientation = { "rowSize": 2, "amountRows": 1 }
         const nftDisplay = new NftDisplay({
             ids: ids,
             collectionAddress: collectionAddress,
@@ -1512,6 +1521,7 @@ export class DropBuilder {
         nftDisplay.displayNames({ redirect: true })
         await nftDisplay.showAttributes()
         //await nftDisplay.addImageDivsFunction((id, nftDisplay) => this.#showCriteriaNftDisplay(id, nftDisplay), false)
+        await nftDisplay.initialize()
         await nftDisplay.createDisplay()
 
         // const nftsEl = document.createElement("div")
@@ -1856,6 +1866,7 @@ export class DropBuilder {
         nftDisplay.displayNames({ redirect: true })
         //await nftDisplay.showAttributes()
         //await nftDisplay.addImageDivsFunction((id, nftDisplay) => this.#showCriteriaNftDisplay(id, nftDisplay), false)
+        await nftDisplay.initialize()
         await nftDisplay.createDisplay()
 
         // const nftsEl = document.createElement("div")
