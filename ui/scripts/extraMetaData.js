@@ -37,6 +37,7 @@ export const allExtraMetaData ={
         "totalSupply":3333,
 
         "idsPerAttribute": "ipfs://bafybeiek26panjzlaqif5ovolak7bgz4kjj7lbsfupixnytjxj47lcu5dq",
+        "baseUri": "ipfs://bafybeiay2g62ppxbtgoklgh2cfoeosdw57roxmo3y67mcjnclntqknqh6e",
         "compressedImages": "ipfs://bafybeigydxenstqykovw3hpfsqyf46zkvezkigs52shqno4rul4cpznl7i",
         "imageFileExtesion":".png",
        

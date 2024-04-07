@@ -1,3 +1,13 @@
+
+/** 
+* @typedef NamedHash
+* @type {object}
+* @property {string} name 
+* @property {string} hash 
+* @typedef ipfsHash
+* @type {string}
+*/
+
 export class IpfsIndexer {
     dropsRootHash = null;
     index = null;
@@ -7,14 +17,14 @@ export class IpfsIndexer {
     allProofsIndex;
     messageElement = undefined;
 
-    constructor(urls, auth = null, isGateway = true, messageElementId="") {
+    constructor(urls, auth = null, isGateway = true, messageElementId = "") {
         this.auth = auth;
         this.gateways = urls;
         this.isGateway = isGateway;
         this.indexes = [];
         if (messageElementId) {
             this.messageElement = document.getElementById(messageElementId)
-        } 
+        }
         // let urlobj = new URL(url);
         // let options = {
         //     host: urlobj.hostname,
@@ -248,10 +258,21 @@ export class IpfsIndexer {
 
     }
 
-    async wrapInDirectory(hash, dirName) {
-        let dirDag = { "Data": { "/": { "bytes": "CAE" } }, "Links": [{ "Hash": { "/": hash }, "Name": dirName }] }
+    async wrapInDirectory(hash, filename) {
+        let dirDag = { "Data": { "/": { "bytes": "CAE" } }, "Links": [{ "Hash": { "/": hash }, "Name": filename }] }
         return await this.putDag(dirDag)
+    }
 
+    /**
+     * @param {NamedHash[]} namedHashes 
+     * @returns {ipfsHash}
+     */
+    async wrapMultipleInDirectory(namedHashes) {
+        const dirDag = { "Data": { "/": { "bytes": "CAE" } }, "Links": [] }
+        for (const namedHash of namedHashes) {
+            dirDag.Links.push({ "Hash": { "/": namedHash.hash }, "Name": namedHash.name })
+        }
+        return await this.putDag(dirDag)
     }
 
     async getWithCatIpfs(hash) {
@@ -381,25 +402,25 @@ export class IpfsIndexer {
         return this.MiladyDropClaimDataHash
 
         //root
-            //ui folder
-                //ui shit
-            
-            //treedump.json                     <= {the entire tree}
-            //balances.csv                      <= [[nftAddr,id,amout],etc] (as csv ofc)
-            //metaData.json                     <= {nftAddrs:[], eligibleIds:{"0x1":[],"0x2":[]} }
+        //ui folder
+        //ui shit
 
-            //allProofs
-                //index.json           <= {"0x1":"HashOf-0x1-index.json"}
-                //0x1
-                    //index.json
-                    //data
-                        //0-100.json 
-                        //100-200.json
-                //0x2
-                    //index.json            <= [{"start":0, "stop":100, "hash":"hashOf_0-100-0x2.json"}, etc]
-                    //data
-                        //0-100.json
-                        //100-200.json      <= {"100":{"proof":["bytes32",etc]}, etc }
+        //treedump.json                     <= {the entire tree}
+        //balances.csv                      <= [[nftAddr,id,amout],etc] (as csv ofc)
+        //metaData.json                     <= {nftAddrs:[], eligibleIds:{"0x1":[],"0x2":[]} }
+
+        //allProofs
+        //index.json           <= {"0x1":"HashOf-0x1-index.json"}
+        //0x1
+        //index.json
+        //data
+        //0-100.json 
+        //100-200.json
+        //0x2
+        //index.json            <= [{"start":0, "stop":100, "hash":"hashOf_0-100-0x2.json"}, etc]
+        //data
+        //0-100.json
+        //100-200.json      <= {"100":{"proof":["bytes32",etc]}, etc }
 
 
     }
