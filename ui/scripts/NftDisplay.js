@@ -101,7 +101,7 @@ export class NftDisplay {
             if (this.nftMetaData.contractObj.target !== collectionAddress) {
                 console.warn("collection address is set by creating a new NftMetaDataCollector object this can break things! ")
                 this.nftMetaData = new NftMetaDataCollector(this.collectionAddress,this.provider,this.ipfsGateway)
-                await this.nftMetaData.fetchAllExtraMetaData()
+                await this.nftMetaData.fetchAllExtraMetaData(true)
 
             }
            

@@ -165,11 +165,14 @@ export class NftMetaDataCollector {
         }
         if(contractIsInExtraMetaData || contractIsInlocalStorage) {
             //strictly needed
-            if (contractIsInlocalStorage) {
-                this.idsPerAttribute = data.idsPerAttribute
-            } else {
-                this.idsPerAttribute = await (await this.getUrlByProtocol( data.idsPerAttribute)).json();
+            if(!skipIdsPerAttribute) {
+                if (contractIsInlocalStorage) {
+                    this.idsPerAttribute = data.idsPerAttribute
+                } else {
+                    this.idsPerAttribute = await (await this.getUrlByProtocol( data.idsPerAttribute)).json();
+                }
             }
+
             this.firstId = data.firstId;
             this.lastId = data.lastId;
 
@@ -211,13 +214,17 @@ export class NftMetaDataCollector {
 
             //TODO maybe save to session storage if collection was found in extraMetaData
             //but local storage if user build it them selfs (idsPerAttribute)
-            await this.storeDataToLocaStorage()
+            if (!skipIdsPerAttribute) {
+                await this.storeDataToLocaStorage()
+            }
+            
 
         }
     }
 
     async storeDataToLocaStorage(overwrite = false) {
         if (!this.idsPerAttribute) {
+            this.uriCache = await this.syncUriCache()
             this.idsPerAttribute = await this.buildIdsPerAttributeFromUriCache(this.uriCache, true)
         }
 
