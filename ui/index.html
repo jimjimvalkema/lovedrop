@@ -1,144 +1,105 @@
 <!DOCTYPE html>
 <style>
-    .tooltip {
-      position: relative;
-      display: inline-block;
-      border-bottom: 1px dotted black;
-    }
-    
-    .tooltip .tooltiptext {
-      visibility: hidden;
-      width: max-content;
-      background-color: black;
-      color: #fff;
-      text-align: center;
-      border-radius: 6px;
-      padding: 5px 0;
-    
-      /* Position the tooltip */
-      position:absolute;
-      z-index: 3;
-    }
-    
-    .tooltip:hover .tooltiptext {
-      visibility: visible;
-    }
-
-    dropbtn {
-        /* background-color: #3498DB;
-        color: white;
-        padding: 16px;
-        font-size: 16px; */
-        border: none;
-        cursor: pointer;
-    } 
-
-    /* .dropbtn:hover, .dropbtn:focus {
-    background-color: #2980B9;
-    } */
-
-
-    .dropdown {
-        position: relative;
-        display: inline-block;
-    }
-
-    .dropdown-content {
-        display: none;
-        position:absolute;
-        background-color: lightgray;
-        /* width:auto; */
-        white-space: nowrap;
-        overflow-y:scroll;
-        max-height: 30vh;
-        /* box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); */
-        z-index: 2; 
-        border-style: solid; 
-        border-color:black;
-    }
-
-    .clickable {
-        cursor: pointer;
-        text-decoration: underline dotted;
-    }
-
-    /* .dropdown-content a {
-        color: black;
-        padding: 12px 16px;
-        text-decoration: none;
-        display: block;
-    } */
-
-    /* .dropdown a:hover {background-color: #ddd;} */
     * {
-        font-size: 0.5cm;
         font-family: Arial;
+        line-height: 1.5em;
+        line-break: 2em;
     }
 
-    .show {display: block;}
-    </style>
+    .boldTitel {
+        font-weight: bolder;
+        /* text-align: left; */
+        font-size: 1.3em;
+        /* so its also always left on flex */
+        width: 100%;
+        padding-bottom: 0.6em;
+    }
+
+    .bold {
+        font-weight: bold;
+    }
+
+    .flexColumn {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+    }
+
+    .maxWidth {
+        width: 100%;
+    }
+
+    .bodyWidth {
+        width: 43em;
+        min-width: 1em;
+        max-width: 100%;
+    }
+
+    .textBlock {
+        padding: 0.2em;
+        padding-top: 3em;
+        padding-bottom: 0.1em;
+    }
+
+    .italicSmall {
+        font-family: italic;
+        font-size: 0.9em;
+    }
+</style>
+
 <body>
-    <div id="message" hidden="hidden" style="position:fixed;width:80vmin;height:60vmin; z-index: 1000; background-color: lightgray; left: 50%; transform: translate(-50%, 0);  top: 25%; transform: translate(-50%, 0);">
-        <button onclick="hideDiv('message')">hide</button>  
-    </div> 
-    <a href="./?mildayDropFactoryAddress=0xb214Bff26c1bb335Ae273A954405C907A365B357&ipfsApi=http://ipfs.dappnode:5001">
-        connect ipfs dappnode </a></br>
-    <a href="./?mildayDropFactoryAddress=0xb214Bff26c1bb335Ae273A954405C907A365B357&ipfsApi=http://127.0.0.1:45005">
-        connect ipfs companion </a></br>
-    <a>connect custom ipfs endpoint </a>
-    <form id="infuraIpfsForm"> <!--action="/action_page.php"-->
-        ipfs api endpoint: <input type="url" name="ipfsApi" required><br>
-        projectId (optional): <input type="text" name="projectId"><br>
-        Key Secret (optional): <input type="text" name="keySecret"><br><br>
-        <input type="button" onclick="goToclaim()" value="Submit">
-    </form>
-    <button onclick="test()">test</button>
-    <button onclick="connectSigner()">connect</button>
-    <input onchange="readFile(this)" type="file">
-    <button onclick="generateMerkleFromCsvFile()">generate</button>
-    <button onclick="deployDropContract()">deploy</button></br>
-    <div id="progressProofGen">progressProofGen</div>
-    <div id="message2">message2</div>
-    <div id="totalAmountDrop" style="border-style: solid; border-color:black;">total amount airdrop: 0</div>
-    <div id="allFilterResults"></div>
+    <div class="flexColumn maxWidth">
+        <div class="bodyWidth">
+            <h1>Lovedrop, airdrop love bombs on NFTS</h1>
 
-    <input type="text" id="nftAddressAttributeSelector" value="0x5af0d9827e0c53e4799bb226655a1de152a425a5"><button onclick="loadNft()">load NFT</button>
-    <a>amount: </a><input type="number" id="nftAmountAirdrop" value="1"><button onclick="addIds()">set for current ids</button>
-    <input type="text" id="airdropTokenAddressInput"><button onclick="setAirdropTokenAddress()">set airdrop token address (TODO)</button>
-    <button onclick="generateMerkleFromFilterResults()">generate merkle from results</button>
-    <div id="deployedDropsList"></div></br>
-    <div id="FilterBuilder"></div></br>
-    <div id="editFilter" ></div>
-    <div id="editAttributes"></div></br>
-    <div id="inputSelectorContainer" style="border-style: solid; border-color:black; width:14ch;float:left;">
-        <div id="inputSelector" ></div>
-        <div style="border-style: solid; border-color:black;">
-            <div id="inputSelectorField"></div>
+            <div class="textBlock">
+                <div class="boldTitel">What is lovedrop</div>
+                Lovedrop can airdrop erc20 tokens directly to the nfts ids. Instead of an address based snapshot.
+                <br>
+                <span class="bold">There is no snapshot i love you.</span>
+                There is no snapshot, users can still buy nfts, payback blur loans and claim tokens if that nft still
+                has them.
+                <br>
+                Because its tied to specific ids, you can <span class="bold">drop to specific attributes</span> or list
+                of ids.
+            </div>
+
+            <div class="textBlock">
+                <div class="boldTitel">Create</div>
+                Create an airdrop at: <a class="createUrl">create</a>
+            </div>
+
+            <div class="textBlock">
+                <div class="boldTitel">Claim</div>
+                Deployed Drops:
+                <ul class="dropsList">
+
+                </ul>
+                <span class="italicSmall">This list is updated manually.</span>
+            </div>
+
+            <div class="textBlock">
+                <div class="boldTitel">Notice</div>
+                Lovedrop is still in early development. Creating drops is at your own risk!
+                <br>
+                Lovedrop only <span class="bold">fully supports the collections in the selector</span> at the create
+                page. Most erc712 10k pfp collections with their base URI on ipfs, will likely work but be carefull and
+                dm me on twitter if anything looks off!
+                <br>
+                <br>
+                <span class="bold">Not support yet:</span> anything other than erc712, collections still minting (ex
+                crypto kitties), non standard meta data (ex og cryptopunks), with centralized metadata that has
+                restrictive CORS (ex azuki)
+
+            </div>
+
+
         </div>
-    </div>
-    <!-- <div id="test" style="height: 100px;"></div></br> -->
-    <div id="nftImages" style="width:40vw;float:left;"></div></br>
-    
-</body>
-    <script src="./scripts/cbor.js" type="text/javascript"></script>
 
-    <script src="./scripts/papaparse.min.js"  
-    type="application/javascript"></script>
-    <script src="./scripts/FileSaver.js"  
-    type="application/javascript"></script>
-    <script src="./scripts/jszip.js"  
-    type="application/javascript"></script>
-    <script src="./scripts/bundle.js"  
-        type="application/javascript"></script>
-    <!-- <script src="./scripts/ethers-5.2.umd.min.js"
-        type="application/javascript"></script>
-        <script src="./scripts/ethers-5.2.esm.min.js"
-        type="module"></script>
-    <script src="./scripts/papaparse.min.js"
-        type="application/javascript"></script> -->
-    <!-- <script src="./scripts/ipfsIndexer.js"  
-        type="application/javascript"></script> -->
-        <script src="./scripts/FilterBuilder.js"  
-        type="application/javascript"></script>
-    <script type="module" src="./scripts/app.js"  
-        type="application/javascript"></script>
+    </div>
+
+
+
+</body>
+
+<script type="module" src="./scripts/urlUtils.js" type="application/javascript"></script>
