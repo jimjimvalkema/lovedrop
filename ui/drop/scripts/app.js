@@ -1,7 +1,13 @@
 import { IpfsIndexer } from "../../scripts/IpfsIndexer.js";
 import { ethers } from "../../scripts/ethers-6.7.0.min.js";
 import { NftDisplay } from "../../scripts/NftDisplay.js";
+import { urlUtils } from "../../scripts/urlUtils.js";
 const delay = ms => new Promise(res => setTimeout(res, ms));
+
+const infuraProjectId = ""
+const infuraProjectSecret = ""
+const infuraIpfsGateway = ""
+const pinataIpfsGateway = ""
 
 const mainChain = {
     chainId: "0x1",
@@ -63,7 +69,7 @@ async function connectProvider() {
         window.provider = new  ethers.BrowserProvider(window.ethereum);
     } else {
         console.log("couldn't connect to window.ethereum using a external rpc")
-        const providerUrls = ["https://mainnet.infura.io/v3/", "https://eth.llamarpc.com"]
+        const providerUrls = ["https://eth.llamarpc.com"] //[`https://mainnet.infura.io/v3/${infuraProjectId}`, "https://eth.llamarpc.com"] infura cant take the load?? lmao
         const workingProviderUrl = await getFirstAvailableProvider(providerUrls)
         console.log(workingProviderUrl)
         window.provider = new ethers.JsonRpcProvider(workingProviderUrl)
@@ -273,8 +279,8 @@ async function displayNfts(nftAddress = null) {
     //display.imgOnclickFunction = onclickToBuy
     //display.divFunctions.push(nftImagesFilter)
     //display.divFunctions.push(clickToBuyMessage)
-    display.divFunctions.push(displayTokens)
-    display.displayNames({ redirect: true })
+    await display.addImageDivsFunction(displayTokens)
+    await display.displayNames({ redirect: true })
     const eligibleIds = Object.keys(window.idsPerCollection[window.currentNft])
 
     //process user ids
@@ -359,8 +365,9 @@ async function addTokenToMetamask(tokenAddress, tokenSymbol, tokenDecimals, toke
 async function loadAllContracts() {
     window.urlVars = await getUrlVars();
 
-    const claimPageUrl = new URL(window.location.href)
-    claimPageUrl.pathname = "claim"
+    const homePath = urlUtils.removeEndsPathname((new URL(window.location.href)).pathname, 1) 
+    const claimPath = homePath + "/claim/"
+    const claimPageUrl =  urlUtils.getUrlToPath(new URL(window.location.href), claimPath)
 
     document.getElementById("loading").innerText = "loading"
     document.getElementById("dropInfo").innerHTML = `Claim at: <a href=${decodeURIComponent(claimPageUrl.toString())}}>claim page</a><br>`
@@ -368,7 +375,7 @@ async function loadAllContracts() {
 
 
     if (!window.urlVars["ipfsGateway"]) {
-        window.ipfsGateways = ["https://.mypinata.cloud", "http://127.0.0.1:48084", "http://127.0.0.1:8080", "https://ipfs.io"] //no grifting pls thank :)
+        window.ipfsGateways = [infuraIpfsGateway,pinataIpfsGateway, "http://127.0.0.1:48084", "http://127.0.0.1:8080", "https://ipfs.io"] //no grifting pls thank :)
     } else {
         window.ipfsGateways = [window.urlVars["ipfsGateway"]]
     }

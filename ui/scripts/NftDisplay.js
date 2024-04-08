@@ -245,6 +245,9 @@ export class NftDisplay {
      * @param {function} func
      */
     async addImageDivsFunction(func, updateDisplay=true) {
+        
+        this.divFunctions = this.divFunctions.filter((divFunc)=>divFunc.name !== func.name)
+
         this.divFunctions.push(func)
         if (this.displayElement.innerHTML && updateDisplay) {
             //TODO remove only the div created by that function that needs to be removed
@@ -252,6 +255,7 @@ export class NftDisplay {
             await this.#applyDivFuntionsOnCurrentIds(this.divFunctions)
 
         }
+
     }
 
     /**
@@ -743,13 +747,13 @@ export class NftDisplay {
         return nameElement
     }
 
-    displayNames({redirect}={redirect:false}) {
+    async displayNames({redirect, updateDisplay}={redirect:false, updateDisplay:false}) {
         if (redirect) {
             const nftNameWithOpenSeaProRedirect = async (id)=>this.#nftNameWithOpenSeaProRedirect(id)
-            this.divFunctions.push(nftNameWithOpenSeaProRedirect)
+            await this.addImageDivsFunction(nftNameWithOpenSeaProRedirect, updateDisplay)
         } else {
             const nftName = async (id)=>this.#nftName(id)
-            this.divFunctions.push(nftName)
+            await this.addImageDivsFunction(nftName, updateDisplay)
         }
     }
 
@@ -785,12 +789,17 @@ export class NftDisplay {
     /**
      * makes all selectable that arent in this.notSelectable TODO better name
      */
-    makeAllSelectable() {
+    async makeAllSelectable() {
+        // const selectionElements = this.displayElement.querySelector('.nftDisplaySelectionStatus')
+        // if (selectionElements && typeof(selectionElements) === "object") {
+        //     selectionElements.forEach((el)=>el.outerHTML="")
+
+        // }
         const toggleSelect = (id) => this.#toggleSelect(id)
         this.setImgOnclickFunction(toggleSelect)
 
         const selectionStatus = (id)=>this.#selectedStatus(id)
-        this.addImageDivsFunction(selectionStatus)
+        await this.addImageDivsFunction(selectionStatus)
 
     }
 
@@ -818,6 +827,10 @@ export class NftDisplay {
         }
 
         this.notSelectable = this.notSelectable.filter((x)=>ids.indexOf(x)===-1)
+        // const selectionElements = this.displayElement.querySelector('.nftDisplaySelectionStatus')
+        // if (selectionElements && typeof(selectionElements) === "object") {
+        //     selectionElements.forEach((el)=>el.outerHTML="")
+        // }
         for (const id of ids) {
             let imageDiv = document.getElementById(`imageDiv-${id}-${this.collectionAddress}`)
             const toggleSelect = (e, id) => this.#toggleSelect(e, id)

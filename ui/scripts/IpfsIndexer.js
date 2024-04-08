@@ -361,7 +361,7 @@ export class IpfsIndexer {
         return r.json();
     }
 
-    async createMiladyDropClaimData(treeDump, allProofs, balancesAsCsv, idsPerCollection, dropMetaData = {}, splitSize = 500, uiHash = "Qmd9khr3UjLjvYNZoLZnd7W2yeDXDQhp1pdh5hb6KGrBro") {//uiHash:oct7
+    async createMiladyDropClaimData(treeDump, allProofs, balancesAsCsv, idsPerCollection, dropMetaData = {}, splitSize = 500, uiHash = "bafybeierhcdhdmhk56aabmpousjhvj66berrzrkcbqmttykna7pagscsbi") {//uiHash:oct7
         const treeDumpHash = (await this.addToIpfs(JSON.stringify(treeDump), "treeDump.json"))["Hash"]
         const rootDirHash = await this.wrapInDirectory(treeDumpHash, "treeDump.json")
         let rootDirDag = await this.getDag(rootDirHash);

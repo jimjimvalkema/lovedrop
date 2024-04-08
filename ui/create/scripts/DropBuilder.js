@@ -11,6 +11,17 @@ import { LoveDropAbi } from "../../abi/LoveDropAbi.js"
 
 
 
+// const mainChain = {
+//     chainId: "0x1",
+//     rpcUrls: ["https://eth.llamarpc.com"],
+//     chainName: "Ethereum Mainnet",
+//     nativeCurrency: {
+//         name: "Ethereum",
+//         symbol: "ETH",
+//         decimals: 18
+//     },
+//     //blockExplorerUrls: []
+// }
 
 export class DropBuilder {
     criteriaBuilder
@@ -91,21 +102,21 @@ export class DropBuilder {
     //     //blockExplorerUrls: []
     // }
 
-    static mainChain = {
-        chainId: "0x7A69",
-        rpcUrls: ["http://localhost:8555/"],
-        chainName: "local fork Ethereum Mainnet",
-        nativeCurrency: {
-            name: "Ethereum",
-            symbol: "ETH",
-            decimals: 18
-        },
-        //blockExplorerUrls: []
-    }
+    // static mainChain = {
+    //     chainId: "0x7A69",
+    //     rpcUrls: ["http://localhost:8555/"],
+    //     chainName: "local fork Ethereum Mainnet",
+    //     nativeCurrency: {
+    //         name: "Ethereum",
+    //         symbol: "ETH",
+    //         decimals: 18
+    //     },
+    //     //blockExplorerUrls: []
+    // }
 
 
 
-    constructor({ collectionAddress, provider, ipfsGateway, nftDisplayElementCriteriaBuilder, ipfsIndexer, loveDropFactoryAddress } = { collectionAddress: undefined, provider, ipfsGateway, nftDisplayElementCriteriaBuilder, loveDropFactoryAddress: "0xfCD69606969625390C79c574c314b938853e1061" }) {
+    constructor({ collectionAddress, provider, ipfsGateway, nftDisplayElementCriteriaBuilder, ipfsIndexer, loveDropFactoryAddress, network } = { collectionAddress: undefined, provider, ipfsGateway, nftDisplayElementCriteriaBuilder, loveDropFactoryAddress: "0xfCD69606969625390C79c574c314b938853e1061", network: mainChain }) {
         this.criteriaBuilder = new CriteriaBuilder({
             collectionAddress: collectionAddress,
             provider: provider,
@@ -119,6 +130,7 @@ export class DropBuilder {
         this.ipfsIndexer = ipfsIndexer
         this.nftDisplayElementCriteriaBuilder = nftDisplayElementCriteriaBuilder
         this.loveDropFactoryAddress = loveDropFactoryAddress
+        this.mainChain = network
         //initialize
         //this.dropBuilderEl.style.display = "none"
         this.selectDropBuilderPageIndex(0)
@@ -456,8 +468,8 @@ export class DropBuilder {
         //new ethers.BrowserProvider(window.ethereum).provider["provider"].on('chainChanged', async (networkId) => {
         if (window.ethereum) {
             window.ethereum.on('chainChanged', async (networkId) => {
-                if (networkId !== DropBuilder.mainChain.chainId) {
-                    await DropBuilder.switchNetwork(DropBuilder.mainChain)
+                if (networkId !== this.mainChain.chainId) {
+                    await DropBuilder.switchNetwork(this.mainChain)
                     console.warn("network changed TODO handle this")
                 }
             })
@@ -467,7 +479,7 @@ export class DropBuilder {
 
 
 
-        await DropBuilder.switchNetwork(DropBuilder.mainChain)
+        await DropBuilder.switchNetwork(this.mainChain)
 
 
     }
@@ -509,13 +521,13 @@ export class DropBuilder {
 
     async connectSigner() {
         // MetaMask requires requesting permission to connect users accounts
-        await DropBuilder.switchNetwork(DropBuilder.mainChain)
+        await DropBuilder.switchNetwork(this.mainChain)
         await this.provider.send("eth_requestAccounts", []);
         this.signer = await window.provider.getSigner();
         await this.#runOnConnectWallet()
     }
 
-    static async switchNetwork(network = DropBuilder.mainChain) {
+    static async switchNetwork(network = this.mainChain) {
         let result
         try {
             result = await window.provider.send("wallet_switchEthereumChain", [{ chainId: network.chainId }]);
@@ -976,10 +988,12 @@ export class DropBuilder {
      * @returns 
      */
     async removeConflictingCriteria(mode = "largest", criteriaPerIds) {
+        this.backButtonEl.disabled = true
         await this.removeConflictResolutionCriteria()
         let filteredCriteria = structuredClone(criteriaPerIds)
         const validModes = ["smallest", "largest", "last", "first", "remove", "add"]
         if (validModes.indexOf(mode) === -1) {
+            this.backButtonEl.disabled = false
             throw Error(`type: ${mode} unkown. try "smallest", "largest", "last", "first", "add" or "remove"`)
         }
 
@@ -1047,6 +1061,7 @@ export class DropBuilder {
                     filteredCriteria[collection][id] = criterionWithReferenceIndexes[index].criterion
                 }
             }
+            this.backButtonEl.disabled = false
             return filteredCriteria
 
         } else {
@@ -1079,6 +1094,8 @@ export class DropBuilder {
             }
 
         }
+
+        this.backButtonEl.disabled = false
         return filteredCriteria
     }
 
@@ -1105,9 +1122,10 @@ export class DropBuilder {
     }
 
     async #conflictResolutionSelectorHandler(event, criteriaPerIds = this.criteriaPerIds) {
-        this.confirmConflictResolutionButtonEl.disabled = false
+        this.confirmConflictResolutionButtonEl.disabled = true
         const criteriaPerId = await this.removeConflictingCriteria(event.target.value, criteriaPerIds)
         this.criteriaPerIdNoConflicts = criteriaPerId
+        this.confirmConflictResolutionButtonEl.disabled = false
     }
 
     async #createCollectionElement(criterion) {
@@ -1518,7 +1536,7 @@ export class DropBuilder {
             collectionInfoFlag: false
         })
 
-        nftDisplay.displayNames({ redirect: true })
+        await nftDisplay.displayNames({ redirect: true })
         await nftDisplay.showAttributes()
         //await nftDisplay.addImageDivsFunction((id, nftDisplay) => this.#showCriteriaNftDisplay(id, nftDisplay), false)
         await nftDisplay.initialize()
@@ -1551,7 +1569,7 @@ export class DropBuilder {
     async #confirmConflictResolutionHandler() {
         if (this.criteriaPerIdNoConflicts) {
             //clear previous elements incase there are some
-            this.#selectDropBuilderPageEl(this.giveDropToDevsEl)
+            await this.#selectDropBuilderPageEl(this.giveDropToDevsEl)
 
             //this.criteriaTableEl.append(...tableRows.flat())
         } else {
@@ -1793,10 +1811,15 @@ export class DropBuilder {
                     The airdrop is now ready! Wow cool! :D \n
                     View this drop at: 
                     `
-                    const dropUrl = DropBuilder.getUrlToPath(new URL(window.location.href),"drop",{"lovedrop":this.deployedDropAddress})
                     const urlNoSearch = new URL(window.location.href)
+                    const currentPath = urlNoSearch.pathname
+                    const newPath = `${currentPath.replace("/create/","")}/drop`
                     urlNoSearch.search = ""
-                    const cleanDropUrl =  DropBuilder.getUrlToPath(urlNoSearch,"drop",{"lovedrop":this.deployedDropAddress})
+
+                    //asumes current page is always create and the last in the path
+                    
+                    const dropUrl = DropBuilder.getUrlToPath(new URL(window.location.href),newPath,{"lovedrop":this.deployedDropAddress})
+                    const cleanDropUrl =  DropBuilder.getUrlToPath(urlNoSearch,newPath,{"lovedrop":this.deployedDropAddress})
 
                     const paramsToRemove = ["ipfsApi", "infuraProjectId", "infuraProjectSecret"]
                     DropBuilder.removeParamsFromUrl(dropUrl, paramsToRemove)
@@ -1863,7 +1886,7 @@ export class DropBuilder {
             pageSelectorFlag: false
         })
 
-        nftDisplay.displayNames({ redirect: true })
+        await nftDisplay.displayNames({ redirect: true })
         //await nftDisplay.showAttributes()
         //await nftDisplay.addImageDivsFunction((id, nftDisplay) => this.#showCriteriaNftDisplay(id, nftDisplay), false)
         await nftDisplay.initialize()

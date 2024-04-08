@@ -157,25 +157,14 @@ export class NftMetaDataCollector {
         //if it is not in there the extraMetaData has only 1 key which is the default type
         const contractIsInExtraMetaData = Object.keys(this.extraMetaData).length > 1
         if (contractIsInlocalStorage) {
-            console.log(`${this.contractObj.target} extraMetaDataFile was found in local storage :D`)
+            console.log(`${this.contractObj.target} extr
+            aMetaDataFile was found in local storage :D`)
             data = JSON.parse(localStorage.getItem(await this.contractObj.target));
 
         }  else if (contractIsInExtraMetaData) {
             data = this.extraMetaData
         }
         if(contractIsInExtraMetaData || contractIsInlocalStorage) {
-            //strictly needed
-            if(!skipIdsPerAttribute) {
-                if (contractIsInlocalStorage) {
-                    this.idsPerAttribute = data.idsPerAttribute
-                } else {
-                    this.idsPerAttribute = await (await this.getUrlByProtocol( data.idsPerAttribute)).json();
-                }
-            }
-
-            this.firstId = data.firstId;
-            this.lastId = data.lastId;
-
             //extra
             if ("baseUri" in data) {
                 this.baseURICache = data.baseUri
@@ -184,6 +173,28 @@ export class NftMetaDataCollector {
                     
                 }
             }
+            this.firstId = data.firstId;
+            this.lastId = data.lastId;
+
+            //strictly needed
+            if(!skipIdsPerAttribute) {
+                if (contractIsInlocalStorage) {
+                    this.idsPerAttribute = data.idsPerAttribute
+                } else {
+                    if ("idsPerAttribute" in data) {
+                        this.idsPerAttribute = await (await this.getUrlByProtocol( data.idsPerAttribute)).json();
+
+                    } else {
+                        this.uriCache = undefined
+                        this.idsPerAttribute = await this.getIdsPerAttribute()
+                    }
+                    
+                }
+            }
+
+
+
+
 
             if ("compressedImages" in data) {
                 //TODO
@@ -241,6 +252,11 @@ export class NftMetaDataCollector {
             storageObj["baseUriExtension"] = this.baseUriExtension
         }
 
+        if (("compressedImages" in this.extraMetaData)) {
+            storageObj["compressedImages"]  = this.extraMetaData["compressedImages"]
+        }
+
+
         if (overwrite === false && (this.contractObj.target in localStorage) === false) {
             try {
                 if (!(typeof (localStorage) === "undefined")) {
@@ -278,6 +294,11 @@ export class NftMetaDataCollector {
         if (this.baseUriExtension) {
             storageObj[this.contractObj.target]["baseUriExtension"] = this.baseUriExtension
         }
+
+        if (("compressedImages" in this.extraMetaData)) {
+            storageObj[this.contractObj.target]["compressedImages"]  = this.extraMetaData["compressedImages"]
+        }
+
 
         console.log(JSON.stringify(storageObj, null, 2))
         return storageObj
@@ -427,7 +448,7 @@ export class NftMetaDataCollector {
         }
     }
 
-    async getLastId(maxAmountChecks = 8000, messageProgressElement = undefined) {
+    async getLastId(maxAmountChecks = 4000, messageProgressElement = undefined) {
         if (this.lastId) {
             return this.lastId
         }
@@ -435,7 +456,7 @@ export class NftMetaDataCollector {
         let totalSupply = await this.getTotalSupply()
         if (!totalSupply) {
             totalSupply = this.defaultTotalSupply
-            maxAmountChecks = 2000
+            maxAmountChecks = 8000
             console.warn(`couldnt get totalsupply from contract checking a ${maxAmountChecks / 2} ids above and below id ${totalSupply}`)
             console.warn(`this is very cringe btw`)
         }
@@ -1253,7 +1274,7 @@ export class NftMetaDataCollector {
         if (!this.uriCache || !this.uriCache.length) {
             this.uriCache = await this.syncUriCache()
         }
-        this.totalSupply = this.uriCache.length - 1
+        this.totalSupply = this.uriCache.length 
 
         let idsPerAttribute = {}
         const uriKeys = Object.keys(this.uriCache).map(((x) => parseInt(x)));

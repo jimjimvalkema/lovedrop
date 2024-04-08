@@ -2,25 +2,19 @@ import { IpfsIndexer } from "../../scripts/IpfsIndexer.js";
 import { ethers } from "../../scripts/ethers-6.7.0.min.js";
 import { MerkleBuilder } from "../../scripts/MerkleBuilder.js"
 import { NftDisplay } from "../../scripts/NftDisplay.js";
+import { urlUtils } from "../../scripts/urlUtils.js";
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 
-// const mainChain = {
-//     chainId: "0x1",
-//     rpcUrls: ["https://eth.llamarpc.com"],
-//     chainName: "Ethereum Mainnet",
-//     nativeCurrency: {
-//       name: "Ethereum",
-//       symbol: "ETH",
-//       decimals: 18
-//     },
-//     //blockExplorerUrls: []
-//   }
+const infuraProjectId = ""
+const infuraProjectSecret = ""
+const infuraIpfsGateway = ""
+const pinataIpfsGateway = ""
 
-const mainChain = {
-    chainId: "0x7A69",
-    rpcUrls: ["http://localhost:8555/"],
-    chainName: "local fork Ethereum Mainnet",
+const network = {
+    chainId: "0x1",
+    rpcUrls: ["https://eth.llamarpc.com"],
+    chainName: "Ethereum Mainnet",
     nativeCurrency: {
         name: "Ethereum",
         symbol: "ETH",
@@ -28,6 +22,18 @@ const mainChain = {
     },
     //blockExplorerUrls: []
 }
+
+// const network = {
+//     chainId: "0x7A69",
+//     rpcUrls: ["http://localhost:8555/"],
+//     chainName: "local fork Ethereum Mainnet",
+//     nativeCurrency: {
+//         name: "Ethereum",
+//         symbol: "ETH",
+//         decimals: 18
+//     },
+//     //blockExplorerUrls: []
+// }
 
 async function getUrlVars() {
     var vars = {};
@@ -39,11 +45,11 @@ async function getUrlVars() {
 
 async function connectProvider() {
     if (window.ethereum) {
-        await switchNetwork(mainChain)
+        await switchNetwork(network)
         window.provider = new ethers.BrowserProvider(window.ethereum);
     } else {
         console.log("couldn't connect to window.ethereum using a external rpc")
-        const providerUrls = ["https://mainnet.infura.io/v3/", "https://eth.llamarpc.com"]
+        const providerUrls = [`https://mainnet.infura.io/v3/${infuraProjectId}`, "https://eth.llamarpc.com"]
         const workingProviderUrl = await getFirstAvailableProvider(providerUrls)
         console.log(workingProviderUrl)
         window.provider = new ethers.JsonRpcProvider(workingProviderUrl)
@@ -112,6 +118,12 @@ async function getAccountName(address) {
 window.getAccountName = getAccountName
 
 async function connectSigner(refreshNftDisplay = true) {
+    if (refreshNftDisplay && typeof(window.allNftDisplays)=== "object") {
+        window.allNftDisplays.forEach(display => display.clear());
+        await clearSelection()
+
+    }
+    
     // MetaMask requires requesting permission to connect users accounts
     if (!window.ethereum) {
         message("no inject ethereum wallet found please install metamask or equivalant!")
@@ -120,7 +132,7 @@ async function connectSigner(refreshNftDisplay = true) {
         return 0
     }
 
-    await switchNetwork(mainChain)
+    await switchNetwork(network)
     await provider.send("eth_requestAccounts", []);
     window.signer = await provider.getSigner();
     message("please connect wallet :)")
@@ -147,7 +159,7 @@ async function connectSigner(refreshNftDisplay = true) {
 }
 window.connectSigner = connectSigner
 
-async function switchNetwork(network = mainChain) {
+async function switchNetwork(network = network) {
     try {
         await window.provider.send("wallet_switchEthereumChain", [{ chainId: network.chainId }]);
 
@@ -547,7 +559,7 @@ async function displayNfts() {
         if (domElement) { domElement.innerHTML = "" }
 
         //display amount of token recieved
-        display.divFunctions.push(displayTokens)
+        await display.addImageDivsFunction(displayTokens, false)
         const userIds = (await display.setIdsFromOwner(await window.userAddress))
 
         //process user ids
@@ -596,13 +608,14 @@ async function loadAllContracts() {
     document.getElementById("loading").innerText = "loading"
     window.urlVars = await getUrlVars();
 
+    const homePath = urlUtils.removeEndsPathname((new URL(window.location.href)).pathname, 1) 
+    const dropPath = homePath + "/drop/"
+    const dropPageUrl =  urlUtils.getUrlToPath(new URL(window.location.href), dropPath)
 
-    const dropPageUrl = new URL(window.location.href)
-    dropPageUrl.pathname = "drop"
     document.getElementById("dropInfo").innerHTML = `See all nfts: <a href=${decodeURIComponent(dropPageUrl.toString())}}>drop page</a>`
 
     if (!window.urlVars["ipfsGateway"]) {
-        window.ipfsGateways = ["https://.mypinata.cloud", "http://127.0.0.1:48084", "http://127.0.0.1:8080", "https://ipfs.io"] //no grifting pls thank :)
+        window.ipfsGateways = [infuraIpfsGateway,pinataIpfsGateway, "http://127.0.0.1:48084", "http://127.0.0.1:8080", "https://ipfs.io"] //no grifting pls thank :)
     } else {
         window.ipfsGateways = [window.urlVars["ipfsGateway"]]
     }

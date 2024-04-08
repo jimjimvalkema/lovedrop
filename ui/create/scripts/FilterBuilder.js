@@ -628,7 +628,6 @@ export class FilterBuilder {
 
     //filter selector
     createNewFilter(type, name="") {
-        console.warn("weee new filter")
         //TODO filtername to just name
         //TODO set filter dropdown of criteria field
         const newFiltersIndex= this.getFiltersOfCollection().length

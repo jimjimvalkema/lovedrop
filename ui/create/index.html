@@ -69,7 +69,7 @@
         font-size: 1.7em;
         font-weight: bold;
         -webkit-text-fill-color: #ffffff;
-        -webkit-text-stroke-width: 0.06em;
+        -webkit-text-stroke-width: 0.03em;
         -webkit-text-stroke-color: #000000;
         z-index: 3;
     }
@@ -482,7 +482,7 @@
         color: white;
         font-weight: bolder;
         -webkit-text-fill-color: #ffffff;
-        -webkit-text-stroke-width: 0.3px;
+        -webkit-text-stroke-width: 0.01em;
         -webkit-text-stroke-color: #000000;
     }
 
@@ -582,7 +582,7 @@
 
     #dropBuilderConflictsContent {
 
-        max-width: 80em;
+        max-width: 82em;
         min-width: 45em;
         flex-direction: column;
     }
@@ -769,14 +769,18 @@
         font-size: 1.5em;
     }
 
+    .padded {
+        padding: 1em;
+    }
+
 </style>
 
 <body>
     <nav class="mainNav">
         <ol>
-            <li class="mainNavItem"><a href="/">home</a></li>
-            <li class="mainNavItem"><a href="/create">create</a></li>
-            <li class="mainNavItem"><a href="/drop">drops</a></li>
+            <li class="mainNavItem"><a class="homeUrl">home</a></li>
+            <li class="mainNavItem"><a class="createUrl">create</a></li>
+            <li class="mainNavItem"><a class="dropUrl">drops</a></li>
         </ol>
     </nav>
 
@@ -1165,7 +1169,7 @@
     
     
             </div>
-            <div class="maxWidth">
+            <div class="maxWidth padded">
                 <button id="confirmDistrobutionBtn">confirm</button>
 
             </div>
@@ -1181,8 +1185,8 @@
             <div id="tokenInputForm" class="border">
                 <div class="boldTitel">Set token</div>
                 <label>Set airdrop token: <input class="addressInput" id="airdropTokenContractAddressInput" type="text"
-                        value="0x3AEC26bf9FEDba55a55e970504f439101AbD7327"
-                        placeholder="contract address"></input></label>
+                        value=""
+                        placeholder="ERC20 contract address"></input></label>
 
 
             </div>

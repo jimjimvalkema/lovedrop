@@ -1,10 +1,40 @@
 import { IpfsIndexer } from "../../scripts/IpfsIndexer.js";
 import { ethers } from "../../scripts/ethers-6.7.0.min.js";
+import { urlUtils } from "../../scripts/urlUtils.js";
 //test
 window.ethers = ethers
 
 // import {CriteriaBuilder} from "./CriteriaBuilder.js";
 import {DropBuilder} from "./DropBuilder.js"
+
+const infuraProjectId = ""
+const infuraProjectSecret = ""
+const infuraIpfsGateway = ""
+const pinataIpfsGateway = ""
+
+const network = {
+    chainId: "0x1",
+    rpcUrls: ["https://eth.llamarpc.com"],
+    chainName: "Ethereum Mainnet",
+    nativeCurrency: {
+        name: "Ethereum",
+        symbol: "ETH",
+        decimals: 18
+    },
+    //blockExplorerUrls: []
+}
+
+// const network = {
+//     chainId: "0x7A69",
+//     rpcUrls: ["http://localhost:8555/"],
+//     chainName: "local fork Ethereum Mainnet",
+//     nativeCurrency: {
+//         name: "Ethereum",
+//         symbol: "ETH",
+//         decimals: 18
+//     },
+//     //blockExplorerUrls: []
+// }
 
 
 
@@ -34,7 +64,7 @@ async function connectProvider() {
         // });
     } else {
         console.log("couldn't connect to window.ethereum using a external rpc")
-        const providerUrls = ["https://mainnet.infura.io/v3/", "https://eth.llamarpc.com"] 
+        const providerUrls =  ["https://eth.llamarpc.com"] //[`https://mainnet.infura.io/v3/${infuraProjectId}`, "https://eth.llamarpc.com"] 
         const workingProviderUrl = await getFirstAvailableProvider(providerUrls)
         console.log(workingProviderUrl) 
         window.provider = new  ethers.JsonRpcProvider(workingProviderUrl)
@@ -67,11 +97,13 @@ function message(message) {
 
 
 async function runOnLoad() {
+    urlUtils.setAllNavUrls(1)
+
     window.urlVars = await getUrlVars();
     await connectProvider()
 
     if (!window.urlVars["ipfsGateway"]) {
-        window.ipfsGateways = ["https://.mypinata.cloud","http://127.0.0.1:48084","http://127.0.0.1:8080","https://ipfs.io"] //no grifting pls thank :)
+        window.ipfsGateways = [pinataIpfsGateway,infuraIpfsGateway,"http://127.0.0.1:48084","http://127.0.0.1:8080","https://ipfs.io"] //no grifting pls thank :) //pinataIpfsGateway
     } else {
         window.ipfsGateways = [window.urlVars["ipfsGateway"]]
     }
@@ -96,17 +128,12 @@ async function runOnLoad() {
         }
 
     } else {
-        const projectId = "TODO"
-        const projectSecret = "TODO"
-        const auth = "Basic " + btoa(projectId + ":" + projectSecret);
+        const auth = "Basic " + btoa(infuraProjectId + ":" + infuraProjectSecret);
         window.ipfsIndex = new IpfsIndexer(["https://ipfs.infura.io:5001"],auth,false,messageElementId)
 
     }
     
 
-    
-   
-    
 
 
     test()
@@ -121,7 +148,8 @@ async function test() {
         ipfsGateway : window.ipfsGateway,
         ipfsIndexer: window.ipfsIndex,
         nftDisplayElementCriteriaBuilder : nftDisplayElement,
-        loveDropFactoryAddress:"0xfCD69606969625390C79c574c314b938853e1061"
+        loveDropFactoryAddress:"0xfCD69606969625390C79c574c314b938853e1061",
+        network: network
     });
 
 
